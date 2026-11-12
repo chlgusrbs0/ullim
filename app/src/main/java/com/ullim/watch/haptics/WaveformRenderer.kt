@@ -13,6 +13,7 @@ interface WaveformDevice {
 
 interface SessionRenderer : HapticRenderer {
     fun begin(sessionId: Long)
+    fun renderBatch(frames: List<HapticFrame>): RenderResult
 }
 
 class WaveformRenderer(private val device: WaveformDevice) : SessionRenderer {
@@ -28,22 +29,33 @@ class WaveformRenderer(private val device: WaveformDevice) : SessionRenderer {
         this.sessionId = sessionId
     }
 
-    @Synchronized override fun render(frame: HapticFrame): RenderResult {
-        if (sessionId == 0L || frame.sessionId != sessionId || lastTimestampNs?.let { frame.timestampNs <= it } == true) return RenderResult.STALE
-        lastTimestampNs = frame.timestampNs
+    override fun render(frame: HapticFrame): RenderResult = renderBatch(listOf(frame))
+
+    @Synchronized override fun renderBatch(frames: List<HapticFrame>): RenderResult {
+        val batch = frames.toList()
+        if (batch.isEmpty() || batch.size > 50 || batch.sumOf { it.durationMs } > 1000) return RenderResult.FAILED
+        if (sessionId == 0L || batch.any { it.sessionId != sessionId } || lastTimestampNs?.let { batch.first().timestampNs <= it } == true) return RenderResult.STALE
+        if (batch.zipWithNext().any { (a, b) -> b.timestampNs != a.timestampNs + a.durationMs * 1_000_000L }) return RenderResult.STALE
+        lastTimestampNs = batch.last().timestampNs
         if (!device.capabilities.available) return RenderResult.UNSUPPORTED
         return try {
-            if (frame.isSilent) {
+            if (batch.all { it.isSilent }) {
                 device.cancel()
                 RenderResult.SILENT
             } else {
-                if (strengthLimited) {
-                    val pulse = PulseFallback.encode(frame.commandedIntensity, frame.durationMs)
-                    device.play(pulse.timings, pulse.amplitudes)
-                } else {
-                    val amplitude = (frame.commandedIntensity.coerceAtMost(0.85f) * 255).roundToInt().coerceIn(1, 217)
-                    device.play(longArrayOf(0, frame.durationMs), intArrayOf(0, amplitude))
+                val timings = mutableListOf(0L)
+                val amplitudes = mutableListOf(0)
+                for (frame in batch) {
+                    if (strengthLimited) {
+                        val pulse = PulseFallback.encode(frame.commandedIntensity, frame.durationMs)
+                        timings.addAll(pulse.timings.toList())
+                        amplitudes.addAll(pulse.amplitudes.toList())
+                    } else {
+                        timings.add(frame.durationMs)
+                        amplitudes.add(if (frame.isSilent) 0 else (frame.commandedIntensity.coerceAtMost(0.85f) * 255).roundToInt().coerceIn(1, 217))
+                    }
                 }
+                device.play(timings.toLongArray(), amplitudes.toIntArray())
                 RenderResult.SENT
             }
         } catch (_: RuntimeException) {

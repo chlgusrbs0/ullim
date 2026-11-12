@@ -61,4 +61,14 @@ class AdaptiveHapticRenderer(
         envelopeEnabled = false
         waveform.cancel()
     }
+
+    @Synchronized override fun renderBatch(frames: List<HapticFrame>): RenderResult {
+        if (frames.size == 1) return render(frames.single())
+        if (frames.isEmpty() || sessionId == 0L || frames.any { it.sessionId != sessionId } ||
+            lastTimestampNs?.let { frames.first().timestampNs <= it } == true
+        ) return RenderResult.STALE
+        val result = waveform.renderBatch(frames)
+        if (result == RenderResult.SENT || result == RenderResult.SILENT) lastTimestampNs = frames.last().timestampNs
+        return result
+    }
 }
