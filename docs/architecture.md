@@ -66,6 +66,16 @@ DSP features + requested haptic frames + AI state ─► throttled Compose visua
 
 **원칙:** 화면의 촉각 파형은 **명령값**이다. 사용자가 실제로 느끼는 물리 진동을 직접 측정한 값이 아니다.
 
+### #3 Kotlin 계약
+
+`core/Contracts.kt`는 16,000Hz mono PCM16을 고정한다. `AudioFrame`은 생성 시 샘플을 복사하고 읽기 접근 및 별도 복사본만 제공하므로 생산자·DSP·AI가 서로의 데이터를 변경할 수 없다. PCM은 32768로 나눠 [-1, 1)로 해석한다. DSP 한 프레임은 320샘플(20ms), AI 창은 15,600샘플(975ms)이다.
+
+`timestampNs`는 세션 내 오디오 첫 샘플의 monotonic 나노초이며 벽시계 시간이 아니다. `sessionId`는 프로세스 내 시작마다 증가하는 양수다. 특징값 RMS·peak·envelope·noise·onset·level과 `commandedIntensity`는 유한한 [0,1] 값만 받는다. level 및 명령 강도 0은 무음이다. `HapticFrame.durationMs`는 밀리초이며 명령 하나당 1~1,000ms로 제한한다. 명령 강도는 실제 모터 가속도 측정값이 아니다.
+
+특징 추출기와 매퍼의 변경 가능한 상태는 DSP 작업자 하나가 소유하며 세션 시작/중지에 reset한다. 분류기는 전용 AI 작업자에서만 호출하고 해당 작업자가 close한다. `LatestClassification`은 불변 분류 결과를 원자적으로 교체하며 DSP는 추론 호출 없이 최신 유효 스냅샷만 읽는다. 미래·만료·다른 세션 결과는 null이고, 늦게 완료된 이전 결과는 최신 결과를 덮지 않는다. AI 오류는 UNAVAILABLE, 사용자 OFF는 DISABLED이며 listening 상태와 독립적이다. UI는 스냅샷을 관찰하며 DSP 경로에서 UI 콜백을 호출하지 않는다.
+
+렌더러는 명령 전송 결과를 SENT/SILENT/UNSUPPORTED/STALE/FAILED로 구분하고 cancel로 중지한다. 이 계약 자체가 스케줄링·실기기 동작을 구현하거나 보증하지는 않는다.
+
 ## 4. 실시간 촉각화 정책
 
 - 음량·엔벌로프·onset을 사용해 상대적 세기, 시작점, 반복 간격과 지속시간을 표현한다. **소리의 레이블을 고정 횟수의 진동으로 변환하는 것을 주기능으로 만들지 않는다.**
