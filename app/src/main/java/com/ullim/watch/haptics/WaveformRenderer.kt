@@ -37,8 +37,13 @@ class WaveformRenderer(private val device: WaveformDevice) : SessionRenderer {
                 device.cancel()
                 RenderResult.SILENT
             } else {
-                val amplitude = if (strengthLimited) -1 else (frame.commandedIntensity.coerceAtMost(0.85f) * 255).roundToInt().coerceIn(1, 217)
-                device.play(longArrayOf(0, frame.durationMs), intArrayOf(0, amplitude))
+                if (strengthLimited) {
+                    val pulse = PulseFallback.encode(frame.commandedIntensity, frame.durationMs)
+                    device.play(pulse.timings, pulse.amplitudes)
+                } else {
+                    val amplitude = (frame.commandedIntensity.coerceAtMost(0.85f) * 255).roundToInt().coerceIn(1, 217)
+                    device.play(longArrayOf(0, frame.durationMs), intArrayOf(0, amplitude))
+                }
                 RenderResult.SENT
             }
         } catch (_: RuntimeException) {

@@ -40,7 +40,8 @@ class WaveformRendererTest {
         renderer.begin(1)
         renderer.render(HapticFrame(1, 0, 20, 0.5f))
         assertTrue(renderer.strengthLimited)
-        assertEquals(-1, device.played.single().amplitudes.last())
+        assertTrue(device.played.single().amplitudes.contains(-1))
+        assertEquals(0, device.played.single().amplitudes.last())
     }
 
     @Test fun staleSessionsDuplicateTimeAndStoppedCommandsCannotVibrate() {
