@@ -22,4 +22,19 @@
     <string name="command_sent">진동 명령을 보냈어요\n실제 반응을 측정한 값은 아니에요</string>
     <string name="output_failed">진동 출력에 실패했어요</string>
     <string name="output_stopped">출력을 중지했어요</string>
+    <string name="start_listening">소리 감지 시작</string>
+    <string name="ready_to_listen">소리를 진동으로 느껴보세요</string>
+    <string name="starting_listening">감지를 시작하고 있어요</string>
+    <string name="active_listening">소리 감지 중</string>
+    <string name="stopping_listening">마이크와 진동을 정리하고 있어요</string>
+    <string name="microphone_permission_needed">마이크 권한이 필요해요. 권한을 허용한 뒤 다시 시작해 주세요.</string>
+    <string name="service_start_failed">지금은 감지를 시작할 수 없어요. 앱 화면에서 다시 시작해 주세요.</string>
+    <string name="capture_failed">소리 처리 중 오류가 발생해 멈췄어요. 권한과 기기 상태를 확인한 뒤 다시 시작해 주세요.</string>
+    <string name="capture_still_stopping">이전 마이크가 정리 중이에요. 잠시 뒤 다시 시작해 주세요.</string>
+    <string name="listening_channel">소리 감지 상태</string>
+    <string name="listening_notification">울림이 주변 소리를 감지하고 있어요</string>
+    <string name="local_audio_notice">워치 안에서만 처리하며 원본 음성을 저장하지 않아요</string>
+    <string name="levels">입력 소리 %1$d%%\n요청한 진동 %2$d%%</string>
+    <string name="ai_not_ready">AI 보조는 아직 준비 중이에요</string>
+    <string name="notifications_limited">알림 권한이 꺼져 있어 작동 알림이 제한될 수 있어요</string>
 </resources>
