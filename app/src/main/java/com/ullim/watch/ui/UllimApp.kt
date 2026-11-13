@@ -150,6 +150,7 @@ private fun HomeScreen(
         Body(stringResource(R.string.levels, (state.levels.sound * 100).toInt(), (state.levels.commanded * 100).toInt()))
         if (state.strengthLimited) Body(stringResource(R.string.amplitude_unsupported))
     }
+    ComparisonGraph(state.visualization, active = phase is ListeningState.Listening)
     if (!state.microphoneGranted) Body(stringResource(R.string.microphone_permission_needed))
     if (!state.notificationsGranted) Body(stringResource(R.string.notifications_limited))
     if (!state.microphoneGranted || !state.notificationsGranted || phase is ListeningState.Error) {

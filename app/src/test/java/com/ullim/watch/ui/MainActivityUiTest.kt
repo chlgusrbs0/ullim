@@ -8,6 +8,8 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
@@ -150,6 +152,38 @@ class MainActivityUiTest {
         compose.runOnIdle { CaptureRuntime.publish(token, .5f, .25f) }
         compose.onNodeWithText("입력 소리 50%\n요청한 진동 25%").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(compose.activity.getString(com.ullim.watch.R.string.amplitude_unsupported))
+            .performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun comparisonLabelsDistinguishSourceFromCommandsAndStopWithoutUiFakeState() {
+        compose.onNodeWithText("시각화 중지 · 진동 명령 없음").performScrollTo().assertIsDisplayed()
+        requestStart(); confirmRecording()
+        compose.onNodeWithText("입력 소리 · RMS / 엔벌로프").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("진동 명령 · 물리 측정값 아님").performScrollTo().assertIsDisplayed()
+        compose.runOnIdle { CaptureRuntime.stopping(token); CaptureRuntime.detach(owner!!); CaptureRuntime.finished(token) }
+        compose.onNodeWithText("시각화 중지 · 진동 명령 없음").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun liveNumericHistoryReachesBothCanvasRowsAndStopClearsTheirValues() {
+        requestStart(); confirmRecording()
+        compose.runOnIdle {
+            val now = System.nanoTime()
+            CaptureRuntime.visualization.offer(
+                com.ullim.watch.core.AudioFeatures(token, now, .5f, .5f, .5f),
+                com.ullim.watch.core.HapticFrame(token, now, 20, .25f),
+            )
+        }
+        val input = compose.activity.getString(com.ullim.watch.R.string.graph_input_description, 50)
+        val output = compose.activity.getString(com.ullim.watch.R.string.graph_command_description, 25)
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithContentDescription(input).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithContentDescription(input).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription(output).performScrollTo().assertIsDisplayed()
+        compose.runOnIdle { CaptureRuntime.stopping(token) }
+        compose.onNodeWithContentDescription(compose.activity.getString(com.ullim.watch.R.string.graph_input_description, 0))
+            .performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription(compose.activity.getString(com.ullim.watch.R.string.graph_command_description, 0))
             .performScrollTo().assertIsDisplayed()
     }
 

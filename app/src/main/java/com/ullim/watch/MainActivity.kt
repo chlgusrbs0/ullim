@@ -13,13 +13,21 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.ullim.watch.core.ListeningState
 import com.ullim.watch.runtime.CaptureRuntime
+import com.ullim.watch.runtime.VisualizationSnapshot
 import com.ullim.watch.ui.ListeningUiState
 import com.ullim.watch.ui.UllimApp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     private var pendingStart = false
@@ -43,8 +51,22 @@ class MainActivity : ComponentActivity() {
             val startAllowed by CaptureRuntime.startAllowed.collectAsStateWithLifecycle()
             val levels by CaptureRuntime.levels.collectAsStateWithLifecycle()
             val limited by CaptureRuntime.strengthLimited.collectAsStateWithLifecycle()
+            val uiLifecycle = LocalLifecycleOwner.current.lifecycle
+            val visualization by produceState(VisualizationSnapshot(), runtime.listening, uiLifecycle) {
+                value = VisualizationSnapshot()
+                if (runtime.listening is ListeningState.Listening) {
+                    uiLifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                        while (isActive) {
+                            value = withContext(Dispatchers.Default) {
+                                CaptureRuntime.visualization.snapshot(System.nanoTime())
+                            }
+                            delay(100)
+                        }
+                    }
+                }
+            }
             UllimApp(
-                state = ListeningUiState(runtime, startAllowed, levels, limited, microphoneGranted, notificationsGranted),
+                state = ListeningUiState(runtime, startAllowed, levels, limited, microphoneGranted, notificationsGranted, visualization),
                 onStart = ::requestCapture,
                 onStop = ::stopCapture,
                 onAiSettings = { startActivity(Intent(this, AiControlsActivity::class.java)) },

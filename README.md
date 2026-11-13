@@ -82,3 +82,4 @@ Windows에서는 `./gradlew.bat`를 사용합니다. APK 경로는 `app/build/ou
 - [docs/development.md](docs/development.md) — 로컬 검증/실기기 증거 및 완료 판단
 - [docs/session-lifecycle.md](docs/session-lifecycle.md) — 세션 상태·마이크 소유권·중지 및 오류 복구 경계
 - [docs/main-listening-ui.md](docs/main-listening-ui.md) — 실제 감지 상태를 표시하는 메인 화면과 로컬 화면 검증 경계
+- [docs/sound-haptic-visualization.md](docs/sound-haptic-visualization.md) — 공통 소리 시간축의 입력·진동 명령 그래프와 물리 측정 구분

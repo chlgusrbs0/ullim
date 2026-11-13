@@ -121,6 +121,7 @@ class ListeningService : Service() {
             val command = mapper.map(features, ai.current(token, frame.timestampNs))
             scheduler.offer(command)
             check(scheduler.lastResult != RenderResult.FAILED && scheduler.lastResult != RenderResult.UNSUPPORTED)
+            CaptureRuntime.visualization.offer(features, command)
             if (frame.timestampNs - lastUiNs >= 100_000_000L) {
                 CaptureRuntime.publish(token, features.rms, command.commandedIntensity)
                 lastUiNs = frame.timestampNs
