@@ -41,6 +41,10 @@ class MainActivityUiTest {
     private var owner: MicrophoneCapture? = null
 
     @Before fun allowMicrophoneAndRefreshActivity() {
+        application.getSharedPreferences("ullim_first_run", Application.MODE_PRIVATE).edit().clear().commit()
+        compose.activityRule.scenario.recreate()
+        compose.waitForIdle()
+        compose.onNodeWithText("나중에").performScrollTo().performClick()
         shadowOf(application).grantPermissions(Manifest.permission.RECORD_AUDIO, Manifest.permission.POST_NOTIFICATIONS)
         compose.activityRule.scenario.recreate()
         compose.waitForIdle()
