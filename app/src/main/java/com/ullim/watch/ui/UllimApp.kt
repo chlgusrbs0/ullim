@@ -3,6 +3,7 @@ package com.ullim.watch.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,10 +15,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
@@ -27,11 +31,15 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Constraints
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.Button
+import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.LocalTextStyle
 import androidx.wear.compose.material3.OutlinedButton
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
@@ -126,6 +134,21 @@ private fun Action(label: Int, onClick: () -> Unit, enabled: Boolean = true) {
 }
 
 @Composable
+private fun CaptureActionLabel(label: Int, width: Int) {
+    val labels = listOf(stringResource(R.string.start_listening), stringResource(R.string.starting_action),
+        stringResource(R.string.stop), stringResource(R.string.stopping_action))
+    val measurer = rememberTextMeasurer()
+    val style = LocalTextStyle.current
+    val height = remember(measurer, style, labels, width) {
+        labels.maxOf { measurer.measure(it, style, constraints = Constraints(maxWidth = width)).size.height }
+    }
+    Box(Modifier.fillMaxWidth().heightIn(min = with(LocalDensity.current) { height.toDp() }),
+        contentAlignment = Alignment.Center) {
+        Text(stringResource(label), style = style, textAlign = TextAlign.Center)
+    }
+}
+
+@Composable
 private fun HomeScreen(
     state: ListeningUiState,
     onStart: () -> Unit,
@@ -154,17 +177,25 @@ private fun HomeScreen(
         textAlign = TextAlign.Center,
     )
     failure?.let { Body(stringResource(R.string.error_code, it.code)) }
-    Button(
-        onClick = if (idle) onStart else onStop,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).semantics { stateDescription = phaseDescription },
-        enabled = if (idle) state.startAllowed else phase is ListeningState.Listening,
-    ) {
-        Text(stringResource(when (phase) {
-            ListeningState.Idle, is ListeningState.Error -> R.string.start_listening
-            is ListeningState.Starting -> R.string.starting_action
-            is ListeningState.Listening -> R.string.stop
-            is ListeningState.Stopping -> R.string.stopping_action
-        }), textAlign = TextAlign.Center)
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val direction = LocalLayoutDirection.current
+        val padding = ButtonDefaults.ContentPadding
+        val labelWidth = with(LocalDensity.current) {
+            (constraints.maxWidth - padding.calculateLeftPadding(direction).roundToPx() -
+                padding.calculateRightPadding(direction).roundToPx()).coerceAtLeast(1)
+        }
+        Button(
+            onClick = if (idle) onStart else onStop,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).semantics { stateDescription = phaseDescription },
+            enabled = if (idle) state.startAllowed else phase is ListeningState.Listening,
+        ) {
+            CaptureActionLabel(when (phase) {
+                ListeningState.Idle, is ListeningState.Error -> R.string.start_listening
+                is ListeningState.Starting -> R.string.starting_action
+                is ListeningState.Listening -> R.string.stop
+                is ListeningState.Stopping -> R.string.stopping_action
+            }, labelWidth)
+        }
     }
     if (phase is ListeningState.Starting) Action(R.string.cancel_start, onStop)
     if (failure?.openDiagnostics == true) Action(R.string.check_haptic_support, onDiagnostics, enabled = state.startAllowed)

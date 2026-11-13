@@ -31,3 +31,11 @@ Run `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` locally
 These boxes stay unchecked until actual evidence exists. Predecessor main merges and issue DoD remain incomplete; keep #31/its PR open/Draft. No Actions, raw audio storage, transmission, diagnosis or native accessibility validation is implied.
 
 References: [Compose semantics](https://developer.android.com/develop/ui/compose/accessibility/semantics), [Android touch targets](https://developer.android.com/guide/topics/ui/accessibility/apps).
+
+## UI polish follow-up (#35)
+
+The primary capture action reserves the measured height of the longest localized phase label, using its actual Wear button style and available pixel width. At fontScale2 on the192dp host, Idle/Starting/Listening/Stopping used to measure86/53/53/53px and now all measure86px. Text size is preserved, shorter labels remain centered, and only the active label appears in semantics. Padding is rounded per side to match the actual button at fractional densities. This stabilizes button size; status messages above it can still change length.
+
+The existing waveform mark now has adaptive and monochrome launcher layers, with the separate legacy48dp asset on a black startup background. The foreground stays within the adaptive safe circle. Notification state retains its monochrome waveform mark; Stop has a distinct square icon. Input graph labels use plain Korean for sound size and smoothed variation while retaining separate commanded-output labeling. Diagnostic text distinguishes API advertisement from actual perception.
+
+The [host preview directory](evidence/issue35-host) contains five selected large-text viewports and icon renders. These are unaltered Robolectric View draws, not Watch7 screenshots or full-page captures. Text outside the scrolled viewport can be clipped by the viewport; no assertion is made that a whole large-text page fits at once. The host adaptive mask is rounded-square, not evidence of Samsung's actual circular mask. Native inspection follows local validation and must also cover the separate AI/diagnostic screens and consent integration before final acceptance.

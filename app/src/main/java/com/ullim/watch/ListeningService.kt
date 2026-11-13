@@ -239,7 +239,7 @@ open class ListeningService : Service() {
             .setContentTitle(getString(R.string.listening_notification)).setContentText(getString(R.string.local_audio_notice))
             .setContentIntent(open).setOngoing(true).setCategory(Notification.CATEGORY_SERVICE)
             .setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
-            .addAction(Notification.Action.Builder(Icon.createWithResource(this, R.drawable.ic_notification), getString(R.string.stop), stop).build()).build()
+            .addAction(Notification.Action.Builder(Icon.createWithResource(this, R.drawable.ic_stop), getString(R.string.stop), stop).build()).build()
     }
 
     private fun stopCapture() {

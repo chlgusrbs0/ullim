@@ -1,0 +1,42 @@
+Issue35 local validation, 2026-11-13 KST
+
+Base2504396, cumulative feature stack; #29 remains foreign-owned/unintegrated.
+Windows / JBR21 / Android SDK36 / Build Tools35.0.0 / minSDK34 / targetSDK35.
+
+Regression: fontScale2,192dp round-qualified host capture action heights before fix
+Idle/Starting/Listening/Stopping: [86,53,53,53]px. Expected regression failed in1m12s.
+Final measured-label reservation produces [86,86,86,86]px, preserves text size and
+active-label semantics. The test verifies overflow/ellipsis and all four phase heights.
+
+Final clean testDebugUnitTest + assembleDebug + lintDebug: BUILD SUCCESSFUL1m34s,
+57 tasks executed. JUnit171tests,0failures,0errors,0skipped.
+After removing an empty obsolete-v33 directory, lintDebugSUCCESS19s:
+0errors,12baseline warnings,1hint. No ignored/suppressed failures.
+During implementation an intrinsic-sizing incompatibility and Korean fallback-font
+height difference were corrected. Windows lint-cache locking required releasing this
+task's Gradle daemon before the clean build. Neither workaround changes app behavior.
+
+Read-only review: no Critical/Important finding. Minor fractional-density rounding
+was corrected by subtracting independently rounded padding from constraints.maxWidth.
+Guide-body, separate AI/diagnostic views and native device presentation remain broader
+verification work; host title assertions are not proof of full content visibility.
+
+APK: app/build/outputs/apk/debug/app-debug.apk
+Bytes52702374
+SHA256952d2a0f823b16f2f728bb7bd7a8dfb12dc215478dcec92fd885910e683b84bb
+Compiled adaptive icon includes background/foreground/monochrome under
+res/mipmap-anydpi-v21/ic_launcher.xml (AAPT-assigned configuration).
+Application icon and roundIcon refer to the same adaptive resource. The original
+legacy drawable is retained for the explicit splash image on black.
+
+Five host viewport PNGs plus launcher/monochrome/notification/Stop renders are under
+docs/evidence/issue35-host. Reviewed actual generated pixels. These are host draws
+at large font; they are not native Watch7 screenshots, full-page captures or proof of
+circular-edge safety. Some preceding/following scroll content is outside the viewport.
+
+No audio/DSP/AI/core API change. Stop pending intent/action is unchanged; only its
+icon differs. No dependency, permission, persistence, Actions or raw audio change.
+New UI build not yet installed at the time of this local evidence entry. Native results
+must be recorded separately. Haptic strength/continuity remains a known firmware-path
+problem after ZZK1 and is not solved by UI polish. Keep #35 Draft until all DoD and
+predecessors, including original-owner #29 integration, are actually satisfied.

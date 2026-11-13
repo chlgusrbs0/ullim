@@ -15,6 +15,7 @@ import java.io.File
 import com.ullim.watch.core.ListeningState
 import com.ullim.watch.core.RuntimeState
 import com.ullim.watch.settings.SettingsState
+import com.ullim.watch.R
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -94,11 +95,76 @@ class WearAccessibilityTest {
         assertEquals(0, starts)
     }
 
+    @Test fun primaryActionKeepsItsHeightAcrossCapturePhasesAtLargeFont() {
+        render()
+        val heights = mutableListOf<Float>()
+        for ((phase, label) in listOf(
+            ListeningState.Idle to "소리 감지 시작",
+            ListeningState.Starting(1) to "시작 중",
+            ListeningState.Listening(1) to "중지",
+            ListeningState.Stopping(1) to "중지 중",
+        )) {
+            compose.runOnIdle { state = state.copy(runtime = RuntimeState(phase)) }
+            val action = compose.onNodeWithText(label).performScrollTo()
+            heights += action.fetchSemanticsNode().boundsInRoot.height
+            checkTextLayout(label)
+        }
+        assertTrue("primary action changes height: $heights", heights.max() - heights.min() < 1f)
+        println("Large-font primary action heights (host px): $heights")
+    }
+
     @Test fun chartLabelsRemainWrappedAndReadableWithNumericNonColorDescriptions() {
         render()
-        checkTextLayout("입력 소리 · 실선 RMS / 점선 엔벌로프", mustWrap = true)
+        checkTextLayout("입력 소리 · 실선 크기 / 점선 강약 흐름", mustWrap = true)
         checkTextLayout("진동 명령 · 물리 측정값 아님", mustWrap = true)
-        compose.onNodeWithContentDescription("입력 소리 RMS 최근 0%, 엔벌로프 최근 0%. 실선은 RMS, 점선은 엔벌로프예요.")
+        compose.onNodeWithContentDescription("최근 소리 크기 0%, 강약 흐름 0%. 실선은 소리 크기, 점선은 강약 흐름이에요.")
             .performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun coreScreenRoutesRemainReadableAtLargeFontAndProduceHostPreviews() {
+        fun save(name: String) {
+            val view = compose.activity.window.decorView
+            val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+            compose.runOnIdle { view.draw(Canvas(bitmap)) }
+            val artifact = File("build/host-ui/issue35/$name.png")
+            requireNotNull(artifact.parentFile).mkdirs()
+            artifact.outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+            bitmap.recycle()
+        }
+        render()
+        checkTextLayout("소리 감지 시작")
+        save("idle-primary-2x")
+        compose.runOnIdle { state = state.copy(runtime = RuntimeState(ListeningState.Listening(1))) }
+        checkTextLayout("중지")
+        save("listening-primary-2x")
+        compose.onNodeWithText("설정").performScrollTo().performClick()
+        checkTextLayout("민감도 높이기")
+        save("settings-2x")
+        compose.activity.getString(R.string.sensitivity_defaults).let { checkTextLayout(it) }
+        compose.onNodeWithText("뒤로").performScrollTo().performClick()
+        compose.onNodeWithText("사용 안내").performScrollTo().performClick()
+        checkTextLayout("사용 안내")
+        save("guide-2x")
+        compose.onNodeWithText("문제 해결 안내").performScrollTo().performClick()
+        checkTextLayout("문제가 생겼나요?")
+        save("error-guide-2x")
+        compose.onNodeWithText("권한 설정").performScrollTo().assertHeightIsAtLeast(48.dp)
+        assertEquals(0, starts)
+
+        for ((name, id, size) in listOf(
+            Triple("launcher", R.mipmap.ic_launcher, 192),
+            Triple("monochrome", R.drawable.ic_launcher_monochrome, 108),
+            Triple("notification", R.drawable.ic_notification, 48),
+            Triple("notification-stop", R.drawable.ic_stop, 48),
+        )) {
+            val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            canvas.drawColor(android.graphics.Color.BLACK)
+            requireNotNull(compose.activity.getDrawable(id)).apply { setBounds(0, 0, size, size); draw(canvas) }
+            File("build/host-ui/issue35/$name.png").outputStream().use {
+                assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it))
+            }
+            bitmap.recycle()
+        }
     }
 }

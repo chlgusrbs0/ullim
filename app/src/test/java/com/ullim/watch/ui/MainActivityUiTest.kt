@@ -195,7 +195,7 @@ class MainActivityUiTest {
     @Test fun comparisonLabelsDistinguishSourceFromCommandsAndStopWithoutUiFakeState() {
         compose.onNodeWithText("시각화 중지 · 진동 명령 없음").performScrollTo().assertIsDisplayed()
         requestStart(); confirmRecording()
-        compose.onNodeWithText("입력 소리 · 실선 RMS / 점선 엔벌로프").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("입력 소리 · 실선 크기 / 점선 강약 흐름").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("진동 명령 · 물리 측정값 아님").performScrollTo().assertIsDisplayed()
         compose.runOnIdle { CaptureRuntime.stopping(token); CaptureRuntime.detach(owner!!); CaptureRuntime.finished(token) }
         compose.onNodeWithText("시각화 중지 · 진동 명령 없음").performScrollTo().assertIsDisplayed()

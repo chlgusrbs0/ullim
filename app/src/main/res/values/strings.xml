@@ -18,7 +18,7 @@
     <string name="comparison_max_amplitude">H · 최댓값 255 · 600ms</string>
     <string name="app_name">울림</string>
     <string name="diagnostics">진동 진단</string>
-    <string name="diagnostic_not_measured">강약 구별과 물리 지연은\n아직 측정하지 않았어요</string>
+    <string name="diagnostic_not_measured">API 지원 표시와 실제 강약·반응은 다를 수 있어요. 체감 결과를 따로 확인해 주세요.</string>
     <string name="motor_available">진동 모터 있음</string>
     <string name="motor_unavailable">사용 가능한 진동 모터 없음</string>
     <string name="amplitude_supported">강도 제어 API 지원</string>
@@ -64,14 +64,14 @@
     <string name="listening_notification">울림이 주변 소리를 감지하고 있어요</string>
     <string name="local_audio_notice">워치 안에서만 처리하며 원본 음성을 저장하지 않아요</string>
     <string name="levels">입력 소리 %1$d%%\n요청한 진동 %2$d%%</string>
-    <string name="graph_input">입력 소리 · 실선 RMS / 점선 엔벌로프</string>
+    <string name="graph_input">입력 소리 · 실선 크기 / 점선 강약 흐름</string>
     <string name="graph_output">진동 명령 · 물리 측정값 아님</string>
     <string name="graph_time_axis">−5초 → 현재 · 공통 시간축</string>
     <string name="graph_stopped">시각화 중지 · 진동 명령 없음</string>
     <string name="graph_waiting">소리 처리 기록을 기다려요</string>
     <string name="graph_silent">무음 · 진동 명령 없음</string>
     <string name="graph_source_time_notice">소리 시점에 맞춘 명령이며 실제 모터 지연은 포함하지 않아요</string>
-    <string name="graph_input_description">입력 소리 RMS 최근 %1$d%%, 엔벌로프 최근 %2$d%%. 실선은 RMS, 점선은 엔벌로프예요.</string>
+    <string name="graph_input_description">최근 소리 크기 %1$d%%, 강약 흐름 %2$d%%. 실선은 소리 크기, 점선은 강약 흐름이에요.</string>
     <string name="graph_command_description">진동 명령 최근 %1$d%%. 물리 진동 측정값이 아니에요.</string>
     <string name="ai_controls">AI 보조</string>
     <string name="ai_result_waiting">최근 결과를 기다려요</string>
@@ -99,7 +99,7 @@
     <string name="settings_title">설정</string>
     <string name="sensitivity_value">민감도 %1$d%%</string>
     <string name="sensitivity_state">현재 민감도 %1$d%%</string>
-    <string name="sensitivity_defaults" formatted="false">기본 민감도 100% · 조절 범위 75~125%\nAI 기본값은 꺼짐이에요</string>
+    <string name="sensitivity_defaults" formatted="false">기본 민감도 100% · 조절 범위 75~125%\n민감도를 높이면 작은 소리에도 더 잘 반응해요. AI 기본값은 꺼짐이에요.</string>
     <string name="sensitivity_down">민감도 낮추기</string>
     <string name="sensitivity_up">민감도 높이기</string>
     <string name="settings_loading">설정을 불러오고 있어요</string>
