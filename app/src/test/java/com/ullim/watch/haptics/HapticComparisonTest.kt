@@ -69,6 +69,35 @@ class HapticComparisonTest {
         assertTrue(device.cancellations >= 4)
     }
 
+    @Test fun strengthProbeChangesThreeAmplitudesInsideOneUninterruptedCall() {
+        val device = Device()
+        var state = ComparisonState()
+        val comparison = HapticComparison(device, onUpdate = { state = it })
+        comparison.start(ComparisonPattern.STRENGTH_RAMP)
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(1800))
+        assertEquals(1, device.calls.size)
+        assertArrayEquals(longArrayOf(600, 600, 600), device.calls.single().second.timings)
+        assertArrayEquals(intArrayOf(60, 130, 220), device.calls.single().second.amplitudes)
+        assertEquals(ComparisonPhase.COMPLETE, state.phase)
+        comparison.stop()
+    }
+
+    @Test fun overlappingRefreshesHaveFiniteTailsAndLastRequestStillEndsAt600ms() {
+        val device = Device()
+        val comparison = HapticComparison(device)
+        comparison.start(ComparisonPattern.CHUNKS_OVERLAP_60)
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(650))
+        assertEquals(10, device.calls.size)
+        val started = device.calls.first().first
+        for ((index, call) in device.calls.withIndex()) {
+            assertEquals(index * 60L, call.first - started)
+            assertEquals(if (index == 9) 60L else 120L, call.second.timings.sum())
+            assertArrayEquals(intArrayOf(220), call.second.amplitudes)
+            assertTrue(call.first - started + call.second.timings.sum() <= 600)
+        }
+        comparison.stop()
+    }
+
     @Test fun lateDispatchAbortsInsteadOfBurstingMissedChunks() {
         val device = Device()
         var now = 0L

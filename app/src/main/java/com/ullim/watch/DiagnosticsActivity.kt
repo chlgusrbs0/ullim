@@ -108,6 +108,8 @@ class DiagnosticsActivity : ComponentActivity() {
                             ComparisonPattern.SEGMENTS -> R.string.comparison_segments
                             ComparisonPattern.CHUNKS_60 -> R.string.comparison_chunks_60
                             ComparisonPattern.CHUNKS_200 -> R.string.comparison_chunks_200
+                            ComparisonPattern.STRENGTH_RAMP -> R.string.comparison_strength_ramp
+                            ComparisonPattern.CHUNKS_OVERLAP_60 -> R.string.comparison_overlap
                         }
                         Button(onClick = { comparison.start(pattern) },
                             enabled = capability.available && capability.amplitudeControl,

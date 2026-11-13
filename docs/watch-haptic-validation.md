@@ -36,7 +36,23 @@
 
 [명령 완료 요약](evidence/issue18-comparison-command-summary.txt)에는 SINGLE/SEGMENTS 각1회, CHUNKS_60 각10회, CHUNKS_200 각3회로 완료한 반복 실행이 남아 있다. 관찰된 앱 일정 최대 지연은0–26ms로40ms중단 기준 이내였다. 이 값은 물리 지연이 아니다. [동일 앱 시스템 파형 기록](evidence/issue18-os-waveform-records.txt)에는600ms 내의20ms 구간과60/200ms 호출 기록을 남겼으며 원본 PCM·분류명·연결정보는 포함하지 않는다. 시스템 덤프 역시 실제 모터 가속도 계측은 아니다.
 
-추가 비행동 검사에서 오디오 서버 덤프가 `SEC_AUDIO_SUPPORT_HAPTIC_OUTPUT = FALSE`라고 보고했다. 오디오와 함께 연속 촉각을 보내는 다른 전송 경로를 지원한다고 가정할 근거가 없다. 공개 API의 직접 지원 조회는 아직 수행하지 않았으며, 이 서버 설정만으로 모든 대안이 불가능하다고 단정하지 않는다. 엔벌로프는 위 실제 능력 탐지에서 미지원이었다. 숨김/시스템 전용 진동 세션 API를 일반 앱에서 사용하지 않는다.
+추가 비행동 검사에서 오디오 서버 덤프가 `SEC_AUDIO_SUPPORT_HAPTIC_OUTPUT = FALSE`라고 보고했다. 이어서 SDK36으로 컴파일한 임시 진단 클래스를 같은 워치의 `app_process`에서 실행해 공개 API를 직접 조회했다. `AudioManager.isHapticPlaybackSupported()`는 **false**, `HapticGenerator.isAvailable()`도 **false**였다. 음향 재생·녹음은 수행하지 않았고 임시 dex는 삭제했다. 이 기기에 오디오 결합 연속 촉각 전송을 사용할 근거가 없다. 엔벌로프도 위 실제 능력 탐지에서 미지원이었다. 숨김/시스템 전용 진동 세션 API를 일반 앱에서 사용하지 않는다.
+
+조회한 진단 클래스의 핵심 코드는 아래와 같다. 앱에 새로운 오디오 출력 경로를 추가한 것이 아니다.
+
+```java
+System.out.println("audioHapticPlaybackSupported=" + AudioManager.isHapticPlaybackSupported());
+System.out.println("hapticGeneratorAvailable=" + HapticGenerator.isAvailable());
+```
+
+## 후속 비교 E/F — 앱 설치·실제 체감 대기
+
+- E는 한 OS 호출 안에서 amplitude60→130→220을 각각600ms씩 보내며 총1800ms다. 실제 강도 제어의 체감을 파형 교체 끊김과 분리한다. 알려진 순서의 진단이므로 블라인드80% 시험 합격으로 사용하지 않는다.
+- F는 C와 같이60ms마다10회 호출하되, 앞선9개 요청에만60ms 겹침 꼬리를 붙인다(각120ms 요청, 마지막은60ms). 계획상 마지막 요청의 끝은600ms다. 겹친 구간을 합산한 요청 길이는1140ms지만 서로 교체되는 효과이므로1140ms를 순서대로 재생하는 시험이 아니다. 앱 일정 오차와 OS 정리 시간은 별개다. 겹침이 체감 끊김을 줄이는지 확인하는 합성 비교이며 live 출력에 적용하지 않았다.
+- 중지·실패·화면 이탈 취소와 최대40ms 일정 지연 중단은 동일하다. 원본 마이크 입력은 사용하지 않는다.
+- E/F 실제 체감과 시스템 결과는 아직 미확인이다.
+
+E 테스트는 누락 패턴으로 RED(5s) 후 구현됐고 전체167tests/build/lint가43s에 통과했다. F의 유한 겹침 테스트도 RED(3s) 후 구현했으며, 최종 **168tests/0failures/0errors + assembleDebug/lintDebug, BUILD SUCCESSFUL36s**를 확인했다. 최종 APK SHA-256은 `7d9d9066398e1b44f39a5e9ee99c7e4612909779044a22cf4e7425f300c375a6`이다. 초기166개 통과 기록과 구분한다.
 
 ## 물리 지연 측정 절차 — 아직 미실시
 

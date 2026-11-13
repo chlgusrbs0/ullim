@@ -4,8 +4,9 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 
-enum class ComparisonPattern(val calls: Int, val segments: Int) {
-    SINGLE(1, 1), SEGMENTS(1, 30), CHUNKS_60(10, 1), CHUNKS_200(3, 1);
+enum class ComparisonPattern(val calls: Int, val segments: Int, val totalMs: Long = 600, val overlapMs: Long = 0) {
+    SINGLE(1, 1), SEGMENTS(1, 30), CHUNKS_60(10, 1), CHUNKS_200(3, 1),
+    STRENGTH_RAMP(1, 3, 1800), CHUNKS_OVERLAP_60(10, 1, 600, 60);
 }
 
 enum class ComparisonPhase { READY, RUNNING, COMPLETE, STOPPED, LATE, FAILED, UNSUPPORTED }
@@ -37,7 +38,7 @@ class HapticComparison(
             onUpdate(state)
             return
         }
-        val callDurationMs = 600L / pattern.calls
+        val callDurationMs = pattern.totalMs / pattern.calls
         fun dispatch(index: Int) {
             if (token != generation) return
             pending = null
@@ -55,8 +56,13 @@ class HapticComparison(
                 return
             }
             try {
-                device.play(LongArray(pattern.segments) { callDurationMs / pattern.segments },
-                    IntArray(pattern.segments) { 220 })
+                val amplitudes = if (pattern == ComparisonPattern.STRENGTH_RAMP) intArrayOf(60, 130, 220)
+                    else IntArray(pattern.segments) { 220 }
+                // Only synthetic comparison F extends a request into the following interval.
+                // The last request has no tail; nothing is scheduled beyond the finite trial.
+                val playDurationMs = callDurationMs + minOf(pattern.overlapMs,
+                    (pattern.calls - index - 1) * callDurationMs)
+                device.play(LongArray(pattern.segments) { playDurationMs / pattern.segments }, amplitudes)
             } catch (_: RuntimeException) {
                 runCatching { device.cancel() }
                 state = state.copy(phase = ComparisonPhase.FAILED)

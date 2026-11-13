@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="comparison_title">연속 출력 비교</string>
-    <string name="comparison_notice">모두 같은 강도로 총 600ms를 요청해요. 실제 모터 지연이나 강약 구별 시험 결과가 아니에요.</string>
+    <string name="comparison_notice">A–D는 같은 강도로 총 600ms를 요청해요. E는 약→중→강을 각 600ms씩 한 번에 보내요. 실제 모터 지연이나 블라인드 구별 시험 결과가 아니에요.</string>
     <string name="comparison_ready">비교할 출력을 선택해 주세요</string>
     <string name="comparison_running">비교 출력을 요청하고 있어요</string>
     <string name="comparison_complete">요청을 마쳤어요 · 체감 결과를 따로 확인해 주세요</string>
@@ -12,6 +12,8 @@
     <string name="comparison_segments">B · 20ms 30구간 한 번</string>
     <string name="comparison_chunks_60">C · 60ms씩 10번</string>
     <string name="comparison_chunks_200">D · 200ms씩 3번</string>
+    <string name="comparison_strength_ramp">E · 약→중→강</string>
+    <string name="comparison_overlap">F · 60ms 갱신·겹침</string>
     <string name="app_name">울림</string>
     <string name="diagnostics">진동 진단</string>
     <string name="diagnostic_not_measured">강약 구별과 물리 지연은\n아직 측정하지 않았어요</string>
