@@ -1,0 +1,52 @@
+Issue35 native UI verification, 2026-11-13 KST
+
+Actual Galaxy Watch7 SM-L300,432x432, Android17/API37, One UI9 beta L300XXU2ZZK1.
+App runtime source de71ba71775b064255fd4651db0ad505004d658f.
+Local+installed APK SHA256952d2a0f823b16f2f728bb7bd7a8dfb12dc215478dcec92fd885910e683b84bb
+Bytes52702374. Verified installed hash after the trial, not just the local file hash.
+Preserved the previous comparison APK locally before install; its d966e0... SHA256
+matched the documented baseline. Neither APK binary is committed to this repository.
+New install-r succeeded, cold MainActivity launch2404ms. This is app startup timing,
+not sound-to-motor response latency. App data and permissions were not reset.
+
+Observed on the actual watch:
+- Idle home: app title, Korean introduction and Start label visible.
+- Native Start -> Listening status -> Stop. Input sound percentage changed in the UI;
+  no physical intensity/latency conclusion is drawn from this display.
+- Stop removed ListeningService. AppOps RECORD_AUDIO showed completed duration5s756ms
+  and no running record; subsequent force-stop/relaunch during font inspection also
+  left the app idle. No raw microphone PCM/voice was saved or transferred.
+- Settings: sensitivity100%, default/range explanation and AI/default text displayed.
+  No sensitivity adjustment or AI toggle was performed during this inspection.
+- AI details: AI OFF and saved setting state displayed. System Back returned to settings,
+  then home, without starting capture. Native inference/recognized AI states not tested.
+- Guide, scrolled guide end, error guide, its Back route and return to idle home reached.
+  Error guide is not evidence of a native permission-revocation/capture-failure scenario.
+- System font_scale was temporarily changed1.0 ->2.0. The full Start label and the
+  sensitivity-increase label were brought into the central viewport and inspected.
+  Screenshots are taken with the OS setting2.0; Android may scale text nonlinearly.
+- Original font_scale1.0 restored in finally and independently read back. The original
+  stay_on_while_plugged_in0 was also read back. Final home is idle with no ListeningService.
+- User's direct feedback after restoration: the new screen is readable and buttons usable.
+
+Evidence: issue35-watch/*.png, unmodified ADB screenshots of focused Ullim activities.
+Home idle/listening, settings, AI OFF, guide/error guide are six representative native
+viewports. Extra guide-scrolled/large-font-primary/large-font-settings views are included.
+They are scroll viewports, not full-page images: preceding/following content can be offscreen.
+Selected labels/buttons are readable; this does not assert every item fits simultaneously.
+Large font can leave preceding content behind the TimeText area while scrolling.
+
+Harness observations: the first screenshot attempt immediately after activity navigation
+had no focused app; no image of another app was taken. Some lower-edge controls required
+scrolling into the central viewport before tapping. Fresh UI trees/screenshots were used;
+stale XML after a null-root error was rejected. These automation issues are not attributed
+to an app crash or an unresponsive button without product evidence.
+
+Remaining gates:
+- Predecessor completion/main merges and foreign-owner #29 onboarding integration.
+- Native TalkBack/focus order, actual error states, AI ON/recognized/expired/failure states,
+  separate diagnostic/full launcher presentation and final integrated UI review.
+- #18/#37/#39 physical strength/continuity/latency and blind perception requirements.
+The ZZK1 update did not fix the reported equal-perceived-amplitude G/H result. This UI
+polish makes no haptic-quality or AI-improvement claim. Keep issue35/its PR Draft/open.
+No Actions, raw audio, hidden-API bypass, firmware modification or extra dependency.
