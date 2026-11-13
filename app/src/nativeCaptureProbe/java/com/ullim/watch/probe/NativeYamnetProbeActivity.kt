@@ -91,6 +91,8 @@ class NativeYamnetProbeActivity : ComponentActivity() {
         val done = AtomicBoolean()
         val childFailure = AtomicReference<Throwable?>()
         val timings = LongArray(500)
+        val deliveries = LongArray(500)
+        val lateness = LongArray(500)
         val fanout = AudioFanOut { frame ->
             val began = System.nanoTime()
             val output = dsp.extract(frame)
@@ -101,6 +103,7 @@ class NativeYamnetProbeActivity : ComponentActivity() {
         var classifier: SoundClassifier? = null
         var inferred = 0
         var maxInferenceNs = 0L
+        var overlappingInferences = 0
         val began = System.nanoTime()
         val cpuBefore = Process.getElapsedCpuTime()
         fanout.start(1)
@@ -115,6 +118,9 @@ class NativeYamnetProbeActivity : ComponentActivity() {
                         val t = (index * 320L + sample) / 16_000.0
                         if (index < 150) 0 else (.2 * sin(2 * PI * 1_000 * t) * 32_767).toInt().toShort()
                     }
+                    val delivered = System.nanoTime()
+                    deliveries[index] = delivered
+                    lateness[index] = (delivered - due).coerceAtLeast(0L)
                     check(fanout.accept(AudioFrame(1, due, samples))) { "DSP_FRAME_REJECTED" }
                 }
             } catch (failure: Throwable) { childFailure.set(failure)
@@ -126,6 +132,7 @@ class NativeYamnetProbeActivity : ComponentActivity() {
             classifier = AndroidYamnet.load(this)
             Log.i(TAG, "loaded ms=${(System.nanoTime() - loadStarted) / 1_000_000} inputSamples=15600 outputClasses=521 type=FLOAT32 dspBefore=$dspBeforeLoad dspAfter=${processed.get()}")
             memory("loaded")
+            val dspAtInferenceStart = processed.get()
             for (kind in 0..2) {
                 active()
                 val random = Random(7331)
@@ -139,8 +146,10 @@ class NativeYamnetProbeActivity : ComponentActivity() {
                 }
                 val input = AudioFrame(1, System.nanoTime() - 975_000_000L, samples)
                 val start = System.nanoTime()
+                val dspBeforeInference = processed.get()
                 val result = classifier.classify(input)
                 val elapsed = System.nanoTime() - start
+                if (processed.get() > dspBeforeInference) overlappingInferences++
                 validate(result, input)
                 inferred++
                 maxInferenceNs = maxOf(maxInferenceNs, elapsed)
@@ -158,21 +167,30 @@ class NativeYamnetProbeActivity : ComponentActivity() {
                     continue
                 }
                 val start = System.nanoTime()
+                val dspBeforeInference = processed.get()
                 validate(classifier.classify(frame), frame)
+                if (processed.get() > dspBeforeInference) overlappingInferences++
                 maxInferenceNs = maxOf(maxInferenceNs, System.nanoTime() - start)
                 inferred++
             }
             producer!!.join(2_000)
             check(!producer!!.isAlive && childFailure.get() == null && processed.get() == 500) { "DSP_PRODUCER_FAILED" }
             check(inferred >= 4) { "NO_LATEST_WINDOW_INFERENCE" }
+            val dspAtInferenceEnd = processed.get()
+            check(dspAtInferenceEnd > dspAtInferenceStart) { "NO_CONCURRENT_DSP_PROGRESS" }
             memory("stream_complete")
+            val closeStarted = System.nanoTime()
             classifier.close()
             classifier.close()
+            Log.i(TAG, "closed closeUs=${(System.nanoTime() - closeStarted) / 1_000}")
             classifier = null
             System.gc()
             Thread.sleep(100)
             memory("closed")
             timings.sort()
+            val gaps = LongArray(499) { deliveries[it + 1] - deliveries[it] }.apply { sort() }
+            lateness.sort()
+            Log.i(TAG, "cadence gapP95Us=${gaps[474] / 1_000} gapMaxUs=${gaps.last() / 1_000} lateP95Us=${lateness[474] / 1_000} lateMaxUs=${lateness.last() / 1_000} dspDuringInferenceStart=$dspAtInferenceStart dspDuringInferenceEnd=$dspAtInferenceEnd overlappingOperations=$overlappingInferences")
             Log.i(TAG, "summary dspFrames=${processed.get()} validInferences=$inferred maxInferenceMs=${maxInferenceNs / 1_000_000} dspP95Us=${timings[474] / 1_000} dspMaxUs=${timings.last() / 1_000} elapsedMs=${(System.nanoTime() - began) / 1_000_000} cpuMs=${Process.getElapsedCpuTime() - cpuBefore} closed=true")
         } finally {
             cancelled.set(true)
