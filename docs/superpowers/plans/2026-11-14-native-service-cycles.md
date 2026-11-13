@@ -12,10 +12,10 @@
 
 ## Work
 
-- [ ] Add opt-in test source set. RED Activity boundary tests: absent action no effects, missing microphone permission fails before calibration/capture, wrong runtime package refuses any storage/mic operation.
-- [ ] Implement bounded orchestration Activity and declaration, leaving production service/controller/mapper unchanged. Success requires calibration saved,3 cycles, actual AI successes, zero terminal recording configurations and AI unloaded/not busy/no pending cleanup.
-- [ ] Run opt-in full tests/build/lint and normal tests/build/release; assert probe exclusion in normal manifest/DEX. Commit source.
-- [ ] One independent read-only review of this unit. One required fix pass with RED→GREEN and full suite; no repeat reviewer.
+- [x] Add opt-in test source set. RED Activity boundary tests: absent action no effects, missing microphone permission fails before calibration/capture, wrong runtime package refuses any storage/mic operation.
+- [x] Implement bounded orchestration Activity and declaration, leaving production service/controller/mapper unchanged. Success requires calibration saved,3 cycles, actual AI successes, zero terminal recording configurations and AI unloaded/not busy/no pending cleanup.
+- [x] Run opt-in full tests/build/lint and normal tests/build/release; assert probe exclusion in normal manifest/DEX. Commit source.
+- [x] One independent read-only review of this unit. One required fix pass with RED→GREEN and full suite; no repeat reviewer.
 - [ ] If watch remains reachable, install only own probe, grant own microphone/notification permissions, run once and poll the same process. Inspect service/AppOps/numeric logs and original app/profile hashes. Remove own probe only after observed terminal result and cleanup. Reopen original idle screen.
 - [ ] Record exact source/APK/native evidence and limits, update PR61. Do not merge/close23 while predecessors/remaining OS scenarios or physical gates are missing.
 
@@ -26,3 +26,9 @@ Package isolation before any data/mic access; false PASS on lifecycle cancellati
 Official public recording-count reference: https://developer.android.com/reference/android/media/AudioManager#getActiveRecordingConfigurations(). Empty means no active recording when queried; it does not prove unallocated native objects were released.
 
 Use the actual SettingsRuntime controller for AI toggles in the isolated app, including save completion/error checks; do not bypass it with only process-local values. Require notification permission and one active app notification during capture, zero after stop. Missing notification permission was a real semantic RED(1 failed/10s), then added to preflight. Initial three Activity boundary tests passed22s after the expected missing-class compile RED23s; implementation compile fixes used the existing public state flow and a test Activity subclass for unsafe package simulation (Robolectric Config has no packageName option).
+
+One fresh read-only review of24afe91 found3 Important items: each mode's save error can be erased by a later toggle; calibration cancellation can start an orphan ListeningService; a valid in-flight inference may finish during OFF cleanup and increase its counter. Also re-graded the reviewer's Minor error/cleanup mislabel as Important for verification integrity: it incorrectly records a clean retryable error as unreleased resources and replaces the actual failure code. All4 have concrete semantic RED16s: expected SETTINGS_ERROR versus null; unexpected STOP service Intent for a non-service microphone lease; OFF_NOT_VERIFIED from the real worker completing a blocked inference; settled Error incorrectly rejected. One required fix pass awaits each settings save, stops only the service-cycle token, freezes inference count after cleanup (including that completion in totals), and accepts settled Error only for FAIL/CANCELLED while PASS still requiresIdle. No re-review. No deferred minors.
+
+Final: Ruling: physical tactile response, end-to-end latency and remaining OS scenarios remain unproven and open; this verifier measures actual capture/AI/service cycle cleanup only. Treating it as final acceptance could hide hardware/OS failures, so no such merge/closure is authorized by this evidence.
+
+Final: fixed all4 findings — corresponding four regression tests RED16s→GREEN, full244/244; opt-in test/build/lint/releaseUnitTest compilation42s. Normal236/236 test/build/lint/release58s before probe-only review fixes; normal manifest/DEX exclude the Session Activity. Test sources are debug-only even when the probe property is enabled, release test compilation passed. No production runtime files changed.

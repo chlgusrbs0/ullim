@@ -16,12 +16,14 @@ import androidx.activity.ComponentActivity
 import com.ullim.watch.ListeningService
 import com.ullim.watch.ai.AiPhase
 import com.ullim.watch.ai.AiRuntime
+import com.ullim.watch.ai.AiWorker
 import com.ullim.watch.core.ListeningState
 import com.ullim.watch.haptics.MotorCalibrationRunner
 import com.ullim.watch.haptics.MotorCalibrationState
 import com.ullim.watch.haptics.MotorProfileStore
 import com.ullim.watch.runtime.CaptureRuntime
 import com.ullim.watch.settings.SettingsRuntime
+import com.ullim.watch.settings.SettingsController
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -89,7 +91,7 @@ open class NativeSessionProbeActivity : ComponentActivity() {
         run = scope.launch {
             try {
                 checkProbe(CaptureRuntime.canStart() && recordings() == 0, "BASELINE_BUSY")
-                await(3_000, "SETTINGS_READY") { SettingsRuntime.get(this@NativeSessionProbeActivity).state.value.ready }
+                await(3_000, "SETTINGS_READY") { settingsController().state.value.ready }
                 setAi(false)
                 calibrate()
                 repeat(3) { captureCycle(it + 1) }
@@ -145,15 +147,15 @@ open class NativeSessionProbeActivity : ComponentActivity() {
         checkProbe(active.sessionId == token && active.successfulInferences > 0 && active.modelLoaded &&
             active.fault == null && active.phase == AiPhase.LISTENING && onSequence > offSequence, "ON_NOT_VERIFIED")
         val inferences = active.successfulInferences
-        totalInferences += inferences
         Log.i(TAG, "cycle=$number phase=ON session=$token dspSequence=$onSequence inferences=$inferences loadNs=${active.loadDurationNs} maxInferenceNs=${active.maxInferenceNs} dropped=${active.droppedWindows} recordingConfigurations=1")
 
-        setAi(false)
-        await(8_000, "AI_OFF_CLEANUP") { rejectRuntimeError(); aiClean() }
-        val postSequence = hold(2_000, token, false)
-        checkProbe(postSequence > onSequence && worker.state.value.successfulInferences == inferences, "OFF_NOT_VERIFIED")
-        await(3_000, "SETTINGS_SAVE") { !SettingsRuntime.get(this).state.value.saving }
-        checkProbe(SettingsRuntime.get(this).state.value.error == null, "SETTINGS_ERROR")
+        val postSequence = observeAiOff(worker,
+            { setAi(false) },
+            { await(8_000, "AI_OFF_CLEANUP") { rejectRuntimeError(); aiClean() } },
+            { hold(2_000, token, false) })
+        checkProbe(postSequence > onSequence, "OFF_NOT_VERIFIED")
+        val completedInferences = worker.state.value.successfulInferences
+        totalInferences += completedInferences
         startService(command(ListeningService.ACTION_STOP, token))
         repeat(3) { startService(command(ListeningService.ACTION_STOP, token)) }
         await(8_000, "STOP_TIMEOUT") {
@@ -163,7 +165,7 @@ open class NativeSessionProbeActivity : ComponentActivity() {
         }
         currentToken = 0
         cycles++
-        Log.i(TAG, "cycle=$number phase=STOPPED dspSequence=$postSequence recordingConfigurations=0 notificationCount=0 canStart=true modelLoaded=false busy=false cleanupPending=false")
+        Log.i(TAG, "cycle=$number phase=STOPPED dspSequence=$postSequence inferencesAfterCleanup=$completedInferences recordingConfigurations=0 notificationCount=0 canStart=true modelLoaded=false busy=false cleanupPending=false")
     }
 
     private suspend fun hold(durationMs: Long, token: Long, enabled: Boolean): Long {
@@ -199,9 +201,12 @@ open class NativeSessionProbeActivity : ComponentActivity() {
         !it.modelLoaded && !it.busy && !it.cleanupPending && it.fault == null
     }
     private fun rejectRuntimeError() { checkProbe(CaptureRuntime.state.value.listening !is ListeningState.Error, "RUNTIME_ERROR") }
-    private fun setAi(enabled: Boolean) {
-        checkProbe(SettingsRuntime.get(this).setAiEnabled(enabled), "SETTINGS_NOT_READY")
+    protected open fun settingsController(): SettingsController = SettingsRuntime.get(this)
+    internal suspend fun setAi(enabled: Boolean) {
+        checkProbe(settingsController().setAiEnabled(enabled), "SETTINGS_NOT_READY")
         checkProbe(CaptureRuntime.aiEnabled.value == enabled, "SETTINGS_NOT_APPLIED")
+        await(3_000, "SETTINGS_SAVE_TIMEOUT") { !settingsController().state.value.saving }
+        checkProbe(settingsController().state.value.error == null, "SETTINGS_ERROR")
     }
     private fun checkProbe(condition: Boolean, code: String) { if (!condition) throw ProbeFailure(code) }
 
@@ -216,16 +221,12 @@ open class NativeSessionProbeActivity : ComponentActivity() {
         if (ending) return
         ending = true
         run?.cancel()
-        calibration?.cancel()
-        if (!SettingsRuntime.get(this).setAiEnabled(false)) CaptureRuntime.setAiEnabled(false)
-        val token = CaptureRuntime.stopToken() ?: currentToken
-        if (token > 0) runCatching { startService(command(ListeningService.ACTION_STOP, token)) }
+        requestCleanup()
         Log.i(TAG, "requested=$requested code=$code cycles=$cycles cleanupVerified=false")
         scope.launch {
             val clean = try {
                 await(8_000, "FINAL_CLEANUP") {
-                    CaptureRuntime.canStart() && CaptureRuntime.state.value.listening == ListeningState.Idle &&
-                        recordings() == 0 && aiClean() && notificationCount() == 0
+                    cleanupRuntimeAccepted(requested) && recordings() == 0 && aiClean() && notificationCount() == 0
                 }
                 true
             } catch (_: Exception) { false }
@@ -238,9 +239,35 @@ open class NativeSessionProbeActivity : ComponentActivity() {
         }
     }
 
-    private class ProbeFailure(val code: String) : Exception()
+    internal fun requestCleanup() {
+        calibration?.cancel()
+        if (!settingsController().setAiEnabled(false)) CaptureRuntime.setAiEnabled(false)
+        // Calibration has its own owner/terminal callback; never start a service for it.
+        val token = currentToken
+        if (token > 0) runCatching { startService(command(ListeningService.ACTION_STOP, token)) }
+    }
+
+    internal fun cleanupRuntimeAccepted(requested: String): Boolean =
+        CaptureRuntime.canStart() && (requested != "PASS" || CaptureRuntime.state.value.listening == ListeningState.Idle)
+
     companion object {
         const val ACTION = "com.ullim.watch.PROBE_SESSIONS"
         private const val TAG = "UllimSessionProbe"
     }
 }
+
+internal suspend fun observeAiOff(
+    worker: AiWorker,
+    disable: suspend () -> Unit,
+    awaitClean: suspend () -> Unit,
+    observeOff: suspend () -> Long,
+): Long {
+    disable()
+    awaitClean()
+    val frozenInferences = worker.state.value.successfulInferences
+    val sequence = observeOff()
+    if (worker.state.value.successfulInferences != frozenInferences) throw ProbeFailure("OFF_NOT_VERIFIED")
+    return sequence
+}
+
+private class ProbeFailure(val code: String) : Exception(code)
