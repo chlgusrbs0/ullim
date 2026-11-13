@@ -1,0 +1,12 @@
+11-14 04:38:06.289 30192 30234 I UllimYamnetProbe: memory stage=before pssKb=63460 usedJavaBytes=3650968 batteryTemperatureTenths=361
+11-14 04:38:06.548 30192 30234 I UllimYamnetProbe: loaded ms=253 inputSamples=15600 outputClasses=521 type=FLOAT32 dspBefore=0 dspAfter=12
+11-14 04:38:06.592 30192 30234 I UllimYamnetProbe: memory stage=loaded pssKb=75437 usedJavaBytes=4249336 batteryTemperatureTenths=361
+11-14 04:38:06.826 30192 30234 I UllimYamnetProbe: fixture=digital_silence inferMs=221 scores=Silence:0.800781|Sound effect:0.007813|Speech:0.003906 dspFrames=26
+11-14 04:38:07.100 30192 30234 I UllimYamnetProbe: fixture=sine_1000Hz inferMs=254 scores=Beep, bleep:0.941406|Sine wave:0.082031|Music:0.042969 dspFrames=39
+11-14 04:38:07.494 30192 30234 I UllimYamnetProbe: fixture=seeded_white_noise inferMs=158 scores=Static:0.667969|Noise:0.585938|White noise:0.500000 dspFrames=59
+11-14 04:38:16.403 30192 30234 I UllimYamnetProbe: memory stage=stream_complete pssKb=80388 usedJavaBytes=3768944 batteryTemperatureTenths=392
+11-14 04:38:16.404 30192 30234 I UllimYamnetProbe: closed closeUs=540
+11-14 04:38:16.568 30192 30234 I UllimYamnetProbe: memory stage=closed pssKb=75658 usedJavaBytes=3166832 batteryTemperatureTenths=392
+11-14 04:38:16.569 30192 30234 I UllimYamnetProbe: cadence gapP95Us=21525 gapMaxUs=25848 lateP95Us=6524 lateMaxUs=9184 dspDuringInferenceStart=14 dspDuringInferenceEnd=500 overlappingOperations=22
+11-14 04:38:16.570 30192 30234 I UllimYamnetProbe: summary dspFrames=500 validInferences=22 maxInferenceMs=304 dspP95Us=4931 dspMaxUs=8277 elapsedMs=10276 cpuMs=9062 closed=true
+11-14 04:38:16.570 30192 30234 I UllimYamnetProbe: result=PASS
