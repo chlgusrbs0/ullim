@@ -7,7 +7,9 @@ import android.view.WindowManager
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import com.ullim.watch.core.AudioFrame
+import com.ullim.watch.core.AudioFeatures
 import com.ullim.watch.dsp.EnvelopeExtractor
+import com.ullim.watch.dsp.NoiseGate
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.exp
@@ -37,7 +39,11 @@ class NativeDspProbeActivity : ComponentActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         worker = Thread({
             try {
-                verifyEnvelope()
+                when (intent.getStringExtra("scenario") ?: "envelope") {
+                    "envelope" -> verifyEnvelope()
+                    "noise" -> verifyNoiseGate()
+                    else -> error("UNKNOWN_SCENARIO")
+                }
                 Log.i(TAG, "result=PASS")
                 runOnUiThread { label.text = "소리 분석 시험 통과" }
             } catch (_: InterruptedException) { Log.i(TAG, "result=CANCELLED")
@@ -87,6 +93,35 @@ class NativeDspProbeActivity : ComponentActivity() {
             check(result.rms.isFinite() && result.envelope.isFinite()) { "FINITE" }
         }
         Log.i(TAG, "envelope frames=30000 simulatedMinutes=10 totalMs=${(System.nanoTime() - began) / 1_000_000} maxExtractUs=${maxNs / 1_000} sineRms=${tone.rms} attack=$attack release=$release order=true reset=true")
+    }
+
+    private fun verifyNoiseGate() {
+        fun feature(level: Float, index: Int, session: Long = 1) =
+            AudioFeatures(session, index * 20_000_000L, level, level, level)
+        val gate = NoiseGate()
+        check(gate.process(feature(0f, 0)).isSilent) { "NOISE_SILENCE" }
+        var background = feature(.03f, 0)
+        repeat(3_000) { index ->
+            if (Thread.currentThread().isInterrupted) throw InterruptedException()
+            background = gate.process(feature(.03f, index + 1))
+        }
+        check(background.level == 0f && background.noise > .025f) { "BACKGROUND" }
+        val transient = gate.process(feature(.3f, 3_001))
+        check(transient.level > .5f && transient.noise < .04f) { "TRANSIENT" }
+        val low = NoiseGate().process(feature(.1f, 0), .5f).level
+        val high = NoiseGate().process(feature(.1f, 0), 2f).level
+        check(high >= low) { "SENSITIVITY" }
+        check(NoiseGate().process(feature(1f, 0), 2f).level == 1f) { "LIMIT" }
+        var invalidRejected = false
+        try { gate.process(feature(0f, 3_002), Float.NaN) } catch (_: IllegalArgumentException) { invalidRejected = true }
+        check(invalidRejected) { "NAN_SENSITIVITY" }
+        val hysteresis = NoiseGate()
+        check(hysteresis.process(feature(.02f, 0)).level > 0f) { "OPEN" }
+        check(hysteresis.process(feature(.009f, 1)).level > 0f) { "HOLD" }
+        check(hysteresis.process(feature(0f, 2)).level == 0f) { "CLOSE" }
+        check(hysteresis.process(feature(.009f, 3)).level == 0f) { "NO_CHATTER" }
+        check(gate.process(feature(.05f, 0, session = 2)).level > 0f) { "NOISE_SESSION_RESET" }
+        Log.i(TAG, "noise backgroundFrames=3000 backgroundLevel=${background.level} noiseFloor=${background.noise} transientLevel=${transient.level} lowSensitivity=$low highSensitivity=$high hysteresis=true invalidRejected=$invalidRejected reset=true")
     }
     companion object { private const val TAG = "UllimDspProbe" }
 }
