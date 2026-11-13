@@ -22,6 +22,14 @@ android {
         compose = true
     }
 
+    // Explicit local hardware verification only; never part of normal debug or release.
+    if (providers.gradleProperty("nativeCaptureProbe").orNull == "true") {
+        sourceSets.getByName("debug") {
+            java.srcDir("src/nativeCaptureProbe/java")
+            manifest.srcFile("src/nativeCaptureProbe/AndroidManifest.xml")
+        }
+    }
+
     testOptions {
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
