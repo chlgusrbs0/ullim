@@ -77,6 +77,14 @@ class MainActivityUiTest {
         }
     }
 
+    @Test fun completedOnboardingDoesNotReturnAfterActivityRecreation() {
+        compose.activityRule.scenario.recreate()
+        compose.waitForIdle()
+        compose.onNodeWithText("울림 시작 전 안내").assertDoesNotExist()
+        compose.onNodeWithText("소리 감지 시작").assertIsDisplayed()
+        assertNull(shadowOf(application).nextStartedService)
+    }
+
     @Test fun startShowsPendingWithoutOptimisticListeningAndCanBeCancelled() {
         requestStart()
         compose.onNodeWithText("시작 중").assertIsNotEnabled()
@@ -127,6 +135,8 @@ class MainActivityUiTest {
     }
 
     @Test fun deniedPermissionHasAnAppSettingsEntry() {
+        application.getSharedPreferences("ullim_first_run", Application.MODE_PRIVATE).edit()
+            .putBoolean("microphone_permission_requested", true).commit()
         shadowOf(application).denyPermissions(Manifest.permission.RECORD_AUDIO)
         compose.activityRule.scenario.recreate()
         compose.waitForIdle()
@@ -137,6 +147,8 @@ class MainActivityUiTest {
     }
 
     @Test fun permissionsRefreshOnReturnFromAndroidSettingsWithoutStartingCapture() {
+        application.getSharedPreferences("ullim_first_run", Application.MODE_PRIVATE).edit()
+            .putBoolean("microphone_permission_requested", true).commit()
         shadowOf(application).denyPermissions(Manifest.permission.RECORD_AUDIO)
         compose.activityRule.scenario.recreate()
         compose.waitForIdle()
