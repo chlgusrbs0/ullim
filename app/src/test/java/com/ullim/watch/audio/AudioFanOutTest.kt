@@ -4,6 +4,7 @@ import com.ullim.watch.core.AudioFrame
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -77,21 +78,44 @@ class AudioFanOutTest {
         val observed = CopyOnWriteArrayList<AudioFrame>()
         val fanout = AudioFanOut(observed::add)
         fanout.start(1)
-        fanout.accept(AudioFrame(1, 0, ShortArray(15_600)))
+        fanout.accept(AudioFrame(1, 0, ShortArray(15_600) { 7 }))
         val snapshotTaken = CountDownLatch(1)
         val finishAi = CountDownLatch(1)
+        val childFailure = AtomicReference<Throwable?>()
+        var heldNs = 0L
         val ai = Thread {
-            assertNotNull(fanout.takeLatestAi())
-            snapshotTaken.countDown()
-            finishAi.await(2, TimeUnit.SECONDS)
+            try {
+                val snapshot = fanout.takeLatestAi()!!
+                val start = System.nanoTime()
+                snapshotTaken.countDown()
+                assertTrue(finishAi.await(5, TimeUnit.SECONDS))
+                assertEquals(1L, snapshot.sessionId)
+                assertEquals(0L, snapshot.timestampNs)
+                assertTrue(snapshot.copySamples().all { it == 7.toShort() })
+                heldNs = System.nanoTime() - start
+            } catch (failure: Throwable) { childFailure.set(failure) }
         }
         ai.start()
-        assertTrue(snapshotTaken.await(2, TimeUnit.SECONDS))
-        val before = observed.size
-        fanout.accept(AudioFrame(1, 975_000_000, ShortArray(640)))
-        assertEquals(before + 2, observed.size)
-        finishAi.countDown()
-        ai.join(2000)
+        try {
+            assertTrue(snapshotTaken.await(2, TimeUnit.SECONDS))
+            val before = observed.size
+            val started = System.nanoTime()
+            var accepted = 0
+            do {
+                assertTrue(fanout.accept(AudioFrame(1, 975_000_000L + accepted * 20_000_000L, ShortArray(320))))
+                accepted++
+                Thread.sleep(20)
+            } while (System.nanoTime() - started < 2_000_000_000L)
+            assertTrue("DSP must progress throughout the held AI interval", accepted >= 20)
+            assertEquals(before + accepted, observed.size)
+        } finally {
+            finishAi.countDown()
+            ai.join(2000)
+            fanout.stop()
+        }
         assertFalse(ai.isAlive)
+        assertNull("AI snapshot changed during use: ${childFailure.get()}", childFailure.get())
+        assertTrue("AI snapshot was not held for two real seconds", heldNs >= 2_000_000_000L)
+        println("AI snapshot held=${heldNs / 1_000_000}ms; DSP continued without missing submitted frames")
     }
 }
