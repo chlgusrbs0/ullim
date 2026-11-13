@@ -1,0 +1,8 @@
+11-14 03:36:41.401 26935 26980 I UllimFanOutProbe: burst=0 frames=30000 elapsedMs=3846 usedJavaHeap=3649888
+11-14 03:36:42.819 26935 26980 I UllimFanOutProbe: burst=1 frames=60000 elapsedMs=1417 usedJavaHeap=3649888
+11-14 03:36:44.287 26935 26980 I UllimFanOutProbe: burst=2 frames=90000 elapsedMs=1468 usedJavaHeap=3649888
+11-14 03:36:45.709 26935 26980 I UllimFanOutProbe: burst=3 frames=120000 elapsedMs=1421 usedJavaHeap=3649888
+11-14 03:36:45.709 26935 26980 I UllimFanOutProbe: javaHeapGrowth=0 limitBytes=4194304 simulatedMinutes=40
+11-14 03:36:47.805 26935 26980 I UllimFanOutProbe: aiHeldMs=2093 dspFramesDuringStall=96
+11-14 03:36:47.887 26935 26980 I UllimFanOutProbe: restartFresh=true stoppedWindowCleared=true
+11-14 03:36:47.887 26935 26980 I UllimFanOutProbe: result=PASS

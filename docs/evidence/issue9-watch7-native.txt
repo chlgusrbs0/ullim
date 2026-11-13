@@ -1,0 +1,2 @@
+11-14 03:51:29.072 27855 27902 I UllimDspProbe: noise backgroundFrames=3000 backgroundLevel=0.0 noiseFloor=0.029999815 transientLevel=0.72871834 lowSensitivity=0.31010723 highSensitivity=0.62021446 hysteresis=true invalidRejected=true reset=true
+11-14 03:51:29.072 27855 27902 I UllimDspProbe: result=PASS
