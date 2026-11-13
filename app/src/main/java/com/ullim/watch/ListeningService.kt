@@ -137,10 +137,11 @@ open class ListeningService : Service() {
         val scheduler = HapticScheduler(AdaptiveHapticRenderer(outputDevice))
         var lastUiNs = -100_000_000L
         val fanout = AudioFanOut { frame ->
+            val callbackNs = if (trace != null) System.nanoTime() else 0L
             val features = dsp.extract(frame)
             val command = mapper.map(features, ai.current(token, frame.timestampNs))
             val accepted = scheduler.offer(command)
-            trace?.offer(features, command, accepted, System.nanoTime())
+            trace?.offer(features, command, accepted, callbackNs)
             when (scheduler.lastResult) {
                 RenderResult.FAILED -> throw CaptureException(CaptureError.OUTPUT)
                 RenderResult.UNSUPPORTED -> throw CaptureException(CaptureError.OUTPUT_UNSUPPORTED)
