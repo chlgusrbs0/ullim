@@ -8,25 +8,40 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.ApplicationInfo
 import android.content.pm.ServiceInfo
 import android.graphics.drawable.Icon
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.VibratorManager
+import android.util.Log
 import com.ullim.watch.audio.AndroidPcmInput
 import com.ullim.watch.audio.AudioFanOut
 import com.ullim.watch.audio.CaptureStatus
 import com.ullim.watch.audio.MicrophoneCapture
+import com.ullim.watch.ai.AiPhase
+import com.ullim.watch.ai.AiFault
+import com.ullim.watch.ai.AiSnapshot
+import com.ullim.watch.ai.AiRuntime
+import com.ullim.watch.ai.AiWorker
+import com.ullim.watch.ai.AiCaptureFeed
+import com.ullim.watch.core.AiStatus
 import com.ullim.watch.core.RenderResult
 import com.ullim.watch.dsp.DspProcessor
 import com.ullim.watch.haptics.AdaptiveHapticRenderer
 import com.ullim.watch.haptics.AndroidEnvelopeDevice
-import com.ullim.watch.haptics.EnvelopeHapticMapper
+import com.ullim.watch.haptics.HybridHapticMapper
 import com.ullim.watch.haptics.HapticScheduler
 import com.ullim.watch.runtime.CaptureRuntime
 import com.ullim.watch.runtime.ForegroundSession
 import com.ullim.watch.runtime.ForegroundStart
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 class ListeningService : Service() {
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -34,6 +49,22 @@ class ListeningService : Service() {
     private var currentSession = 0L
     private var currentStartId = 0
     private var stopping = false
+    private var aiWorker: AiWorker? = null
+    private var aiFeed: AiCaptureFeed? = null
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var aiObservation: Job? = null
+    private var lastAiLogNs = -5_000_000_000L
+    private var lastAiLogPhase: AiPhase? = null
+    private var lastAiLogFault: AiFault? = null
+    private val aiHeartbeat = object : Runnable {
+        override fun run() {
+            val token = currentSession
+            if (token <= 0 || stopping) return
+            aiFeed?.refreshMode()
+            aiWorker?.tick()
+            mainHandler.postDelayed(this, 100)
+        }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -68,12 +99,14 @@ class ListeningService : Service() {
             return
         }
         val dsp = DspProcessor()
-        val mapper = EnvelopeHapticMapper()
+        val mapper = HybridHapticMapper()
+        val ai = AiRuntime.worker(this)
+        aiWorker = ai
         val scheduler = HapticScheduler(AdaptiveHapticRenderer(device))
         var lastUiNs = -100_000_000L
         val fanout = AudioFanOut { frame ->
             val features = dsp.extract(frame)
-            val command = mapper.map(features)
+            val command = mapper.map(features, ai.current(token, frame.timestampNs))
             scheduler.offer(command)
             check(scheduler.lastResult != RenderResult.FAILED && scheduler.lastResult != RenderResult.UNSUPPORTED)
             if (frame.timestampNs - lastUiNs >= 100_000_000L) {
@@ -81,8 +114,10 @@ class ListeningService : Service() {
                 lastUiNs = frame.timestampNs
             }
         }
+        val feed = AiCaptureFeed(token, ai, fanout) { CaptureRuntime.aiEnabled.value }
+        aiFeed = feed
         lateinit var capture: MicrophoneCapture
-        capture = MicrophoneCapture({ AndroidPcmInput.create(this) }, { fanout.accept(it) }, { status ->
+        capture = MicrophoneCapture({ AndroidPcmInput.create(this) }, { feed.accept(it) }, { status ->
             mainHandler.post {
                 when (status) {
                     CaptureStatus.Recording -> if (!stopping) CaptureRuntime.listening(token, !device.capabilities.amplitudeControl)
@@ -114,7 +149,7 @@ class ListeningService : Service() {
             capture,
             { startForeground(NOTIFICATION_ID, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE) },
             { stopForeground(STOP_FOREGROUND_REMOVE) },
-            { fanout.stop(); scheduler.stop(); dsp.reset(); mapper.reset() },
+            { fanout.stop(); scheduler.stop(); dsp.reset(); mapper.reset(); stopAi(token) },
         )
         lifecycle = session
         val result = session.start(token)
@@ -123,6 +158,23 @@ class ListeningService : Service() {
             CaptureRuntime.fail(token, getString(if (result == ForegroundStart.DENIED) R.string.microphone_permission_needed else R.string.service_start_failed))
             lifecycle = null
             stopSelf(startId)
+        } else {
+            feed.start()
+            aiObservation = serviceScope.launch {
+                ai.state.collect { snapshot ->
+                    if (snapshot.sessionId == token) {
+                        val status = when (snapshot.phase) {
+                            AiPhase.DISABLED -> AiStatus.DISABLED
+                            AiPhase.LOADING -> AiStatus.STARTING
+                            AiPhase.LISTENING -> AiStatus.AVAILABLE
+                            AiPhase.DELAYED, AiPhase.FAILED -> AiStatus.UNAVAILABLE
+                        }
+                        CaptureRuntime.aiStatus(token, status)
+                        logAi(snapshot)
+                    }
+                }
+            }
+            mainHandler.post(aiHeartbeat)
         }
     }
 
@@ -144,11 +196,36 @@ class ListeningService : Service() {
     private fun stopCapture() {
         stopping = true
         if (currentSession > 0) CaptureRuntime.stopping(currentSession)
+        stopAi(currentSession)
         lifecycle?.stop()
+    }
+
+    private fun stopAi(token: Long) {
+        mainHandler.removeCallbacks(aiHeartbeat)
+        aiObservation?.cancel()
+        aiObservation = null
+        aiWorker?.stop(token)
+        aiFeed = null
+        CaptureRuntime.aiStatus(token, AiStatus.DISABLED)
+    }
+
+    private fun logAi(snapshot: AiSnapshot) {
+        if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE == 0) return
+        val now = System.nanoTime()
+        if (snapshot.phase == lastAiLogPhase && snapshot.fault == lastAiLogFault && now - lastAiLogNs < 5_000_000_000L) return
+        lastAiLogNs = now
+        lastAiLogPhase = snapshot.phase
+        lastAiLogFault = snapshot.fault
+        Log.i("UllimAI", "session=${snapshot.sessionId} phase=${snapshot.phase} fault=${snapshot.fault} " +
+            "loaded=${snapshot.modelLoaded} busy=${snapshot.busy} cleanupPending=${snapshot.cleanupPending} " +
+            "loadNs=${snapshot.loadDurationNs} inferNs=${snapshot.lastInferenceNs} maxInferNs=${snapshot.maxInferenceNs} " +
+            "attempts=${snapshot.inferenceCount} validResults=${snapshot.successfulInferences} " +
+            "faults=${snapshot.faultCount} timeouts=${snapshot.timeoutCount} operationNs=${snapshot.operationElapsedNs} dropped=${snapshot.droppedWindows}")
     }
 
     override fun onDestroy() {
         stopCapture()
+        serviceScope.cancel()
         super.onDestroy()
     }
 

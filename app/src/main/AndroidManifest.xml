@@ -16,6 +16,7 @@
         <meta-data android:name="com.google.android.wearable.standalone" android:value="true" />
         <service android:name=".ListeningService" android:exported="false" android:foregroundServiceType="microphone" />
         <activity android:name=".DiagnosticsActivity" android:exported="false" android:taskAffinity="com.ullim.watch.main" />
+        <activity android:name=".AiControlsActivity" android:exported="false" android:taskAffinity="com.ullim.watch.main" />
         <activity
             android:name=".MainActivity"
             android:taskAffinity="com.ullim.watch.main"

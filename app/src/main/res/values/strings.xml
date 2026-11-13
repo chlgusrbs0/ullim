@@ -35,6 +35,19 @@
     <string name="listening_notification">울림이 주변 소리를 감지하고 있어요</string>
     <string name="local_audio_notice">워치 안에서만 처리하며 원본 음성을 저장하지 않아요</string>
     <string name="levels">입력 소리 %1$d%%\n요청한 진동 %2$d%%</string>
-    <string name="ai_not_ready">AI 보조는 아직 준비 중이에요</string>
+    <string name="ai_controls">AI 보조</string>
+    <string name="ai_disabled">AI 보조 꺼짐</string>
+    <string name="ai_waiting_for_capture">AI 보조 켜짐 · 감지 시작을 기다려요</string>
+    <string name="ai_loading">AI를 준비하고 있어요</string>
+    <string name="ai_listening">AI 보조를 사용하고 있어요</string>
+    <string name="ai_delayed">AI 응답이 지연되고 있어요</string>
+    <string name="ai_failed">AI 보조를 사용할 수 없어요. AI를 끈 뒤 다시 켜면 재시도해요.</string>
+    <string name="ai_baseline_continues">기본 소리 변환은 계속 작동해요</string>
+    <string name="ai_optional_notice">AI는 선택 사항이에요. 꺼도 소리를 진동으로 바꿀 수 있어요. 원본 음성은 저장하거나 전송하지 않아요.</string>
+    <string name="ai_cleanup_pending">이전 AI 작업을 정리하고 있어요. AI 보조 없이 사용할 수 있어요.</string>
+    <string name="ai_restart_needed">AI 보조를 다시 쓰려면 감지를 중지하고 앱을 완전히 종료한 뒤 다시 열어주세요.</string>
+    <string name="ai_turn_on">AI 보조 켜기</string>
+    <string name="ai_turn_off">AI 보조 끄기</string>
+    <string name="ai_back">돌아가기</string>
     <string name="notifications_limited">알림 권한이 꺼져 있어 작동 알림이 제한될 수 있어요</string>
 </resources>

@@ -142,7 +142,9 @@ private fun UllimApp(onStart: () -> Unit = {}, onStop: () -> Unit = {}) {
                     Button(onClick = if (idle) onStart else onStop, enabled = phase !is ListeningState.Stopping, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(if (idle) R.string.start_listening else R.string.stop))
                     }
-                    Text(stringResource(R.string.ai_not_ready), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall)
+                    TextButton(onClick = { context.startActivity(Intent(context, AiControlsActivity::class.java)) }) {
+                        Text(stringResource(R.string.ai_controls))
+                    }
                     TextButton(onClick = { context.startActivity(Intent(context, DiagnosticsActivity::class.java)) }, enabled = idle) {
                         Text(stringResource(R.string.diagnostics))
                     }

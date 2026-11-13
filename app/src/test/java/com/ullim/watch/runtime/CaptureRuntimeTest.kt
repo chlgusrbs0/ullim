@@ -2,10 +2,32 @@ package com.ullim.watch.runtime
 
 import com.ullim.watch.audio.MicrophoneCapture
 import com.ullim.watch.core.ListeningState
+import com.ullim.watch.core.AiStatus
 import org.junit.Assert.*
 import org.junit.Test
 
 class CaptureRuntimeTest {
+    @Test fun aiStatusFollowsOnlyActiveSessionAndCannotResurrectAfterStop() {
+        val first = CaptureRuntime.requestStart()!!
+        try {
+            CaptureRuntime.setAiEnabled(true)
+            assertTrue(CaptureRuntime.aiEnabled.value)
+            CaptureRuntime.aiStatus(first, AiStatus.STARTING)
+            CaptureRuntime.listening(first, false)
+            assertEquals(AiStatus.STARTING, CaptureRuntime.state.value.ai)
+            CaptureRuntime.aiStatus(first, AiStatus.AVAILABLE)
+            CaptureRuntime.stopping(first)
+            assertEquals(AiStatus.DISABLED, CaptureRuntime.state.value.ai)
+            CaptureRuntime.finished(first)
+            CaptureRuntime.aiStatus(first, AiStatus.AVAILABLE)
+            assertEquals(AiStatus.DISABLED, CaptureRuntime.state.value.ai)
+            val second = CaptureRuntime.requestStart()!!
+            CaptureRuntime.aiStatus(first, AiStatus.UNAVAILABLE)
+            assertEquals(AiStatus.DISABLED, CaptureRuntime.state.value.ai)
+            CaptureRuntime.finished(second)
+        } finally { CaptureRuntime.setAiEnabled(false); CaptureRuntime.finished(first) }
+    }
+
     @Test fun serviceDestructionAfterCompletedStopCannotResurrectStoppingState() {
         val first = CaptureRuntime.requestStart()!!
         try {

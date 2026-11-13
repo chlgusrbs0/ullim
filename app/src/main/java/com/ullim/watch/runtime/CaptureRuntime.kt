@@ -3,6 +3,7 @@ package com.ullim.watch.runtime
 import com.ullim.watch.audio.MicrophoneCapture
 import com.ullim.watch.core.ListeningState
 import com.ullim.watch.core.RuntimeState
+import com.ullim.watch.core.AiStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -12,12 +13,22 @@ object CaptureRuntime {
     private val mutableState = MutableStateFlow(RuntimeState())
     private val mutableLevels = MutableStateFlow(LiveLevels())
     private val mutableLimited = MutableStateFlow(false)
+    private val mutableAiEnabled = MutableStateFlow(false)
     val state = mutableState.asStateFlow()
     val levels = mutableLevels.asStateFlow()
     val strengthLimited = mutableLimited.asStateFlow()
+    val aiEnabled = mutableAiEnabled.asStateFlow()
     private var counter = 0L
     private var currentId = 0L
     private var owner: MicrophoneCapture? = null
+
+    fun setAiEnabled(enabled: Boolean) { mutableAiEnabled.value = enabled }
+    @Synchronized fun aiStatus(id: Long, status: AiStatus) {
+        val phase = state.value.listening
+        if (currentId == id && (phase is ListeningState.Starting || phase is ListeningState.Listening)) {
+            mutableState.value = mutableState.value.copy(ai = status)
+        }
+    }
 
     @Synchronized fun requestStart(): Long? {
         if (owner != null || (state.value.listening != ListeningState.Idle && state.value.listening !is ListeningState.Error)) return null
@@ -37,12 +48,12 @@ object CaptureRuntime {
     @Synchronized fun listening(id: Long, limited: Boolean) {
         if (!isStarting(id)) return
         mutableLimited.value = limited
-        mutableState.value = RuntimeState(ListeningState.Listening(id))
+        mutableState.value = mutableState.value.copy(listening = ListeningState.Listening(id))
     }
     @Synchronized fun stopping(id: Long) {
         val phase = state.value.listening
         if (currentId == id && (phase is ListeningState.Starting || phase is ListeningState.Listening)) {
-            mutableState.value = RuntimeState(ListeningState.Stopping(id))
+            mutableState.value = RuntimeState(ListeningState.Stopping(id), AiStatus.DISABLED)
         }
     }
     @Synchronized fun finished(id: Long) {
