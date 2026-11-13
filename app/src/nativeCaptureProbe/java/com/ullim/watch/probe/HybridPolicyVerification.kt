@@ -5,6 +5,7 @@ import com.ullim.watch.ai.AndroidYamnet
 import com.ullim.watch.ai.ClassificationSmoother
 import com.ullim.watch.core.AudioFrame
 import com.ullim.watch.core.Classification
+import com.ullim.watch.core.HapticMapper
 import com.ullim.watch.dsp.DspProcessor
 import com.ullim.watch.haptics.EnvelopeHapticMapper
 import com.ullim.watch.haptics.HybridHapticMapper
@@ -93,14 +94,39 @@ internal object HybridPolicyVerification {
                 check(base.isSilent == adjusted.isSilent && adjusted.timestampNs == base.timestampNs && adjusted.durationMs == base.durationMs) { "WRONG_CONTEXT_LOST_EVENT" }
                 if (wasQuiet && !adjusted.isSilent) edges.add(index)
                 wasQuiet = adjusted.isSilent
-                if (features.timestampNs >= contextResult.validUntilNs) check(adjusted == base) { "EXPIRED_NOT_BASELINE" }
             }
             check(edges == listOf(5, 20, 45)) { "WRONG_CONTEXT_RHYTHM" }
-            report("hybrid source=actual_model scenario=deliberately_wrong_noise_context knockFrames=${edges.joinToString(",")} expiredExactlyBaseline=true noLabelDrivenPulses=true")
+            report("hybrid source=actual_model scenario=deliberately_wrong_noise_context knockFrames=${edges.joinToString(",")} noLabelDrivenPulses=true")
+            verifyNonzeroExpiry(contextResult, HybridHapticMapper(), active, report)
         } finally {
             classifier.close()
             report("hybrid modelClosed=true")
         }
+    }
+
+    internal fun verifyNonzeroExpiry(context: Classification, hybrid: HapticMapper,
+        active: () -> Unit, report: (String) -> Unit) {
+        val dsp = DspProcessor()
+        val baseline = EnvelopeHapticMapper()
+        val random = Random(7331)
+        var adjustedBefore = 0
+        var expiredExact = 0
+        repeat(100) { index ->
+            active()
+            val samples = ShortArray(320) { (random.nextDouble(-.2, .2) * 32_767).toInt().toShort() }
+            val features = dsp.extract(AudioFrame(1, context.timestampNs + index * 20_000_000L, samples))
+            val base = baseline.map(features)
+            val output = hybrid.map(features, context)
+            check(!base.isSilent) { "EXPIRY_INPUT_WAS_SILENT" }
+            if (features.timestampNs < context.validUntilNs) {
+                if (base != output) adjustedBefore++
+            } else {
+                check(output == base) { "EXPIRED_NOT_BASELINE" }
+                expiredExact++
+            }
+        }
+        check(adjustedBefore > 0 && expiredExact > 0) { "MISSING_NONZERO_EXPIRY_PHASE" }
+        report("hybrid source=actual_model scenario=nonzero_expiry logicalFrames=100 adjustedBeforeExpiry=$adjustedBefore expiredNonzeroExact=$expiredExact sameLogicalClock=true motor=false")
     }
     private fun format(value: Float) = String.format(Locale.US, "%.6f", value)
     private val NAMES = arrayOf("seeded_white_noise", "silence", "sine_1000Hz")
