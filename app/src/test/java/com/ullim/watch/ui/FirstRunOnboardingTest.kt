@@ -62,6 +62,8 @@ class FirstRunOnboardingTest {
         assertEquals(true, completed)
         assertFalse(permissionRequested)
         compose.onNodeWithText("울림").assertIsDisplayed()
-        compose.onNodeWithText("마이크 권한 다시 요청").assertIsDisplayed()
+        compose.onNodeWithText("마이크 권한 다시 요청")
+            .performScrollTo()
+            .assertIsDisplayed()
     }
 }
