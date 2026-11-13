@@ -6,6 +6,22 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class WaveformRendererTest {
+    @Test fun verifiedUnreliableAmplitudeUsesDifferentOnTimesWithoutExtendingSound() {
+        fun onTime(intensity: Float): Long {
+            val device = Device(HapticCapabilities(true, true, null))
+            val renderer = WaveformRenderer(device, forcePulseFallback = true)
+            renderer.begin(1)
+            renderer.render(HapticFrame(1, 0, 20, intensity))
+            assertTrue(renderer.strengthLimited)
+            val waveform = device.played.single()
+            assertEquals(20L, waveform.timings.sum())
+            assertTrue(waveform.amplitudes.all { it == 0 || it == -1 })
+            return waveform.timings.indices.sumOf { if (waveform.amplitudes[it] != 0) waveform.timings[it] else 0L }
+        }
+        assertEquals(4L, onTime(.2f))
+        assertEquals(16L, onTime(.8f))
+    }
+
     private class Device(override val capabilities: HapticCapabilities) : WaveformDevice {
         val played = mutableListOf<DiagnosticWaveform>()
         var cancellations = 0

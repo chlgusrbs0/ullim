@@ -14,6 +14,7 @@ internal fun reportCaptureFailure(context: Context, session: Long?, failure: Cap
         CaptureFailure.PROCESSING -> R.string.processing_failed
         CaptureFailure.HAPTIC_UNSUPPORTED -> R.string.motor_unavailable
         CaptureFailure.HAPTIC_OUTPUT -> R.string.haptic_output_failed
+        CaptureFailure.MOTOR_CALIBRATION -> R.string.motor_calibration_required
         CaptureFailure.FOREGROUND_START -> R.string.service_start_failed
         CaptureFailure.SERVICE_COMMAND -> R.string.service_stop_failed
         CaptureFailure.CLEANUP -> R.string.capture_cleanup_failed

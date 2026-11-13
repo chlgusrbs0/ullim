@@ -39,6 +39,10 @@ import com.ullim.watch.haptics.HybridHapticMapper
 import com.ullim.watch.haptics.HapticScheduler
 import com.ullim.watch.haptics.HapticTelemetry
 import com.ullim.watch.haptics.TracingEnvelopeDevice
+import com.ullim.watch.haptics.MotorNoiseSuppressor
+import com.ullim.watch.haptics.MotorOutputTimeline
+import com.ullim.watch.haptics.MotorProfileStore
+import com.ullim.watch.haptics.MotorTrackingDevice
 import com.ullim.watch.runtime.CaptureRuntime
 import com.ullim.watch.runtime.CaptureFailure
 import com.ullim.watch.runtime.ForegroundSession
@@ -127,21 +131,31 @@ open class ListeningService : Service() {
             stopSelf(startId)
             return
         }
-        val dsp = LiveDsp { CaptureRuntime.sensitivity.value }
+        val motorTimeline = MotorOutputTimeline()
+        val motorProfile = MotorProfileStore.load(this, MotorProfileStore.deviceKey(this))
+        if (motorProfile == null) {
+            reportCaptureFailure(this, token, CaptureFailure.MOTOR_CALIBRATION)
+            stopSelf(startId)
+            return
+        }
+        val suppressor = MotorNoiseSuppressor(motorProfile, motorTimeline)
+        val dsp = LiveDsp(preprocess = suppressor::process) { CaptureRuntime.sensitivity.value }
         val mapper = HybridHapticMapper()
         val ai = AiRuntime.worker(this)
         aiWorker = ai
         val trace = if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) HapticTelemetry(token) else null
         hapticTelemetry = trace
-        val outputDevice = if (trace != null) TracingEnvelopeDevice(device, trace) else device
-        val scheduler = HapticScheduler(AdaptiveHapticRenderer(outputDevice))
+        val trackedDevice = MotorTrackingDevice(device, motorTimeline)
+        val outputDevice = if (trace != null) TracingEnvelopeDevice(trackedDevice, trace) else trackedDevice
+        val scheduler = HapticScheduler(AdaptiveHapticRenderer(outputDevice, pulseFallback = motorProfile.pulseFallback))
         var lastUiNs = -100_000_000L
         val fanout = AudioFanOut { frame ->
             val callbackNs = if (trace != null) System.nanoTime() else 0L
             val features = dsp.extract(frame)
             val command = mapper.map(features, ai.current(token, frame.timestampNs))
             val accepted = scheduler.offer(command)
-            trace?.offer(features, command, accepted, callbackNs)
+            trace?.offer(features, command, accepted, callbackNs,
+                rawRms = if (suppressor.lastFiltered) suppressor.lastRawRms else features.rms)
             when (scheduler.lastResult) {
                 RenderResult.FAILED -> throw CaptureException(CaptureError.OUTPUT)
                 RenderResult.UNSUPPORTED -> throw CaptureException(CaptureError.OUTPUT_UNSUPPORTED)
@@ -159,7 +173,7 @@ open class ListeningService : Service() {
         capture = MicrophoneCapture(::createPcmInput, { feed.accept(it) }, { status ->
             mainHandler.post {
                 when (status) {
-                    CaptureStatus.Recording -> if (!stopping) CaptureRuntime.listening(token, !device.capabilities.amplitudeControl)
+                    CaptureStatus.Recording -> if (!stopping) CaptureRuntime.listening(token, motorProfile.pulseFallback || !device.capabilities.amplitudeControl)
                     CaptureStatus.Stopped, is CaptureStatus.Failed -> {
                         val cleanupFailed = status is CaptureStatus.Failed && status.reason == CaptureError.CLEANUP
                         if (!cleanupFailed) CaptureRuntime.detach(capture)

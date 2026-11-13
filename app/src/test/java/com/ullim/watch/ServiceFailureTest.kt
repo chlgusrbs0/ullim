@@ -10,6 +10,8 @@ import com.ullim.watch.core.ListeningState
 import com.ullim.watch.runtime.CaptureFailure
 import com.ullim.watch.runtime.CaptureRuntime
 import com.ullim.watch.audio.PcmInput
+import com.ullim.watch.haptics.MotorNoiseProfile
+import com.ullim.watch.haptics.MotorProfileStore
 import com.ullim.watch.ai.AiRuntime
 import com.ullim.watch.ai.AiWorker
 import com.ullim.watch.ai.AiFault
@@ -54,6 +56,7 @@ class ServiceFailureTest {
 
     @Test fun actualServiceReadFailureReportsMatchingCodeCancelsMotorAndAllowsManualRestart() {
         shadowOf(application).grantPermissions(Manifest.permission.RECORD_AUDIO)
+        assertTrue(MotorProfileStore.save(application, MotorProfileStore.deviceKey(application), MotorNoiseProfile(DoubleArray(257), DoubleArray(257))))
         val vibrator = application.getSystemService(VibratorManager::class.java).defaultVibrator
         shadowOf(vibrator).setHasVibrator(true)
         shadowOf(vibrator).setHasAmplitudeControl(true)

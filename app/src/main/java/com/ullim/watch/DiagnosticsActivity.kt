@@ -40,17 +40,28 @@ import com.ullim.watch.haptics.ComparisonPattern
 import com.ullim.watch.haptics.ComparisonPhase
 import com.ullim.watch.haptics.ComparisonState
 import com.ullim.watch.haptics.HapticComparison
+import com.ullim.watch.haptics.MotorCalibrationRunner
+import com.ullim.watch.haptics.MotorCalibrationState
+import com.ullim.watch.haptics.MotorProfileStore
 
 class DiagnosticsActivity : ComponentActivity() {
     private lateinit var vibrator: Vibrator
     private var diagnosticMessage by mutableStateOf(R.string.diagnostic_not_measured)
     private lateinit var comparison: HapticComparison
     private var comparisonState by mutableStateOf(ComparisonState())
+    private lateinit var calibration: MotorCalibrationRunner
+    private var calibrationState by mutableStateOf(MotorCalibrationState.IDLE)
+    private var hasCalibration by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         vibrator = getSystemService(VibratorManager::class.java).defaultVibrator
         val capability = HapticCapabilities.detect(AndroidHapticProbe(vibrator))
+        hasCalibration = MotorProfileStore.load(this, MotorProfileStore.deviceKey(this)) != null
+        calibration = MotorCalibrationRunner(this, vibrator, {
+            calibrationState = it
+            if (it == MotorCalibrationState.COMPLETE) hasCalibration = true
+        })
         comparison = HapticComparison(AndroidWaveformDevice(vibrator), onUpdate = {
             comparisonState = it
             Log.i("UllimHaptics", "pattern=${it.pattern} phase=${it.phase} commands=${it.commands} maxDispatchLateMs=${it.maxDispatchLateMs}")
@@ -74,6 +85,23 @@ class DiagnosticsActivity : ComponentActivity() {
                         Text(stringResource(R.string.envelope_limits, limits.maxPoints, limits.minPointMs, limits.maxPointMs, limits.maxDurationMs), textAlign = TextAlign.Center)
                     }
                     if (capability.probeFailed) Text(stringResource(R.string.probe_failed))
+                    val calibrating = calibrationState == MotorCalibrationState.RUNNING || calibrationState == MotorCalibrationState.STOPPING
+                    Text(stringResource(R.string.motor_calibration_notice), textAlign = TextAlign.Center)
+                    val calibrationText = when (calibrationState) {
+                        MotorCalibrationState.RUNNING -> R.string.motor_calibration_running
+                        MotorCalibrationState.STOPPING -> R.string.motor_calibration_stopping
+                        MotorCalibrationState.COMPLETE -> R.string.motor_calibration_complete
+                        MotorCalibrationState.FAILED -> R.string.motor_calibration_failed
+                        MotorCalibrationState.PERMISSION_REQUIRED -> R.string.motor_calibration_permission
+                        MotorCalibrationState.BUSY -> R.string.motor_calibration_busy
+                        MotorCalibrationState.STOPPED -> R.string.output_stopped
+                        else -> if (hasCalibration) R.string.motor_calibration_saved else R.string.motor_calibration_missing
+                    }
+                    Text(stringResource(calibrationText), textAlign = TextAlign.Center)
+                    Button(onClick = { comparison.stop(); calibration.start() }, enabled = capability.available && !calibrating,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                        Text(stringResource(R.string.motor_calibration_start), textAlign = TextAlign.Center)
+                    }
                     Text(stringResource(diagnosticMessage), textAlign = TextAlign.Center)
                     DiagnosticPattern.entries.forEach { pattern ->
                         val label = when (pattern) {
@@ -83,7 +111,7 @@ class DiagnosticsActivity : ComponentActivity() {
                             DiagnosticPattern.LONG -> R.string.diagnostic_long
                             DiagnosticPattern.RHYTHM -> R.string.diagnostic_rhythm
                         }
-                        Button(onClick = { play(pattern, capability) }, enabled = capability.available, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                        Button(onClick = { play(pattern, capability) }, enabled = capability.available && !calibrating, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                             Text(stringResource(label))
                         }
                     }
@@ -114,7 +142,7 @@ class DiagnosticsActivity : ComponentActivity() {
                             ComparisonPattern.MAX_AMPLITUDE -> R.string.comparison_max_amplitude
                         }
                         Button(onClick = { comparison.start(pattern) },
-                            enabled = capability.available && capability.amplitudeControl,
+                            enabled = capability.available && capability.amplitudeControl && !calibrating,
                             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                             Text(stringResource(label), textAlign = TextAlign.Center)
                         }
@@ -139,6 +167,7 @@ class DiagnosticsActivity : ComponentActivity() {
     }
 
     private fun cancelOutput() {
+        if (::calibration.isInitialized) calibration.cancel()
         if (::comparison.isInitialized) comparison.stop()
         runCatching { vibrator.cancel() }
         diagnosticMessage = R.string.output_stopped

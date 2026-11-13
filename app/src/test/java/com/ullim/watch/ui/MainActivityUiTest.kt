@@ -2,6 +2,9 @@ package com.ullim.watch.ui
 
 import android.Manifest
 import android.app.Application
+import java.io.File
+import com.ullim.watch.haptics.MotorProfileStore
+import com.ullim.watch.haptics.MotorNoiseProfile
 import android.content.Intent
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -46,6 +49,7 @@ class MainActivityUiTest {
 
     @Before fun allowMicrophoneAndRefreshActivity() {
         shadowOf(application).grantPermissions(Manifest.permission.RECORD_AUDIO, Manifest.permission.POST_NOTIFICATIONS)
+        assertTrue(MotorProfileStore.save(application, MotorProfileStore.deviceKey(application), MotorNoiseProfile(DoubleArray(257), DoubleArray(257))))
         compose.activityRule.scenario.recreate()
         compose.waitForIdle()
         while (shadowOf(application).nextStartedService != null) { /* discard setup work */ }
@@ -66,6 +70,17 @@ class MainActivityUiTest {
             val command = shadowOf(application).nextStartedService
             assertEquals(ListeningService.ACTION_START, command.action)
             assertEquals(token, command.getLongExtra(ListeningService.EXTRA_SESSION, 0))
+        }
+    }
+
+    @Test fun missingCalibrationOpensExplicitSetupWithoutStartingMicrophone() {
+        assertTrue(File(application.noBackupFilesDir, "motor-noise-v2.bin").delete())
+        compose.onNodeWithText("소리 감지 시작").performScrollTo().performClick()
+        compose.runOnIdle {
+            assertNull(shadowOf(application).nextStartedService)
+            assertEquals(com.ullim.watch.DiagnosticsActivity::class.java.name,
+                shadowOf(application).nextStartedActivity.component!!.className)
+            assertTrue(CaptureRuntime.canStart())
         }
     }
 

@@ -16,11 +16,11 @@ interface SessionRenderer : HapticRenderer {
     fun renderBatch(frames: List<HapticFrame>): RenderResult
 }
 
-class WaveformRenderer(private val device: WaveformDevice) : SessionRenderer {
+class WaveformRenderer(private val device: WaveformDevice, private val forcePulseFallback: Boolean = false) : SessionRenderer {
     private var sessionId = 0L
     private var highestSessionId = 0L
     private var lastTimestampNs: Long? = null
-    val strengthLimited: Boolean get() = !device.capabilities.amplitudeControl
+    val strengthLimited: Boolean get() = forcePulseFallback || !device.capabilities.amplitudeControl
 
     @Synchronized override fun begin(sessionId: Long) {
         require(sessionId > highestSessionId)

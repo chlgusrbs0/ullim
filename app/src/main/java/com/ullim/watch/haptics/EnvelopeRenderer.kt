@@ -26,8 +26,9 @@ interface EnvelopeDevice : WaveformDevice {
 class AdaptiveHapticRenderer(
     private val device: EnvelopeDevice,
     private val preferEnvelope: Boolean = false,
+    private val pulseFallback: Boolean = false,
 ) : SessionRenderer {
-    private val waveform = WaveformRenderer(device)
+    private val waveform = WaveformRenderer(device, forcePulseFallback = pulseFallback)
     private var envelopeEnabled = false
     private var sessionId = 0L
     private var lastTimestampNs: Long? = null
@@ -36,7 +37,7 @@ class AdaptiveHapticRenderer(
         waveform.begin(sessionId)
         this.sessionId = sessionId
         lastTimestampNs = null
-        envelopeEnabled = preferEnvelope && device.capabilities.envelope != null
+        envelopeEnabled = preferEnvelope && !pulseFallback && device.capabilities.envelope != null
     }
 
     @Synchronized override fun render(frame: HapticFrame): RenderResult {

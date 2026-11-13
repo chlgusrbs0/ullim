@@ -22,6 +22,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.ullim.watch.core.ListeningState
 import com.ullim.watch.ai.AiRuntime
 import com.ullim.watch.runtime.CaptureRuntime
+import com.ullim.watch.haptics.MotorProfileStore
 import com.ullim.watch.runtime.CaptureFailure
 import com.ullim.watch.runtime.VisualizationSnapshot
 import com.ullim.watch.ui.ListeningUiState
@@ -126,6 +127,11 @@ class MainActivity : ComponentActivity() {
     private fun startCapture() {
         if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
             reportCaptureFailure(this, null, CaptureFailure.FOREGROUND_START)
+            return
+        }
+        if (MotorProfileStore.load(this, MotorProfileStore.deviceKey(this)) == null) {
+            reportCaptureFailure(this, null, CaptureFailure.MOTOR_CALIBRATION)
+            startActivity(Intent(this, DiagnosticsActivity::class.java))
             return
         }
         val token = CaptureRuntime.requestStart() ?: return

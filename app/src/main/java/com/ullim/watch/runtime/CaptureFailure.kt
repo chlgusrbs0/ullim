@@ -15,6 +15,7 @@ enum class CaptureFailure(
     PROCESSING("PROCESSING"),
     HAPTIC_UNSUPPORTED("HAPTIC_UNSUPPORTED", openDiagnostics = true),
     HAPTIC_OUTPUT("HAPTIC_OUTPUT", openDiagnostics = true),
+    MOTOR_CALIBRATION("MOTOR_CALIBRATION", openDiagnostics = true),
     FOREGROUND_START("FOREGROUND_START"),
     SERVICE_COMMAND("SERVICE_COMMAND", openSettings = true, restartRequired = true),
     CLEANUP("CLEANUP", openSettings = true, restartRequired = true),

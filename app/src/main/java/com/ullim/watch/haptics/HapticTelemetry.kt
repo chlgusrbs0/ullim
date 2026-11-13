@@ -25,6 +25,7 @@ data class HapticTelemetrySnapshot(
     val amplitudeMin: Int, val amplitudeMax: Int,
     val defaultAmplitudeSegments: Int,
     val maxWaveformGapNs: Long,
+    val rawRmsMin: Float = rmsMin, val rawRmsMax: Float = rmsMax,
 )
 
 class HapticTelemetry(private val sessionId: Long, private val windowFrames: Int = 25) {
@@ -35,6 +36,7 @@ class HapticTelemetry(private val sessionId: Long, private val windowFrames: Int
         fun clear() { min = Float.POSITIVE_INFINITY; max = Float.NEGATIVE_INFINITY }
     }
     private val rms = Range()
+    private val rawRms = Range()
     private val envelope = Range()
     private val noise = Range()
     private val level = Range()
@@ -75,13 +77,14 @@ class HapticTelemetry(private val sessionId: Long, private val windowFrames: Int
 
     @Synchronized fun recordCancel() { cancels++ }
 
-    @Synchronized fun offer(features: AudioFeatures, output: HapticFrame, accepted: Boolean, callbackNs: Long) {
+    @Synchronized fun offer(features: AudioFeatures, output: HapticFrame, accepted: Boolean, callbackNs: Long, rawRms: Float = features.rms) {
         if (features.sessionId != sessionId || output.sessionId != sessionId || features.timestampNs != output.timestampNs) return
         if (frames == 0) firstSampleNs = features.timestampNs
         frames++
         if (!accepted) rejected++
         if (!output.isSilent) audible++
         rms.add(features.rms)
+        this.rawRms.add(rawRms)
         envelope.add(features.envelope)
         noise.add(features.noise)
         level.add(features.level)
@@ -97,12 +100,12 @@ class HapticTelemetry(private val sessionId: Long, private val windowFrames: Int
             rms.min, rms.max, envelope.min, envelope.max, noise.min, noise.max,
             level.min, level.max, command.min, command.max, minAgeNs, maxAgeNs, callbackGapNs,
             waveforms, cancels, requestedMs, if (amplitudeMax == 0) 0 else amplitudeMin,
-            amplitudeMax, defaultSegments, waveformGapNs,
+            amplitudeMax, defaultSegments, waveformGapNs, rawRmsMin = this.rawRms.min, rawRmsMax = this.rawRms.max,
         ))
         frames = 0
         rejected = 0
         audible = 0
-        rms.clear(); envelope.clear(); noise.clear(); level.clear(); command.clear()
+        rms.clear(); this.rawRms.clear(); envelope.clear(); noise.clear(); level.clear(); command.clear()
         minAgeNs = Long.MAX_VALUE
         maxAgeNs = Long.MIN_VALUE
         callbackGapNs = 0
