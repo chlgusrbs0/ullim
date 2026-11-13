@@ -5,6 +5,7 @@ import android.app.ForegroundServiceStartNotAllowedException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
@@ -25,6 +26,15 @@ class MainActivity : ComponentActivity() {
     private var pendingStart = false
     private var microphoneGranted by mutableStateOf(false)
     private var notificationsGranted by mutableStateOf(false)
+    private var showOnboarding by mutableStateOf(true)
+    private var microphonePermissionPermanentlyDenied by mutableStateOf(false)
+
+    private val preferences by lazy { getSharedPreferences(PREFERENCES_NAME, MODE_PRIVATE) }
+
+    private val microphonePermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+        refreshPermissions()
+    }
+
     private val permissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         refreshPermissions()
         if (pendingStart) {
@@ -36,7 +46,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        pendingStart = savedInstanceState?.getBoolean("pendingStart") ?: false
+        pendingStart = savedInstanceState?.getBoolean(STATE_PENDING_START) ?: false
+        showOnboarding = !preferences.getBoolean(KEY_ONBOARDING_COMPLETE, false)
         refreshPermissions()
         setContent {
             val runtime by CaptureRuntime.state.collectAsStateWithLifecycle()
@@ -44,7 +55,16 @@ class MainActivity : ComponentActivity() {
             val levels by CaptureRuntime.levels.collectAsStateWithLifecycle()
             val limited by CaptureRuntime.strengthLimited.collectAsStateWithLifecycle()
             UllimApp(
-                state = ListeningUiState(runtime, startAllowed, levels, limited, microphoneGranted, notificationsGranted),
+                state = ListeningUiState(
+                    runtime = runtime,
+                    startAllowed = startAllowed,
+                    levels = levels,
+                    strengthLimited = limited,
+                    microphoneGranted = microphoneGranted,
+                    notificationsGranted = notificationsGranted,
+                    showOnboarding = showOnboarding,
+                    microphonePermissionPermanentlyDenied = microphonePermissionPermanentlyDenied,
+                ),
                 onStart = ::requestCapture,
                 onStop = ::stopCapture,
                 onAiSettings = { startActivity(Intent(this, AiControlsActivity::class.java)) },
@@ -52,6 +72,8 @@ class MainActivity : ComponentActivity() {
                     if (CaptureRuntime.canStart()) startActivity(Intent(this, DiagnosticsActivity::class.java))
                 },
                 onAppSettings = ::openAppSettings,
+                onCompleteOnboarding = ::completeOnboarding,
+                onRequestMicrophone = ::requestMicrophonePermission,
             )
         }
     }
@@ -61,24 +83,52 @@ class MainActivity : ComponentActivity() {
         refreshPermissions()
     }
 
+    private fun completeOnboarding() {
+        preferences.edit().putBoolean(KEY_ONBOARDING_COMPLETE, true).apply()
+        showOnboarding = false
+    }
+
     private fun refreshPermissions() {
         microphoneGranted = checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-        notificationsGranted = checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        notificationsGranted = if (Build.VERSION.SDK_INT >= 33) {
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+        val requestedBefore = preferences.getBoolean(KEY_MICROPHONE_REQUESTED, false)
+        microphonePermissionPermanentlyDenied = !microphoneGranted && requestedBefore &&
+            !shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)
+    }
+
+    private fun requestMicrophonePermission() {
+        refreshPermissions()
+        if (microphoneGranted) return
+        if (microphonePermissionPermanentlyDenied) {
+            openAppSettings()
+            return
+        }
+        preferences.edit().putBoolean(KEY_MICROPHONE_REQUESTED, true).apply()
+        microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putBoolean("pendingStart", pendingStart)
+        outState.putBoolean(STATE_PENDING_START, pendingStart)
         super.onSaveInstanceState(outState)
     }
 
     private fun requestCapture() {
         if (pendingStart || !CaptureRuntime.canStart()) return
         refreshPermissions()
-        if (microphoneGranted) startCapture()
-        else {
-            pendingStart = true
-            permissions.launch(arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.POST_NOTIFICATIONS))
+        if (!microphoneGranted) {
+            requestMicrophonePermission()
+            return
         }
+        if (Build.VERSION.SDK_INT >= 33 && !notificationsGranted) {
+            pendingStart = true
+            permissions.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
+            return
+        }
+        startCapture()
     }
 
     private fun startCapture() {
@@ -119,5 +169,12 @@ class MainActivity : ComponentActivity() {
         } catch (_: RuntimeException) {
             Toast.makeText(this, R.string.settings_open_failed, Toast.LENGTH_LONG).show()
         }
+    }
+
+    companion object {
+        private const val PREFERENCES_NAME = "ullim_first_run"
+        private const val KEY_ONBOARDING_COMPLETE = "onboarding_complete"
+        private const val KEY_MICROPHONE_REQUESTED = "microphone_permission_requested"
+        private const val STATE_PENDING_START = "pendingStart"
     }
 }
