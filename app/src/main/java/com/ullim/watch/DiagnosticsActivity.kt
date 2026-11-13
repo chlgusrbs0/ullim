@@ -43,6 +43,7 @@ import com.ullim.watch.haptics.HapticComparison
 import com.ullim.watch.haptics.MotorCalibrationRunner
 import com.ullim.watch.haptics.MotorCalibrationState
 import com.ullim.watch.haptics.MotorProfileStore
+import com.ullim.watch.runtime.CaptureRuntime
 
 class DiagnosticsActivity : ComponentActivity() {
     private lateinit var vibrator: Vibrator
@@ -79,6 +80,22 @@ class DiagnosticsActivity : ComponentActivity() {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(pageName, Modifier.semantics { heading() }, textAlign = TextAlign.Center)
+                    val calibrating = calibrationState == MotorCalibrationState.RUNNING || calibrationState == MotorCalibrationState.STOPPING
+                    Text(stringResource(R.string.pulse_comparison_title), Modifier.semantics { heading() }, textAlign = TextAlign.Center)
+                    Text(stringResource(R.string.pulse_comparison_notice), textAlign = TextAlign.Center)
+                    ComparisonPattern.entries.filter { it.pulsePeriodMs > 0 }.forEach { pattern ->
+                        val label = when (pattern) {
+                            ComparisonPattern.PULSE_20 -> R.string.comparison_pulse_20
+                            ComparisonPattern.PULSE_10 -> R.string.comparison_pulse_10
+                            else -> R.string.comparison_pulse_5
+                        }
+                        Button(onClick = { if (CaptureRuntime.canStart()) comparison.start(pattern) },
+                            enabled = capability.available && !calibrating && CaptureRuntime.canStart(),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                            Text(stringResource(label), textAlign = TextAlign.Center)
+                        }
+                    }
+                    Button(onClick = { cancelOutput() }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.stop)) }
                     Text("${Build.MODEL}\nAndroid ${Build.VERSION.RELEASE} · API ${Build.VERSION.SDK_INT}", textAlign = TextAlign.Center)
                     Text(stringResource(if (capability.available) R.string.motor_available else R.string.motor_unavailable))
                     Text(stringResource(if (capability.amplitudeControl) R.string.amplitude_supported else R.string.amplitude_unsupported), textAlign = TextAlign.Center)
@@ -87,7 +104,6 @@ class DiagnosticsActivity : ComponentActivity() {
                         Text(stringResource(R.string.envelope_limits, limits.maxPoints, limits.minPointMs, limits.maxPointMs, limits.maxDurationMs), textAlign = TextAlign.Center)
                     }
                     if (capability.probeFailed) Text(stringResource(R.string.probe_failed))
-                    val calibrating = calibrationState == MotorCalibrationState.RUNNING || calibrationState == MotorCalibrationState.STOPPING
                     Text(stringResource(R.string.motor_calibration_notice), textAlign = TextAlign.Center)
                     val calibrationText = when (calibrationState) {
                         MotorCalibrationState.RUNNING -> R.string.motor_calibration_running
@@ -132,7 +148,7 @@ class DiagnosticsActivity : ComponentActivity() {
                     Text(stringResource(status), textAlign = TextAlign.Center)
                     Text(stringResource(R.string.comparison_commands, comparisonState.commands,
                         comparisonState.maxDispatchLateMs), textAlign = TextAlign.Center)
-                    ComparisonPattern.entries.forEach { pattern ->
+                    ComparisonPattern.entries.filter { it.pulsePeriodMs == 0L }.forEach { pattern ->
                         val label = when (pattern) {
                             ComparisonPattern.SINGLE -> R.string.comparison_single
                             ComparisonPattern.SEGMENTS -> R.string.comparison_segments
@@ -142,6 +158,7 @@ class DiagnosticsActivity : ComponentActivity() {
                             ComparisonPattern.CHUNKS_OVERLAP_60 -> R.string.comparison_overlap
                             ComparisonPattern.MIN_AMPLITUDE -> R.string.comparison_min_amplitude
                             ComparisonPattern.MAX_AMPLITUDE -> R.string.comparison_max_amplitude
+                            else -> error("Pulse comparisons are shown above")
                         }
                         Button(onClick = { comparison.start(pattern) },
                             enabled = capability.available && capability.amplitudeControl && !calibrating,

@@ -27,6 +27,39 @@ class HapticComparisonTest {
         override fun cancel() { cancellations++ }
     }
 
+    @Test fun pulseIntervalComparisonsKeepWeakStrongDutyAndFiniteDurationIdentical() {
+        for (name in listOf("PULSE_20", "PULSE_10", "PULSE_5")) {
+            val device = Device()
+            var state = ComparisonState()
+            val comparison = HapticComparison(device, onUpdate = { state = it })
+            comparison.start(ComparisonPattern.valueOf(name))
+            val waveform = device.calls.single().second
+            assertEquals(1500L, waveform.timings.sum())
+            assertEquals(waveform.timings.size, waveform.amplitudes.size)
+            var elapsed = 0L
+            var weakOn = 0L
+            var strongOn = 0L
+            waveform.timings.forEachIndexed { index, duration ->
+                assertTrue(waveform.amplitudes[index] in listOf(0, -1))
+                if (waveform.amplitudes[index] != 0) {
+                    assertTrue(elapsed + duration <= 600 || elapsed >= 900)
+                    if (elapsed < 600) weakOn += duration else strongOn += duration
+                }
+                elapsed += duration
+            }
+            assertEquals(120L, weakOn)
+            assertEquals(480L, strongOn)
+            val initialCancellations = device.cancellations
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(1499))
+            assertEquals(ComparisonPhase.RUNNING, state.phase)
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(1))
+            assertEquals(ComparisonPhase.COMPLETE, state.phase)
+            assertEquals(1, device.calls.size)
+            assertEquals(initialCancellations, device.cancellations)
+            comparison.stop()
+        }
+    }
+
     @Test fun patternsControlAmplitudeAndTotalDurationButSeparateSegmentationAndReplacement() {
         for ((pattern, expectedCalls, expectedSegments) in listOf(
             Triple(ComparisonPattern.SINGLE, 1, 1),

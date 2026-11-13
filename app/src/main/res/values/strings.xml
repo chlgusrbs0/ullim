@@ -16,6 +16,11 @@
     <string name="comparison_overlap">F · 60ms 갱신·겹침</string>
     <string name="comparison_min_amplitude">G · 최저값 1 · 600ms</string>
     <string name="comparison_max_amplitude">H · 최댓값 255 · 600ms</string>
+    <string name="pulse_comparison_title">매끈함 비교</string>
+    <string name="pulse_comparison_notice">감지를 중지하고 비교해 주세요. 각 버튼은 약하게 → 잠깐 쉼 → 강하게 울려요. 짧은 진동의 간격만 달라요.</string>
+    <string name="comparison_pulse_20">I · 현재 간격</string>
+    <string name="comparison_pulse_10">J · 촘촘한 간격</string>
+    <string name="comparison_pulse_5">K · 가장 촘촘한 간격</string>
     <string name="app_name">울림</string>
     <string name="diagnostics">진동 진단</string>
     <string name="motor_calibration_start">모터 간섭 보정 · 3초</string>

@@ -22,3 +22,9 @@ Files: `dsp/FrameSpectrum.kt`; `haptics/MotorNoiseProfile.kt`, `MotorOutputTimel
 - [ ] Native quiet/motor/external event comparison when user returns. No microphone activity while the user is away showering. Restore settings; verify Stop cleanup. Do not label amplitude support flags or software tests as physical success.
 
 Review focus: preserve real sound in overlapping bands; fail-safe missing/corrupt calibration; no duplicate mic on navigation/stop; stale timestamps must query historical motor intervals, not the most recent future request; firmware changes invalidate profile. Low/strong distinguishability and continuous rendering require explicit actual-device validation even if feedback rejection works.
+
+## Follow-up: rough pulse sensation after successful native calibration
+
+Native0db8845 now saves a measured profile. User reports much better sound detection and apparent strength control, while repeated rough pulses remain. The exact single-clap/Stop protocol was not explicitly confirmed, so do not turn this report into that controlled result.
+
+Use the existing finite, microphone-free comparison driver to distinguish carrier texture from60ms request replacement before changing live output. Three single calls use periods20/10/5ms, each weak20% duty600ms, silence300ms, strong80% duty600ms. Total1500ms and requested ON totals120/480ms are controlled, not physical amplitude ratios. Keep live renderer/calibration/model unchanged for this probe. Stop existing detection before installing/testing; cancellation, failed dispatch and screen exit retain existing finite safeguards. Add a regression that checks total duration, duty, silence, one call and normal finite completion; then full build/tests/lint and actual-device installation. Judge smoothness and weak/strong separation from user feedback, not software timing. A faster software on/off interval is not the motor's resonant-frequency control.
