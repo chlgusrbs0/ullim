@@ -20,14 +20,14 @@ enum class MotorCalibrationState { IDLE, RUNNING, STOPPING, COMPLETE, STOPPED, F
 /** Activity-visible, explicit user action only; shares the existing single-mic lease. */
 class MotorCalibrationRunner(
     private val context: Context,
-    private val vibrator: Vibrator,
+    vibrator: Vibrator,
     private val onUpdate: (MotorCalibrationState) -> Unit,
     private val sourceFactory: () -> PcmInput = { AndroidPcmInput.create(context) },
     private val clockNs: () -> Long = System::nanoTime,
+    private val device: WaveformDevice = AndroidWaveformDevice(vibrator),
 ) {
     private val handler = Handler(Looper.getMainLooper())
     private val timers = Handler(Looper.getMainLooper())
-    private val device = AndroidWaveformDevice(vibrator)
     private var capture: MicrophoneCapture? = null
     private var token = 0L
     @Volatile private var accumulator: MotorCalibration? = null
@@ -46,7 +46,8 @@ class MotorCalibrationRunner(
         val id = CaptureRuntime.requestStart() ?: run { onUpdate(MotorCalibrationState.BUSY); return }
         token = id
         firmwareKey = MotorProfileStore.deviceKey(context)
-        pulseFallback = MotorVibrationPolicy.requiresPulseFallback(Build.MODEL, firmwareKey)
+        pulseFallback = !device.capabilities.amplitudeControl ||
+            MotorVibrationPolicy.requiresPulseFallback(Build.MODEL, firmwareKey)
         stopping = false
         pending = null
         accumulator = null

@@ -15,10 +15,10 @@ Files: `dsp/FrameSpectrum.kt`; `haptics/MotorNoiseProfile.kt`, `MotorOutputTimel
 ## Tasks
 
 - [x] Preserve inherited #17 analyzer commits, integrate808d; baseline test/build/lint succeeded33s.
-- [ ] RED: spectral energy and round trip; overlapping bounded output history including cancel/tail; motor-only rejection, preservation of external tone/transient/duration, no-output identity and session reset; finite calibration sample-window/profile validation.
-- [ ] Implement fixed512-point FFT with bounded scratch arrays, immutable numeric profile, interval-aware preprocessor and finite calibration model. No PCM persistence/upload/logging; no disk/log I/O in DSP.
-- [ ] Integrate explicit calibration using existing capture ownership, VIBRATE/RECORD_AUDIO permission checks and cancellation on activity exit. Save only device/firmware-keyed numeric profile atomically.
-- [ ] Regress full suite/build/lint; fresh read-only review and fix Important findings. Keep Draft until native results.
+- [x] RED: spectral energy and round trip; overlapping bounded output history including cancel/tail; motor-only rejection, preservation of external tone/transient/duration, no-output identity and session reset; finite calibration sample-window/profile validation.
+- [x] Implement fixed512-point FFT with bounded scratch arrays, immutable numeric profile, interval-aware preprocessor and finite calibration model. No PCM persistence/upload/logging; no disk/log I/O in DSP.
+- [x] Integrate explicit calibration using existing capture ownership, VIBRATE/RECORD_AUDIO permission checks and cancellation on activity exit. Save only device/firmware-keyed numeric profile atomically.
+- [x] Regress full suite/build/lint; fresh read-only review and fix Important findings. Full209 tests/build/lint passed after reproducing and fixing the no-amplitude-control output-mode mismatch. Keep Draft until native results.
 - [ ] Native quiet/motor/external event comparison when user returns. No microphone activity while the user is away showering. Restore settings; verify Stop cleanup. Do not label amplitude support flags or software tests as physical success.
 
 Review focus: preserve real sound in overlapping bands; fail-safe missing/corrupt calibration; no duplicate mic on navigation/stop; stale timestamps must query historical motor intervals, not the most recent future request; firmware changes invalidate profile. Low/strong distinguishability and continuous rendering require explicit actual-device validation even if feedback rejection works.

@@ -3,6 +3,7 @@ package com.ullim.watch.haptics
 import android.Manifest
 import android.app.Application
 import android.os.Looper
+import android.os.SystemClock
 import android.os.VibratorManager
 import androidx.test.core.app.ApplicationProvider
 import com.ullim.watch.audio.PcmInput
@@ -23,6 +24,40 @@ import org.robolectric.annotation.LooperMode
 @Config(sdk = [34])
 @LooperMode(LooperMode.Mode.PAUSED)
 class MotorCalibrationRunnerTest {
+    @Test fun motorWithoutAmplitudeControlCalibratesTheSameDutyWaveformAsLiveOutput() {
+        val application = ApplicationProvider.getApplicationContext<Application>()
+        shadowOf(application).grantPermissions(Manifest.permission.RECORD_AUDIO)
+        val vibrator = application.getSystemService(VibratorManager::class.java).defaultVibrator
+        val reading = CountDownLatch(1)
+        val stop = CountDownLatch(1)
+        val calls = mutableListOf<DiagnosticWaveform>()
+        val device = object : WaveformDevice {
+            override val capabilities = HapticCapabilities(true, false, null)
+            override fun play(timings: LongArray, amplitudes: IntArray) { calls += DiagnosticWaveform(timings, amplitudes) }
+            override fun cancel() {}
+        }
+        val runner = MotorCalibrationRunner(application, vibrator, {}, { object : PcmInput {
+            override fun start() {}
+            override fun read(buffer: ShortArray): Int { reading.countDown(); check(stop.await(3, TimeUnit.SECONDS)); return -1 }
+            override fun stop() { stop.countDown() }
+            override fun release() {}
+        } }, { SystemClock.uptimeMillis() * 1_000_000 }, device)
+        try {
+            runner.start()
+            assertTrue(reading.await(2, TimeUnit.SECONDS))
+            shadowOf(Looper.getMainLooper()).idle()
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(500))
+            val waveform = calls.first()
+            assertArrayEquals(longArrayOf(0, 4, 16, 0, 4, 16, 0, 4, 16), waveform.timings)
+            assertArrayEquals(intArrayOf(0, -1, 0, 0, -1, 0, 0, -1, 0), waveform.amplitudes)
+        } finally {
+            runner.cancel(); stop.countDown()
+            val deadline = System.nanoTime() + 2_000_000_000
+            while (!CaptureRuntime.canStart() && System.nanoTime() < deadline) { shadowOf(Looper.getMainLooper()).idle(); Thread.yield() }
+            assertTrue(CaptureRuntime.canStart())
+        }
+    }
+
     @Test fun cancelBeforeQueuedRecordingCannotRestartCalibrationOrVibration() {
         val application = ApplicationProvider.getApplicationContext<Application>()
         shadowOf(application).grantPermissions(Manifest.permission.RECORD_AUDIO)

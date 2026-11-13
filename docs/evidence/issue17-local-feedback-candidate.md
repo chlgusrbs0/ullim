@@ -23,7 +23,9 @@
 
 보정 중 cancel 뒤 늦은 Recording callback이 다시 RUNNING/진동을 만드는 오류를 실제 RED1개 실패로 재현하고 stopping guard로 수정했다. 무시된 모터 출력을 성공 보정으로 저장하는 오류도 RED1개 실패 후 검출 기준을 추가했다. 보정 없이 시작하는 메인 흐름도 RED 후 진단 안내로 바꿨다.
 
-최종 전체 `testDebugUnitTest / assembleDebug / lintDebug` 성공33s, **208 tests, failures0/errors0/skips0**, Lint0 errors/12기존 warnings/1hint. 앞선 전체 실행에서 기존 PersistentSettingsUiTest의 저장 대기5초 timeout1건이 있었고, 그 단독 재실행은 통과했다. 별도로 보정 필수 조건 추가로 ServiceFailureTest의 기존 무보정 fixture가 실패해 명시적 유효 보정 fixture를 준비한 뒤 원래 read-failure/정리 검증을 유지했다. 실패를 제외하거나 skip하지 않았다.
+최초 전체 `testDebugUnitTest / assembleDebug / lintDebug` 성공33s, **208 tests, failures0/errors0/skips0**. 읽기 전용 검토에서 amplitude 제어 미지원 기기의 보정 출력과 실제 출력 방식이 달라지는 Important 1건을 확인했다. 해당 기기를 주입한 회귀 시험이 실제 RED로 실패한 뒤, 보정도 실제 renderer와 같이 pulse 방식을 선택하도록 수정했다. 수정 후 전체 **209 tests, failures0/errors0/skips0**, 빌드·Lint 성공32s, Lint0 errors/12기존 warnings/1hint.
+
+앞선 전체 실행에서 기존 PersistentSettingsUiTest의 저장 대기5초 timeout1건이 있었고, 그 단독 재실행은 통과했다. 별도로 보정 필수 조건 추가로 ServiceFailureTest의 기존 무보정 fixture가 실패해 명시적 유효 보정 fixture를 준비한 뒤 원래 read-failure/정리 검증을 유지했다. 실패를 제외하거나 skip하지 않았다.
 
 ## 남은 실제 검증
 
