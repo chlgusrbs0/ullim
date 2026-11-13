@@ -4,11 +4,11 @@
     <string name="tagline">소리를 느끼는 순간</string>
     <string name="foundation_status">소리 감지 기능은 아직 준비 중이에요</string>
     <string name="settings_title">설정</string>
-    <string name="settings_placeholder">민감도와 AI 설정은 다음 단계에서 제공돼요</string>
+    <string name="settings_placeholder">민감도와 AI 설정은 후속 업데이트에서 제공돼요</string>
     <string name="guide_title">사용 안내</string>
-    <string name="guide_body">울림은 주변 소리의 크기와 리듬을 손목의 진동 변화로 전달하는 것을 목표로 해요. 감지 기능은 준비 중이며, 현재는 화면 구성만 제공해요.</string>
+    <string name="guide_body">울림은 주변 소리의 크기와 리듬을 손목의 진동 변화로 전달하는 것을 목표로 해요. 감지 기능은 아직 연결되지 않았으며, 현재는 기본 화면과 이동 기능을 제공해요.</string>
     <string name="error_guide_action">문제 해결 안내</string>
     <string name="error_guide_title">문제가 생겼나요?</string>
-    <string name="error_guide_body">현재 버전에는 감지 기능이 연결되어 있지 않아요. 이후 권한이나 기기 지원 문제가 발생하면 안내에 따라 권한과 설정을 확인해 주세요.</string>
+    <string name="error_guide_body">현재 버전에는 소리 감지 기능이 연결되어 있지 않아요. 기능이 제공된 뒤 문제가 발생하면 마이크 권한과 기기 지원 상태를 확인해 주세요.</string>
     <string name="back_action">뒤로</string>
 </resources>
