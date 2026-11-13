@@ -36,7 +36,7 @@ import com.ullim.watch.ui.theme.UllimTheme
 private enum class UllimScreen { HOME, SETTINGS, GUIDE, ERROR }
 
 @Composable
-fun UllimApp() {
+fun UllimApp(onDiagnostics: () -> Unit = {}) {
     var screen by rememberSaveable { mutableStateOf(UllimScreen.HOME) }
     val scrollState = rememberScrollState()
 
@@ -73,6 +73,7 @@ fun UllimApp() {
                             UllimScreen.HOME -> HomeScreen(
                                 onSettings = { screen = UllimScreen.SETTINGS },
                                 onGuide = { screen = UllimScreen.GUIDE },
+                                onDiagnostics = onDiagnostics,
                             )
                             UllimScreen.SETTINGS -> SettingsScreen(
                                 onBack = { screen = UllimScreen.HOME },
@@ -103,7 +104,7 @@ private fun ScreenTitle(text: String) {
 }
 
 @Composable
-private fun HomeScreen(onSettings: () -> Unit, onGuide: () -> Unit) {
+private fun HomeScreen(onSettings: () -> Unit, onGuide: () -> Unit, onDiagnostics: () -> Unit = {}) {
     ScreenTitle(stringResource(R.string.app_name))
     Text(
         text = stringResource(R.string.tagline),
@@ -127,6 +128,9 @@ private fun HomeScreen(onSettings: () -> Unit, onGuide: () -> Unit) {
         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
     ) {
         Text(stringResource(R.string.guide_title))
+    }
+    OutlinedButton(onClick = onDiagnostics, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+        Text(stringResource(R.string.diagnostics))
     }
 }
 
