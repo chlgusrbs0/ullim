@@ -110,6 +110,8 @@ class DiagnosticsActivity : ComponentActivity() {
                             ComparisonPattern.CHUNKS_200 -> R.string.comparison_chunks_200
                             ComparisonPattern.STRENGTH_RAMP -> R.string.comparison_strength_ramp
                             ComparisonPattern.CHUNKS_OVERLAP_60 -> R.string.comparison_overlap
+                            ComparisonPattern.MIN_AMPLITUDE -> R.string.comparison_min_amplitude
+                            ComparisonPattern.MAX_AMPLITUDE -> R.string.comparison_max_amplitude
                         }
                         Button(onClick = { comparison.start(pattern) },
                             enabled = capability.available && capability.amplitudeControl,

@@ -98,6 +98,22 @@ class HapticComparisonTest {
         comparison.stop()
     }
 
+    @Test fun extremeStrengthProbesUseTheSameSingle600msCallAndFullLegalAmplitudeRange() {
+        for ((name, amplitude) in listOf("MIN_AMPLITUDE" to 1, "MAX_AMPLITUDE" to 255)) {
+            val device = Device()
+            var state = ComparisonState()
+            val comparison = HapticComparison(device, onUpdate = { state = it })
+            comparison.start(ComparisonPattern.valueOf(name))
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(650))
+            assertEquals(1, device.calls.size)
+            assertArrayEquals(longArrayOf(600), device.calls.single().second.timings)
+            assertArrayEquals(intArrayOf(amplitude), device.calls.single().second.amplitudes)
+            assertEquals(ComparisonPhase.COMPLETE, state.phase)
+            assertEquals(1, state.commands)
+            comparison.stop()
+        }
+    }
+
     @Test fun lateDispatchAbortsInsteadOfBurstingMissedChunks() {
         val device = Device()
         var now = 0L

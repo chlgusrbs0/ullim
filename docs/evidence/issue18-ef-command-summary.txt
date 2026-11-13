@@ -1,0 +1,19 @@
+Watch7 SM-L300 / Android17 API37 / 2026-11-13
+Installed comparison source6fd0358; APK SHA2567d9d9066398e1b44f39a5e9ee99c7e4612909779044a22cf4e7425f300c375a6.
+App schedule lateness is not physical sound-to-motor latency.
+User: E vibrates but no perceived strength difference; C and F both rough.
+Finite COMPLETE runs only; no microphone/audio data.
+
+11-13 21:26:57.009 15910 15910 I UllimHaptics: pattern=STRENGTH_RAMP phase=COMPLETE commands=1 maxDispatchLateMs=0
+11-13 21:26:59.470 15910 15910 I UllimHaptics: pattern=STRENGTH_RAMP phase=COMPLETE commands=1 maxDispatchLateMs=0
+11-13 21:27:03.178 15910 15910 I UllimHaptics: pattern=STRENGTH_RAMP phase=COMPLETE commands=1 maxDispatchLateMs=0
+11-13 21:27:04.306 15910 15910 I UllimHaptics: pattern=CHUNKS_OVERLAP_60 phase=COMPLETE commands=10 maxDispatchLateMs=23
+11-13 21:27:05.465 15910 15910 I UllimHaptics: pattern=CHUNKS_OVERLAP_60 phase=COMPLETE commands=10 maxDispatchLateMs=8
+11-13 21:27:06.546 15910 15910 I UllimHaptics: pattern=CHUNKS_OVERLAP_60 phase=COMPLETE commands=10 maxDispatchLateMs=7
+11-13 21:27:11.116 15910 15910 I UllimHaptics: pattern=CHUNKS_60 phase=COMPLETE commands=10 maxDispatchLateMs=8
+11-13 21:27:12.296 15910 15910 I UllimHaptics: pattern=CHUNKS_60 phase=COMPLETE commands=10 maxDispatchLateMs=5
+11-13 21:27:13.601 15910 15910 I UllimHaptics: pattern=CHUNKS_60 phase=COMPLETE commands=10 maxDispatchLateMs=17
+11-13 21:27:15.044 15910 15910 I UllimHaptics: pattern=CHUNKS_OVERLAP_60 phase=COMPLETE commands=10 maxDispatchLateMs=17
+11-13 21:27:16.615 15910 15910 I UllimHaptics: pattern=CHUNKS_60 phase=COMPLETE commands=10 maxDispatchLateMs=6
+11-13 21:27:35.632 15910 15910 I UllimHaptics: pattern=STRENGTH_RAMP phase=COMPLETE commands=1 maxDispatchLateMs=0
+11-13 21:27:38.169 15910 15910 I UllimHaptics: pattern=STRENGTH_RAMP phase=COMPLETE commands=1 maxDispatchLateMs=0

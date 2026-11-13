@@ -27,3 +27,11 @@
 - [ ] Inspect/review implementation read-only, address important defects.
 - [ ] Install without deleting settings; compare on same Watch7 with user, record actual outcomes including failures. Restore any temporary device settings.
 - [ ] Document measurement procedure and raw-audio-free evidence; commit/push Draft PR main with Closes #18. No DoD shortcut.
+
+## Follow-up: full amplitude range
+
+Actual A/B smooth, C rough, D three pulses; E60/130/220 ramp has no perceived strength difference, F overlap remains rough. Separate existing100ms buttons also feel similar. Keep live scheduling unchanged. Add G/H as separate single600ms calls through the same TOUCH adapter at the legal amplitude endpoints1/255. This tests a wider range and longer steady output without introducing microphone/DSP variables or changing system intensity settings. A perceived difference would not prove three-level blind accuracy; no difference would still need physical/API-path investigation rather than a fabricated hardware conclusion.
+
+- [x] RED: endpoint probes missing; then verify exact1/255 amplitude, identical600ms duration, one finite call and completion.
+- [x] Add labels explaining requested values and preserve all cancellation/failure behavior.
+- [ ] Run local checks, read-only review, install the exact comparison APK and obtain actual G/H feedback. Keep #18 Draft.

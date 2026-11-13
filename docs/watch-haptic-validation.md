@@ -45,14 +45,24 @@ System.out.println("audioHapticPlaybackSupported=" + AudioManager.isHapticPlayba
 System.out.println("hapticGeneratorAvailable=" + HapticGenerator.isAvailable());
 ```
 
-## 후속 비교 E/F — 앱 설치·실제 체감 대기
+## 후속 비교 E/F — 강도 차이 미체감 / 겹침도 거침
 
 - E는 한 OS 호출 안에서 amplitude60→130→220을 각각600ms씩 보내며 총1800ms다. 실제 강도 제어의 체감을 파형 교체 끊김과 분리한다. 알려진 순서의 진단이므로 블라인드80% 시험 합격으로 사용하지 않는다.
 - F는 C와 같이60ms마다10회 호출하되, 앞선9개 요청에만60ms 겹침 꼬리를 붙인다(각120ms 요청, 마지막은60ms). 계획상 마지막 요청의 끝은600ms다. 겹친 구간을 합산한 요청 길이는1140ms지만 서로 교체되는 효과이므로1140ms를 순서대로 재생하는 시험이 아니다. 앱 일정 오차와 OS 정리 시간은 별개다. 겹침이 체감 끊김을 줄이는지 확인하는 합성 비교이며 live 출력에 적용하지 않았다.
 - 중지·실패·화면 이탈 취소와 최대40ms 일정 지연 중단은 동일하다. 원본 마이크 입력은 사용하지 않는다.
-- E/F 실제 체감과 시스템 결과는 아직 미확인이다.
+- 사용자는 E에서 **진동 자체는 느꼈지만 강도 차이는 없었다**고 재확인했다. F와 C는 **둘 다 거칠다**고 보고했다. 겹침을 추가하는 것만으로 반복 교체의 체감 문제가 해결되지 않았다. 이 방식을 live에 적용하거나 합격으로 처리하지 않는다.
+
+[완료 명령 기록](evidence/issue18-ef-command-summary.txt)에서 E는 각1회, F는 각10회 호출로 완료했다. F의 관찰된 앱 일정 최대 지연은7–23ms였다. E의 [시스템 파형 기록](evidence/issue18-ef-os-waveforms.txt)은0.24→0.51→0.86 amplitude, scale NONE1.00/adaptiveScale1.00을 보여준다. 이는 서로 다른 명령이 OS에 도달했다는 증거이며 실제 모터 강도가 달랐다는 증거가 아니다. `hasAmplitudeControl=true`만으로 촉각 강약 전달이 검증되지 않았음이 드러났다.
+
+추가로 기존의 분리된 약/중/강100ms 버튼을 비교했고, 사용자 보고는 **세 버튼 모두 비슷함**이었다. 이 기존 진단은 attributes를 지정하지 않아 초기 시스템 기록의 usage가 UNKNOWN이며 E/F의 TOUCH와 다르다. 따라서 결과를 동일 조건의 대체 실험으로 해석하지 않는다.100ms 초기 과도 반응이나60–220 구간의 체감 압축 등도 아직 분리되지 않았다. 물리 센서 없이 기기 전체가 강도 제어를 지원하지 않는다고 단정하지 않는다.
 
 E 테스트는 누락 패턴으로 RED(5s) 후 구현됐고 전체167tests/build/lint가43s에 통과했다. F의 유한 겹침 테스트도 RED(3s) 후 구현했으며, 최종 **168tests/0failures/0errors + assembleDebug/lintDebug, BUILD SUCCESSFUL36s**를 확인했다. 최종 APK SHA-256은 `7d9d9066398e1b44f39a5e9ee99c7e4612909779044a22cf4e7425f300c375a6`이다. 초기166개 통과 기록과 구분한다.
+
+### 전체 강도 범위 G/H — 체감 미확인
+
+G는 요청 amplitude1, H는255이며 둘 다 같은 TOUCH 어댑터로600ms를 한 번만 요청한다. 숫자는 물리 강도 비율이 아니다. 마이크·DSP·live scheduler와 시스템 강도 설정은 바꾸지 않는다. 동일한 착용 상태에서 충분히 쉬고 각각 실행해 차이를 확인하며, 하나가 안 느껴지거나 둘이 비슷한 결과도 그대로 기록한다. 순서/라벨이 보이는 탐색 실험이므로 블라인드 합격이나 강도3단계 정확도 근거로 사용하지 않는다.
+
+추가 테스트는 누락 enum으로 RED(39s)를 확인했다. 비교 테스트7개와 assembleDebug/lintDebug가40s에 통과했고, 이어 전체 **169tests/0failures/0errors/0skipped**가39s에 통과했다. APK는56,232,469bytes, SHA-256 `d966e0c11ba0c03f447b76032ebff7d05cb3855a7abe943780157ad31df649a0`이다. 읽기 전용 검토에서 Critical/Important 결함은 없었다.600ms 직전 상태와 정상 완료 때 cancel 부재를 직접 검사하는 테스트는 경미한 추가 보완 여지다. G/H의 실제 체감은 아직 미확인이다.
 
 ## 물리 지연 측정 절차 — 아직 미실시
 

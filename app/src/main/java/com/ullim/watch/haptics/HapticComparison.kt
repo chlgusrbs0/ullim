@@ -6,7 +6,8 @@ import android.os.SystemClock
 
 enum class ComparisonPattern(val calls: Int, val segments: Int, val totalMs: Long = 600, val overlapMs: Long = 0) {
     SINGLE(1, 1), SEGMENTS(1, 30), CHUNKS_60(10, 1), CHUNKS_200(3, 1),
-    STRENGTH_RAMP(1, 3, 1800), CHUNKS_OVERLAP_60(10, 1, 600, 60);
+    STRENGTH_RAMP(1, 3, 1800), CHUNKS_OVERLAP_60(10, 1, 600, 60),
+    MIN_AMPLITUDE(1, 1), MAX_AMPLITUDE(1, 1);
 }
 
 enum class ComparisonPhase { READY, RUNNING, COMPLETE, STOPPED, LATE, FAILED, UNSUPPORTED }
@@ -56,8 +57,12 @@ class HapticComparison(
                 return
             }
             try {
-                val amplitudes = if (pattern == ComparisonPattern.STRENGTH_RAMP) intArrayOf(60, 130, 220)
-                    else IntArray(pattern.segments) { 220 }
+                val amplitudes = when (pattern) {
+                    ComparisonPattern.STRENGTH_RAMP -> intArrayOf(60, 130, 220)
+                    ComparisonPattern.MIN_AMPLITUDE -> intArrayOf(1)
+                    ComparisonPattern.MAX_AMPLITUDE -> intArrayOf(255)
+                    else -> IntArray(pattern.segments) { 220 }
+                }
                 // Only synthetic comparison F extends a request into the following interval.
                 // The last request has no tail; nothing is scheduled beyond the finite trial.
                 val playDurationMs = callDurationMs + minOf(pattern.overlapMs,
