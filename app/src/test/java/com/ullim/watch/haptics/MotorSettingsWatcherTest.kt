@@ -20,6 +20,36 @@ class MotorSettingsWatcherTest {
         shadowOf(Looper.getMainLooper()).idle()
     }
 
+    @Test fun actualKeyReaderRejectsAGetterFailurePreviouslyRepresentedAsAbsent() {
+        var failed = false
+        val reader: (String) -> String? = { key ->
+            if (failed && key == "haptic_feedback_intensity") throw SecurityException("injected getter failure")
+            null
+        }
+        val expected = MotorProfileStore.checkedDeviceKey(context, readSystem = reader)
+        failed = true
+        val watcher = MotorSettingsWatcher(context, expected, { MotorProfileStore.checkedDeviceKey(context, readSystem = reader) }) {}
+        try { assertFalse(watcher.start()) } finally { watcher.close() }
+    }
+
+    @Test fun getterFailureInAnotherFieldCannotHideBehindAReadableNotificationUri() {
+        Settings.Global.putInt(context.contentResolver, "setting_vibration_intensity", 3)
+        var failed = false
+        var callbacks = 0
+        val reader: (String) -> String? = { key ->
+            if (failed && key == "haptic_feedback_intensity") throw SecurityException("injected getter failure")
+            null
+        }
+        val expected = MotorProfileStore.checkedDeviceKey(context, readSystem = reader)
+        val watcher = MotorSettingsWatcher(context, expected, { MotorProfileStore.checkedDeviceKey(context, readSystem = reader) }) { callbacks++ }
+        try {
+            assertTrue(watcher.start())
+            failed = true
+            notifyGlobal() // Global itself is readable; a different identity slot has failed.
+            assertEquals(1, callbacks)
+        } finally { watcher.close() }
+    }
+
     @Test fun changedGlobalIntensityInvalidatesOnceAndClosesObservation() {
         Settings.Global.putInt(context.contentResolver, "setting_vibration_intensity", 0)
         var invalidations = 0

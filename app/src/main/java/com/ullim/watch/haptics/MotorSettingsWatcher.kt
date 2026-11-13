@@ -16,7 +16,7 @@ interface MotorSettingsObservation : AutoCloseable {
 class MotorSettingsWatcher(
     context: Context,
     private val expectedKey: String,
-    private val readKey: () -> String = { MotorProfileStore.deviceKey(context) },
+    private val readKey: () -> String = { MotorProfileStore.checkedDeviceKey(context) },
     private val onInvalidated: () -> Unit,
 ) : MotorSettingsObservation {
     private val resolver = context.contentResolver

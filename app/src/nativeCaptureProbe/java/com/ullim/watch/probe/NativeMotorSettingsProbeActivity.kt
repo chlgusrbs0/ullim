@@ -77,6 +77,10 @@ class NativeMotorSettingsProbeActivity : ComponentActivity() {
         if (started || !resumed || !hasWindowFocus() || intent.action != "com.ullim.watch.PROBE_MOTOR_SETTINGS") return
         started = true
         began = System.nanoTime()
+        if (packageName != "com.ullim.watch.nativeprobe") {
+            finish("FAIL", "PROBE_PACKAGE")
+            return
+        }
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         label.text = "진동 설정 감시 확인 중"
         try {

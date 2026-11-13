@@ -30,13 +30,20 @@ object MotorProfileStore {
         return runCatching { Settings.System.getString(resolver, key) != null }.getOrDefault(false)
     }
 
-    fun deviceKey(context: Context): String {
-        val values = intensityKeys.joinToString("|") { key ->
-            runCatching { Settings.System.getString(context.contentResolver, key) }.getOrNull() ?: "-"
-        }
-        val globalIntensity = runCatching {
-            Settings.Global.getString(context.contentResolver, GLOBAL_INTENSITY)
-        }.getOrNull() ?: "-"
+    fun deviceKey(context: Context): String = formatDeviceKey(
+        { key -> runCatching { Settings.System.getString(context.contentResolver, key) }.getOrNull() },
+        { key -> runCatching { Settings.Global.getString(context.contentResolver, key) }.getOrNull() },
+    )
+
+    internal fun checkedDeviceKey(
+        context: Context,
+        readSystem: (String) -> String? = { Settings.System.getString(context.contentResolver, it) },
+        readGlobal: (String) -> String? = { Settings.Global.getString(context.contentResolver, it) },
+    ): String = formatDeviceKey(readSystem, readGlobal)
+
+    private fun formatDeviceKey(readSystem: (String) -> String?, readGlobal: (String) -> String?): String {
+        val values = intensityKeys.joinToString("|") { readSystem(it) ?: "-" }
+        val globalIntensity = readGlobal(GLOBAL_INTENSITY) ?: "-"
         return "${Build.MODEL}|${Build.FINGERPRINT}|${Build.VERSION.INCREMENTAL}|$values|globalIntensity=$globalIntensity"
     }
 

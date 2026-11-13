@@ -30,9 +30,8 @@ android {
             java.srcDir("src/nativeCaptureProbe/java")
             manifest.srcFile("src/nativeCaptureProbe/AndroidManifest.xml")
         }
-        if (providers.gradleProperty("nativeProbePackage").orNull == "true") {
-            buildTypes.getByName("debug").applicationIdSuffix = ".nativeprobe"
-        }
+        // Synthetic calibration fixtures must never share the user's app storage.
+        buildTypes.getByName("debug").applicationIdSuffix = ".nativeprobe"
     }
 
     testOptions {
