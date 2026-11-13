@@ -2,3 +2,5 @@
 gradlew text eol=lf
 *.bat text eol=crlf
 *.jar binary
+*.tflite binary
+app/src/main/assets/yamnet-labels.txt text eol=lf
