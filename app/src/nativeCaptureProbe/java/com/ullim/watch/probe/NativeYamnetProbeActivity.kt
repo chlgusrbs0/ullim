@@ -111,7 +111,9 @@ class NativeYamnetProbeActivity : ComponentActivity() {
             try {
                 repeat(500) { index ->
                     active()
-                    val due = began + index * 20_000_000L
+                    val frameStart = began + index * 20_000_000L
+                    // A sampled 20ms packet is deliverable only after its last sample exists.
+                    val due = frameStart + 20_000_000L
                     val wait = due - System.nanoTime()
                     if (wait > 0) Thread.sleep(wait / 1_000_000, (wait % 1_000_000).toInt())
                     val samples = ShortArray(320) { sample ->
@@ -121,7 +123,7 @@ class NativeYamnetProbeActivity : ComponentActivity() {
                     val delivered = System.nanoTime()
                     deliveries[index] = delivered
                     lateness[index] = (delivered - due).coerceAtLeast(0L)
-                    check(fanout.accept(AudioFrame(1, due, samples))) { "DSP_FRAME_REJECTED" }
+                    check(fanout.accept(AudioFrame(1, frameStart, samples))) { "DSP_FRAME_REJECTED" }
                 }
             } catch (failure: Throwable) { childFailure.set(failure)
             } finally { done.set(true) }
