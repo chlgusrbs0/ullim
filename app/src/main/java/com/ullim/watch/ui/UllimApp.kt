@@ -46,6 +46,10 @@ fun UllimApp(
     onAiSettings: () -> Unit = {},
     onDiagnostics: () -> Unit = {},
     onAppSettings: () -> Unit = {},
+    onSensitivity: (Float) -> Unit = {},
+    onAiToggle: () -> Unit = {},
+    onSettingsReset: () -> Unit = {},
+    onSettingsRetry: () -> Unit = {},
 ) {
     var screen by rememberSaveable { mutableStateOf(UllimScreen.HOME) }
     val scrollState = rememberScrollState()
@@ -68,7 +72,9 @@ fun UllimApp(
                                 onGuide = { screen = UllimScreen.GUIDE })
                             UllimScreen.SETTINGS -> {
                                 ScreenTitle(stringResource(R.string.settings_title))
-                                Action(R.string.ai_controls, onAiSettings)
+                                SettingsContent(state.settings, state.runtime.listening, state.strengthLimited,
+                                    onSensitivity, onAiToggle, onSettingsReset, onSettingsRetry)
+                                Action(R.string.ai_details, onAiSettings)
                                 Action(R.string.diagnostics, onDiagnostics, enabled = state.startAllowed)
                                 Action(R.string.back_action, { screen = UllimScreen.HOME })
                             }

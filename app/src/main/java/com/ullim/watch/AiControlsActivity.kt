@@ -26,13 +26,17 @@ import com.ullim.watch.runtime.CaptureRuntime
 import com.ullim.watch.ui.AiResultContent
 import com.ullim.watch.ui.collectAiDisplay
 import com.ullim.watch.ui.theme.UllimTheme
+import com.ullim.watch.settings.SettingsRuntime
+import com.ullim.watch.ui.SettingsSaveStatus
 
 class AiControlsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val worker = AiRuntime.worker(this)
+        val preferences = SettingsRuntime.get(this)
         setContent {
             val enabled by CaptureRuntime.aiEnabled.collectAsStateWithLifecycle()
+            val settings by preferences.state.collectAsStateWithLifecycle()
             val display = collectAiDisplay(CaptureRuntime.aiEnabled, CaptureRuntime.state, worker.state)
             val scroll = rememberScrollState()
             UllimTheme {
@@ -45,12 +49,11 @@ class AiControlsActivity : ComponentActivity() {
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             AiResultContent(display, showOriginal = true)
+                            SettingsSaveStatus(settings) { preferences.retrySave() }
                             Text(stringResource(R.string.ai_optional_notice), textAlign = TextAlign.Center)
                             Button(onClick = {
-                                val next = !CaptureRuntime.aiEnabled.value
-                                CaptureRuntime.setAiEnabled(next)
-                                worker.setEnabled(worker.state.value.sessionId, next)
-                            }, modifier = Modifier.fillMaxWidth()) {
+                                preferences.setAiEnabled(!preferences.state.value.values.aiEnabled)
+                            }, enabled = settings.ready, modifier = Modifier.fillMaxWidth()) {
                                 Text(stringResource(if (enabled) R.string.ai_turn_off else R.string.ai_turn_on))
                             }
                             TextButton(onClick = { finish() }) { Text(stringResource(R.string.ai_back)) }

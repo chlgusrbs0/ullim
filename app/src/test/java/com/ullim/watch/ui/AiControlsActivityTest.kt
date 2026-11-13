@@ -1,6 +1,7 @@
 package com.ullim.watch.ui
 
 import android.app.Application
+import android.os.Looper
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.core.app.ApplicationProvider
@@ -9,6 +10,7 @@ import com.ullim.watch.AiControlsActivity
 import com.ullim.watch.ai.AiRuntime
 import com.ullim.watch.core.ListeningState
 import com.ullim.watch.runtime.CaptureRuntime
+import com.ullim.watch.settings.SettingsRuntime
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Rule
@@ -37,6 +39,8 @@ class AiControlsActivityTest {
     }
 
     @Test fun realAiScreenToggleRecreationAndBackNeverStartIdleMicrophoneOrNativeModel() {
+        val settings = SettingsRuntime.get(compose.activity)
+        compose.waitUntil(5_000) { shadowOf(Looper.getMainLooper()).idle(); settings.state.value.ready }
         compose.onNodeWithText("AI 보조 꺼짐").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("AI 보조 켜기").performScrollTo().performClick()
         compose.onNodeWithText("AI 보조 켜짐 · 감지 시작을 기다려요").performScrollTo().assertIsDisplayed()

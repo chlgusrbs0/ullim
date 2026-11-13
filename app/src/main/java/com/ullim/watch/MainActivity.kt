@@ -26,6 +26,7 @@ import com.ullim.watch.runtime.VisualizationSnapshot
 import com.ullim.watch.ui.ListeningUiState
 import com.ullim.watch.ui.UllimApp
 import com.ullim.watch.ui.collectAiDisplay
+import com.ullim.watch.settings.SettingsRuntime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -49,11 +50,13 @@ class MainActivity : ComponentActivity() {
         pendingStart = savedInstanceState?.getBoolean("pendingStart") ?: false
         refreshPermissions()
         val aiWorker = AiRuntime.worker(this)
+        val preferences = SettingsRuntime.get(this)
         setContent {
             val runtime by CaptureRuntime.state.collectAsStateWithLifecycle()
             val startAllowed by CaptureRuntime.startAllowed.collectAsStateWithLifecycle()
             val levels by CaptureRuntime.levels.collectAsStateWithLifecycle()
             val limited by CaptureRuntime.strengthLimited.collectAsStateWithLifecycle()
+            val settings by preferences.state.collectAsStateWithLifecycle()
             val ai = collectAiDisplay(CaptureRuntime.aiEnabled, CaptureRuntime.state, aiWorker.state)
             val uiLifecycle = LocalLifecycleOwner.current.lifecycle
             val visualization by produceState(VisualizationSnapshot(), runtime.listening, uiLifecycle) {
@@ -70,7 +73,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
             UllimApp(
-                state = ListeningUiState(runtime, startAllowed, levels, limited, microphoneGranted, notificationsGranted, visualization, ai),
+                state = ListeningUiState(runtime, startAllowed, levels, limited, microphoneGranted, notificationsGranted, visualization, ai, settings),
                 onStart = ::requestCapture,
                 onStop = ::stopCapture,
                 onAiSettings = { startActivity(Intent(this, AiControlsActivity::class.java)) },
@@ -78,6 +81,10 @@ class MainActivity : ComponentActivity() {
                     if (CaptureRuntime.canStart()) startActivity(Intent(this, DiagnosticsActivity::class.java))
                 },
                 onAppSettings = ::openAppSettings,
+                onSensitivity = { preferences.setSensitivity(it) },
+                onAiToggle = { preferences.setAiEnabled(!preferences.state.value.values.aiEnabled) },
+                onSettingsReset = { preferences.reset() },
+                onSettingsRetry = { preferences.retrySave() },
             )
         }
     }

@@ -35,7 +35,7 @@ Synthetic PCM A/B tests inject deterministic Speech/Knock/Noise context into the
 
 ## Independent runtime (#22)
 
-`AiRuntime` owns one process-wide asynchronous lane. The worker has at most one native operation and one latest pending audio window, with 500ms input cadence. DSP reads an atomic result and never waits for model load/inference/close. The capture consumer offers AI windows only after DSP fan-out. AI defaults OFF; enabling it does not start the microphone. The AI control screen's choice is process-local until #28 adds persistence.
+`AiRuntime` owns one process-wide asynchronous lane. The worker has at most one native operation and one latest pending audio window, with 500ms input cadence. DSP reads an atomic result and never waits for model load/inference/close. The capture consumer offers AI windows only after DSP fan-out. AI defaults OFF; enabling it does not start the microphone. The AI control screen shares #28's [local persistent settings](persistent-settings.md); restoring ON does not start the microphone.
 
 `AiCaptureFeed` separates audio delivery from mode reconciliation. Its audio-thread `accept` only sends PCM through fan-out and offers the latest window. `start`/`refreshMode` and the AI control activity reconcile the setting on the service/UI main thread. A stale audio-thread preference read therefore cannot turn AI back on after a user's OFF. Future settings integration must keep this single control-thread authority.
 

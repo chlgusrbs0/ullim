@@ -6,6 +6,10 @@ import java.util.concurrent.Executors
 /** One process-owned lane: services/toggles can never accumulate replacement native workers. */
 object AiRuntime {
     private var instance: AiWorker? = null
+    /** Main/control thread only; loading settings never constructs a native worker. */
+    @Synchronized fun refreshEnabled(enabled: Boolean) {
+        instance?.let { it.setEnabled(it.state.value.sessionId, enabled) }
+    }
     @Synchronized fun worker(context: Context): AiWorker {
         instance?.let { return it }
         val application = context.applicationContext

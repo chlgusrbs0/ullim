@@ -3,6 +3,7 @@ package com.ullim.watch.ui
 import com.ullim.watch.core.RuntimeState
 import com.ullim.watch.runtime.LiveLevels
 import com.ullim.watch.runtime.VisualizationSnapshot
+import com.ullim.watch.settings.SettingsState
 
 /** Values observed from the controller; previews use static samples only. */
 data class ListeningUiState(
@@ -14,4 +15,5 @@ data class ListeningUiState(
     val notificationsGranted: Boolean = false,
     val visualization: VisualizationSnapshot = VisualizationSnapshot(),
     val ai: AiDisplayState = AiDisplayState(),
+    val settings: SettingsState = SettingsState(),
 )

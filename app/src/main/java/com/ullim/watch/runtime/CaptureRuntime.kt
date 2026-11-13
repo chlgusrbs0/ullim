@@ -2,6 +2,7 @@ package com.ullim.watch.runtime
 
 import com.ullim.watch.audio.MicrophoneCapture
 import com.ullim.watch.core.AiStatus
+import com.ullim.watch.settings.UserSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -12,14 +13,20 @@ object CaptureRuntime {
     private val mutableLevels = MutableStateFlow(LiveLevels())
     private val mutableLimited = MutableStateFlow(false)
     private val mutableAiEnabled = MutableStateFlow(false)
+    private val mutableSensitivity = MutableStateFlow(1f)
     val state = controller.state
     val startAllowed = controller.startAllowed
     val levels = mutableLevels.asStateFlow()
     val strengthLimited = mutableLimited.asStateFlow()
     val aiEnabled = mutableAiEnabled.asStateFlow()
+    val sensitivity = mutableSensitivity.asStateFlow()
     val visualization = VisualizationHistory()
 
     fun setAiEnabled(enabled: Boolean) { mutableAiEnabled.value = enabled }
+    fun applySettings(values: UserSettings) {
+        mutableSensitivity.value = values.sensitivity
+        mutableAiEnabled.value = values.aiEnabled
+    }
     @Synchronized fun canStart(): Boolean = controller.canStart()
     @Synchronized fun aiStatus(id: Long, status: AiStatus) { controller.aiStatus(id, status) }
 

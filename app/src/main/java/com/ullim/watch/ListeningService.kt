@@ -30,7 +30,7 @@ import com.ullim.watch.ai.AiWorker
 import com.ullim.watch.ai.AiCaptureFeed
 import com.ullim.watch.core.AiStatus
 import com.ullim.watch.core.RenderResult
-import com.ullim.watch.dsp.DspProcessor
+import com.ullim.watch.dsp.LiveDsp
 import com.ullim.watch.haptics.AdaptiveHapticRenderer
 import com.ullim.watch.haptics.AndroidEnvelopeDevice
 import com.ullim.watch.haptics.HybridHapticMapper
@@ -110,7 +110,7 @@ class ListeningService : Service() {
             stopSelf(startId)
             return
         }
-        val dsp = DspProcessor()
+        val dsp = LiveDsp { CaptureRuntime.sensitivity.value }
         val mapper = HybridHapticMapper()
         val ai = AiRuntime.worker(this)
         aiWorker = ai
