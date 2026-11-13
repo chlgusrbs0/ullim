@@ -6,6 +6,47 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class HapticSchedulerTest {
+    /** Models Vibrator replacing the outstanding waveform on every play/cancel. */
+    private class TimelineDevice(private val clockMs: () -> Long) : WaveformDevice {
+        override val capabilities = HapticCapabilities(true, true, null)
+        private var startMs = 0L
+        private var wave = emptyList<Pair<Long, Int>>()
+        private var completedAudibleMs = 0L
+        private fun activeAudibleMs(): Long {
+            var remaining = clockMs() - startMs
+            var audible = 0L
+            for ((duration, amplitude) in wave) {
+                val elapsed = minOf(duration, remaining.coerceAtLeast(0))
+                if (amplitude != 0) audible += elapsed
+                remaining -= elapsed
+            }
+            return audible
+        }
+        fun audibleMs(): Long = completedAudibleMs + activeAudibleMs()
+        override fun play(timings: LongArray, amplitudes: IntArray) {
+            cancel()
+            startMs = clockMs()
+            wave = timings.indices.map { timings[it] to amplitudes[it] }
+        }
+        override fun cancel() {
+            completedAudibleMs += activeAudibleMs()
+            wave = emptyList()
+        }
+    }
+
+    @Test fun silenceDoesNotReplacePreviousChunkBeforeAudibleFramesFinish() {
+        var nowMs = 0L
+        val device = TimelineDevice { nowMs }
+        val scheduler = HapticScheduler(WaveformRenderer(device), { nowMs * 1_000_000 })
+        scheduler.begin(1)
+        for ((index, level) in listOf(.5f, .5f, .5f, 0f, 0f, 0f).withIndex()) {
+            nowMs = index * 20L
+            scheduler.offer(HapticFrame(1, nowMs * 1_000_000, 20, level))
+        }
+        nowMs = 160
+        assertEquals(60L, device.audibleMs())
+    }
+
     private class Renderer : SessionRenderer {
         val batches = mutableListOf<List<HapticFrame>>()
         var cancelled = 0
@@ -42,7 +83,7 @@ class HapticSchedulerTest {
         assertTrue(renderer.cancelled > 0)
     }
 
-    @Test fun silenceFlushesEarlierFramesAndPreservesRealGap() {
+    @Test fun silenceWaitsForFullChunkAndPreservesRealGap() {
         var now = 0L
         val renderer = Renderer()
         val scheduler = HapticScheduler(renderer, { now })
@@ -50,7 +91,10 @@ class HapticSchedulerTest {
         scheduler.offer(HapticFrame(1, now, 20, 0.5f))
         now = 20_000_000
         scheduler.offer(HapticFrame(1, now, 20, 0f))
-        assertEquals(listOf(0.5f, 0f), renderer.batches.single().map { it.commandedIntensity })
+        assertTrue(renderer.batches.isEmpty())
+        now = 40_000_000
+        scheduler.offer(HapticFrame(1, now, 20, 0f))
+        assertEquals(listOf(0.5f, 0f, 0f), renderer.batches.single().map { it.commandedIntensity })
     }
 
     @Test fun lateAndFutureFramesCannotGrowQueueOrReplayOldOutput() {
