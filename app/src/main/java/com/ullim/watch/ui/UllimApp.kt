@@ -36,7 +36,7 @@ import com.ullim.watch.R
 import com.ullim.watch.core.ListeningState
 import com.ullim.watch.ui.theme.UllimTheme
 
-private enum class UllimScreen { HOME, SETTINGS, GUIDE, ERROR }
+private enum class UllimScreen { ONBOARDING, HOME, SETTINGS, GUIDE, ERROR }
 
 @Composable
 fun UllimApp(
@@ -46,11 +46,18 @@ fun UllimApp(
     onAiSettings: () -> Unit = {},
     onDiagnostics: () -> Unit = {},
     onAppSettings: () -> Unit = {},
+    onCompleteOnboarding: () -> Unit = {},
+    onRequestMicrophone: () -> Unit = {},
 ) {
-    var screen by rememberSaveable { mutableStateOf(UllimScreen.HOME) }
+    var screen by rememberSaveable { mutableStateOf(if (state.showOnboarding) UllimScreen.ONBOARDING else UllimScreen.HOME) }
     val scrollState = rememberScrollState()
     BackHandler(enabled = screen != UllimScreen.HOME) {
-        screen = if (screen == UllimScreen.ERROR) UllimScreen.GUIDE else UllimScreen.HOME
+        if (screen == UllimScreen.ONBOARDING) {
+            screen = UllimScreen.HOME
+            onCompleteOnboarding()
+        } else {
+            screen = if (screen == UllimScreen.ERROR) UllimScreen.GUIDE else UllimScreen.HOME
+        }
     }
     LaunchedEffect(screen) { scrollState.scrollTo(0) }
     UllimTheme {
@@ -63,7 +70,18 @@ fun UllimApp(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         when (screen) {
-                            UllimScreen.HOME -> HomeScreen(state, onStart, onStop, onAppSettings,
+                            UllimScreen.ONBOARDING -> OnboardingScreen(
+                                onAllowMicrophone = {
+                                    screen = UllimScreen.HOME
+                                    onCompleteOnboarding()
+                                    onRequestMicrophone()
+                                },
+                                onLater = {
+                                    screen = UllimScreen.HOME
+                                    onCompleteOnboarding()
+                                },
+                            )
+                            UllimScreen.HOME -> HomeScreen(state, onStart, onStop, onAppSettings, onRequestMicrophone,
                                 onSettings = { screen = UllimScreen.SETTINGS },
                                 onGuide = { screen = UllimScreen.GUIDE })
                             UllimScreen.SETTINGS -> {
@@ -93,6 +111,18 @@ fun UllimApp(
 }
 
 @Composable
+private fun OnboardingScreen(onAllowMicrophone: () -> Unit, onLater: () -> Unit) {
+    ScreenTitle(stringResource(R.string.onboarding_title))
+    Body(stringResource(R.string.onboarding_purpose))
+    Body(stringResource(R.string.onboarding_microphone))
+    Body(stringResource(R.string.onboarding_privacy))
+    Body(stringResource(R.string.onboarding_background))
+    Body(stringResource(R.string.onboarding_limits))
+    Action(R.string.onboarding_allow_microphone, onAllowMicrophone)
+    Action(R.string.onboarding_later, onLater)
+}
+
+@Composable
 private fun ScreenTitle(text: String) {
     Text(text, Modifier.semantics { heading() }, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
 }
@@ -115,6 +145,7 @@ private fun HomeScreen(
     onStart: () -> Unit,
     onStop: () -> Unit,
     onAppSettings: () -> Unit,
+    onRequestMicrophone: () -> Unit,
     onSettings: () -> Unit,
     onGuide: () -> Unit,
 ) {
@@ -136,7 +167,8 @@ private fun HomeScreen(
     Button(
         onClick = if (idle) onStart else onStop,
         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-        enabled = if (idle) state.startAllowed else phase is ListeningState.Listening,
+        enabled = if (idle) state.startAllowed && state.microphoneGranted && !state.microphonePermissionPermanentlyDenied
+            else phase is ListeningState.Listening,
     ) {
         Text(stringResource(when (phase) {
             ListeningState.Idle, is ListeningState.Error -> R.string.start_listening
@@ -150,11 +182,16 @@ private fun HomeScreen(
         Body(stringResource(R.string.levels, (state.levels.sound * 100).toInt(), (state.levels.commanded * 100).toInt()))
         if (state.strengthLimited) Body(stringResource(R.string.amplitude_unsupported))
     }
-    if (!state.microphoneGranted) Body(stringResource(R.string.microphone_permission_needed))
-    if (!state.notificationsGranted) Body(stringResource(R.string.notifications_limited))
-    if (!state.microphoneGranted || !state.notificationsGranted || phase is ListeningState.Error) {
-        Action(R.string.permission_settings, onAppSettings)
+    if (!state.microphoneGranted) {
+        Body(stringResource(if (state.microphonePermissionPermanentlyDenied) R.string.microphone_permission_blocked else R.string.microphone_permission_needed))
+        if (state.microphonePermissionPermanentlyDenied) {
+            Action(R.string.permission_settings, onAppSettings)
+        } else {
+            Action(R.string.request_microphone_again, onRequestMicrophone)
+        }
     }
+    if (!state.notificationsGranted) Body(stringResource(R.string.notifications_limited))
+    if (phase is ListeningState.Error) Action(R.string.permission_settings, onAppSettings)
     Action(R.string.settings_title, onSettings)
     Action(R.string.guide_title, onGuide)
     Text(stringResource(R.string.local_audio_notice), style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
@@ -164,4 +201,10 @@ private fun HomeScreen(
 @Composable
 private fun UllimAppPreview() {
     UllimApp(ListeningUiState(microphoneGranted = true, notificationsGranted = true))
+}
+
+@Preview(device = "id:wearos_small_round", showSystemUi = true, name = "최초 실행 안내")
+@Composable
+private fun OnboardingPreview() {
+    UllimApp(ListeningUiState(showOnboarding = true))
 }
