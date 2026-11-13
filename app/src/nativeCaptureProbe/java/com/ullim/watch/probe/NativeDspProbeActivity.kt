@@ -10,6 +10,8 @@ import com.ullim.watch.core.AudioFrame
 import com.ullim.watch.core.AudioFeatures
 import com.ullim.watch.dsp.EnvelopeExtractor
 import com.ullim.watch.dsp.NoiseGate
+import com.ullim.watch.dsp.DspProcessor
+import com.ullim.watch.dsp.OnsetDetector
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.exp
@@ -42,6 +44,7 @@ class NativeDspProbeActivity : ComponentActivity() {
                 when (intent.getStringExtra("scenario") ?: "envelope") {
                     "envelope" -> verifyEnvelope()
                     "noise" -> verifyNoiseGate()
+                    "temporal" -> verifyTemporal()
                     else -> error("UNKNOWN_SCENARIO")
                 }
                 Log.i(TAG, "result=PASS")
@@ -122,6 +125,44 @@ class NativeDspProbeActivity : ComponentActivity() {
         check(hysteresis.process(feature(.009f, 3)).level == 0f) { "NO_CHATTER" }
         check(gate.process(feature(.05f, 0, session = 2)).level > 0f) { "NOISE_SESSION_RESET" }
         Log.i(TAG, "noise backgroundFrames=3000 backgroundLevel=${background.level} noiseFloor=${background.noise} transientLevel=${transient.level} lowSensitivity=$low highSensitivity=$high hysteresis=true invalidRejected=$invalidRejected reset=true")
+    }
+    private fun verifyTemporal() {
+        val knocks = listOf(5, 20, 45)
+        val dsp = DspProcessor()
+        val detected = mutableListOf<Int>()
+        for (index in 0..80) {
+            if (Thread.currentThread().isInterrupted) throw InterruptedException()
+            val output = dsp.extract(frame(if (index in knocks) 28_000 else 0, index))
+            if (output.onset > 0f) detected.add(index)
+        }
+        check(detected == knocks) { "KNOCK_INTERVALS" }
+        dsp.reset()
+        var continuous = 0
+        var repeatedOnsets = 0
+        for (index in 0..250) {
+            val output = dsp.extract(frame(16_000, index))
+            if (output.level > 0f) continuous++
+            if (output.onset > 0f) repeatedOnsets++
+        }
+        check(continuous == 251 && repeatedOnsets == 1) { "CONTINUOUS_TONE" }
+        dsp.reset()
+        val levels = mutableSetOf<Float>()
+        for (index in 0..100) {
+            levels.add(dsp.extract(frame(if (index % 20 < 10) 6_000 else 18_000, index)).level)
+        }
+        check(levels.size > 20) { "SPEECH_MODULATION" }
+        var tail = dsp.extract(frame(0, 101))
+        for (index in 102..200) tail = dsp.extract(frame(0, index))
+        check(tail.isSilent) { "TEMPORAL_TAIL" }
+        val onset = OnsetDetector()
+        fun event(level: Float, time: Long, session: Long = 1) = AudioFeatures(session, time, level, level, level)
+        check(onset.process(event(.5f, 0)).onset > 0f) { "FIRST_ONSET" }
+        onset.process(event(0f, 20_000_000))
+        check(onset.process(event(.5f, 40_000_000)).onset == 0f) { "REFRACTORY" }
+        onset.process(event(0f, 80_000_000))
+        check(onset.process(event(.5f, 100_000_000)).onset > 0f) { "REFRACTORY_BOUNDARY" }
+        check(onset.process(event(.5f, 0, session = 2)).onset > 0f) { "ONSET_SESSION" }
+        Log.i(TAG, "temporal knockFrames=${detected.joinToString(",")} intervalsMs=300,500 continuousFrames=$continuous onsets=$repeatedOnsets speechDistinctLevels=${levels.size} tail=${tail.level} refractory=true sessionReset=true")
     }
     companion object { private const val TAG = "UllimDspProbe" }
 }
