@@ -16,3 +16,11 @@ Classification uses the window end in the capture monotonic clock domain and exp
 ## Verification boundary
 
 Local contract tests use an injected engine to verify normalization, invalid input/output rejection, labels, timestamps and closure. They do **not** execute the native Android interpreter. #19 remains incomplete until a Watch7 actually loads this bundled model and performs inference offline. Real standard-audio scores, load/inference duration, memory and temperature are not yet measured; device execution and the independent consumer connection are tracked in #19/#22/#36. No accuracy or improvement claim is made.
+
+## Result stability (#20)
+
+`ClassificationSmoother` keeps at most five smoothed scores (EMA: new 0.6, old 0.4). Both the raw and smoothed winner must score at least 0.35, lead the second candidate by at least 0.08 and agree on the label. Two distinct windows spanning at least 400ms must confirm that candidate. These are development thresholds; they are not calibrated accuracy measurements. Ambiguous/low scores clear the confirmed label immediately; empty input clears score history. Before confirmation, the returned classification has empty scores (UI: uncertain, policy: baseline DSP).
+
+Out-of-order, future, expired and other-session results cannot replace current context. A new session or a gap reaching the previous result's expiry clears history. Repeated reads do not count as additional windows or extend expiry. Display and policy consumers must check `isFresh` at use time, even if no new inference arrives. Worker failure/disabled/loading are separate execution states, not classifications, and are connected in #22/#27.
+
+`SoundLabels` translates a limited set of exact ontology labels, retaining the original string for untranslated classes. It does not interpret a musical “French horn” as a vehicle warning. The full 521-class original map remains bundled. Real speech/horn/knock/noise class correctness and false positives have not yet been evaluated with standard audio or on Watch7.
