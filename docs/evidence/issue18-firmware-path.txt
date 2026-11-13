@@ -1,0 +1,76 @@
+Watch7 standard waveform amplitude investigation, 2026-11-13 KST
+
+Observed device: Samsung SM-L300, Android17/API37, One UI90000 (9).
+Pre-update AP build: L300XXU2ZZI1. User confirms beta participation.
+Comparison APK source: 0ce3638e3b50e7213c1b7a3e92bec1bc2988fa59.
+APK SHA256: d966e0c11ba0c03f447b76032ebff7d05cb3855a7abe943780157ad31df649a0
+APK bytes: 56232469. Same TOUCH adapter, one600ms call, amplitude1 vs255.
+User result: both vibrate and feel similar. Existing100ms60/130/220 also similar.
+Samsung Settings weak/strong preview feels different to the user. Its waveform/duration
+was not controlled, so it is not proof of continuous, equal-duration amplitude accuracy.
+
+Time-correlated pre-update app/HAL metadata (KST):
+21:38:28.880 MIN_AMPLITUDE ->28.891 HAL setAmplitude10000/intensity10000, on600ms.
+21:38:30.072 MAX_AMPLITUDE ->30.082 HAL setAmplitude10000/intensity10000, on600ms.
+21:38:31.566 MIN_AMPLITUDE ->31.575-576 HAL setAmplitude10000/intensity10000, on600ms.
+21:38:32.699 MAX_AMPLITUDE ->32.707 HAL setAmplitude10000/intensity10000, on600ms.
+All4 completed. Framework dump shows requested0.00/1.00 (two-decimal formatting:
+amplitude1/255 is about0.003922, not zero), scaleNONE1/adaptiveScale1.
+No raw PCM/voice, microphone I/O, or classified labels were collected.
+
+Read-only analysis of system files from this same watch:
+services.jar SHA256 e7392273854de2ee783bd3e874ecd3c5a1155156d4884e57df522daabc8f9e08
+framework.jar SHA256 07b00771135141a31152d8e76b5a46e6a01c7e5f24aa7b58ade77a46ccf567d1
+Used installed Android SDK smali-baksmali3.0.9 to inspect selected classes.
+Neither system JAR/DEX nor full disassembly is redistributed in this repository/APK.
+
+services.jar/classes2.dex, com.android.server.vibrator.SetAmplitudeVibratorStep:
+- play() obtains amplitude and branches on zero versus nonzero.
+- nonzero path derives the on duration and calls startVibrating(duration).
+- the whole class has0 changeAmplitude calls and0 setAmplitude calls.
+- getAmplitude is called twice: play() and the on-duration scan; both use zero checks.
+- AbstractVibratorStep.changeAmplitude(float) remains implemented and calls
+  HalVibrator.setAmplitude(float), but the above standard waveform step never calls it.
+- VibratorController.setAmplitude(float) checks AMPLITUDE_CONTROL (flag4), delegates
+  to NativeWrapper, and updates current amplitude state when vibrating.
+
+Contrast with AOSP SetAmplitudeVibratorStep.java, inspected blob
+8478e7743183f3d41355c37167f189bd104a5a09 (main at inspection time):
+- nonzero playback invokes changeAmplitude(amplitude).
+- early restart restores the previously expected amplitude.
+https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/services/core/java/com/android/server/vibrator/SetAmplitudeVibratorStep.java
+AOSP main is a behavioral comparison, not a claimed identical Samsung source revision.
+
+Samsung-specific path also found in this device's services/framework:
+- SemHapticStep uses separate magnitude and predefined/hybrid pattern playback.
+- VibrationSettings loads global setting_vibration_intensity and maps it through
+  LEVEL_TO_MAGNITUDE / LEVEL_TO_TOUCH_MAGNITUDE.
+- Live dump: intensity support true, LEVEL_TO_MAGNITUDE=[0,3500,6700,10000].
+- Live original/restored state: Call/Notification/Touch/Media magnitude10000.
+- Scalar semSetMagnitude and semSetMagnitudeType are marked blacklist in framework DEX.
+- A semCreateWaveform(int patternIndex,int repeat,SemMagnitudeType) extension is
+  marked whitelist, but creates a fixed SemHapticSegment, not arbitrary timed amplitudes.
+  Do not equate a whitelist marker with a documented portable SDK contract.
+- createVendorEffect is SystemApi; the service checks VIBRATE_VENDOR_EFFECTS permission.
+No hidden-API exemption, protected setting write, root, direct sysfs write, or firmware
+modification was attempted. Failed read of vendor service binary was not bypassed.
+
+Conclusion limited to this installed build:
+The standard waveform step omits forwarding amplitude magnitude to its HAL setter.
+This is consistent with the equal-intensity logs and user G/H report; it does not
+establish the motor's physical limits or the behavior of other firmware releases.
+Restoring a system call is a firmware repair candidate, not a validated app-side fix.
+
+Next controlled comparison:
+User found an update and explicitly chose to perform it; reported label
+l300xxu2k1/l300OXM2zzk1. Read full AP build after reboot rather than guessing missing letters.
+Retain the exact installed comparison APK, global intensity and wearing conditions.
+1. Read post-update build/API/capability and verify the app version/identity is unchanged.
+2. Repeat separated G/H600ms and E600ms60/130/220 segments; record failures too.
+3. Correlate app commands, OS waveform and HAL amplitude/intensity metadata again.
+4. Where readable, compare the same firmware class for amplitude forwarding changes.
+5. If static strength works, investigate live replacement/choppiness separately.
+6. Do not pass #18/#37/#39 without physical latency and required blind perception results.
+No evidence yet that the offered update fixes the defect. No app runtime changes in
+this investigation; prior169 tests/build/lint are historical comparison-tool validation,
+not newly rerun tests or hardware acceptance.

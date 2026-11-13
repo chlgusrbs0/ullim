@@ -58,11 +58,23 @@ System.out.println("hapticGeneratorAvailable=" + HapticGenerator.isAvailable());
 
 E 테스트는 누락 패턴으로 RED(5s) 후 구현됐고 전체167tests/build/lint가43s에 통과했다. F의 유한 겹침 테스트도 RED(3s) 후 구현했으며, 최종 **168tests/0failures/0errors + assembleDebug/lintDebug, BUILD SUCCESSFUL36s**를 확인했다. 최종 APK SHA-256은 `7d9d9066398e1b44f39a5e9ee99c7e4612909779044a22cf4e7425f300c375a6`이다. 초기166개 통과 기록과 구분한다.
 
-### 전체 강도 범위 G/H — 체감 미확인
+### 전체 강도 범위 G/H — 같은 길이에서 강도 차이 미체감
 
 G는 요청 amplitude1, H는255이며 둘 다 같은 TOUCH 어댑터로600ms를 한 번만 요청한다. 숫자는 물리 강도 비율이 아니다. 마이크·DSP·live scheduler와 시스템 강도 설정은 바꾸지 않는다. 동일한 착용 상태에서 충분히 쉬고 각각 실행해 차이를 확인하며, 하나가 안 느껴지거나 둘이 비슷한 결과도 그대로 기록한다. 순서/라벨이 보이는 탐색 실험이므로 블라인드 합격이나 강도3단계 정확도 근거로 사용하지 않는다.
 
-추가 테스트는 누락 enum으로 RED(39s)를 확인했다. 비교 테스트7개와 assembleDebug/lintDebug가40s에 통과했고, 이어 전체 **169tests/0failures/0errors/0skipped**가39s에 통과했다. APK는56,232,469bytes, SHA-256 `d966e0c11ba0c03f447b76032ebff7d05cb3855a7abe943780157ad31df649a0`이다. 읽기 전용 검토에서 Critical/Important 결함은 없었다.600ms 직전 상태와 정상 완료 때 cancel 부재를 직접 검사하는 테스트는 경미한 추가 보완 여지다. G/H의 실제 체감은 아직 미확인이다.
+추가 테스트는 누락 enum으로 RED(39s)를 확인했다. 비교 테스트7개와 assembleDebug/lintDebug가40s에 통과했고, 이어 전체 **169tests/0failures/0errors/0skipped**가39s에 통과했다. APK는56,232,469bytes, SHA-256 `d966e0c11ba0c03f447b76032ebff7d05cb3855a7abe943780157ad31df649a0`이다. 읽기 전용 검토에서 Critical/Important 결함은 없었다.600ms 직전 상태와 정상 완료 때 cancel 부재를 직접 검사하는 테스트는 경미한 추가 보완 여지다. 소스0ce3638의 이 APK를 install-r로 설치하고 실제 G/H 화면을 확인했다. 사용자는 **G/H 모두 진동하지만 비슷함**으로 보고했다.
+
+### 설치된 삼성 베타 펌웨어의 표준 파형 처리 조사
+
+기기는 One UI9(`ro.build.version.oneui=90000`)/Android17/API37, 빌드 `L300XXU2ZZI1`이며 사용자가 베타 참여 중임을 확인했다. 사용자는 삼성 기본 설정의 약함/강함 미리보기에서는 차이가 느껴진다고 보고했다. 미리보기의 패턴/길이를 통제한 시험은 아니므로, 이것만으로 동일 길이의 연속 진동 강약이 검증됐다고 판단하지 않는다.
+
+G/H 두 쌍을 시각으로 대응시킨 결과 앱 요청은1/255였지만 삼성 HAL은 네 번 모두 `intensity=10000` 쓰기를 기록했다. 처음에는 이 값이 시작 기본값인지 실제 강도 고정 원인인지 구별되지 않았다. 이어 **같은 워치에서 읽은 services.jar의 DEX**를 분석해 표준 `SetAmplitudeVibratorStep.play()`가 amplitude를0/비0으로 구분하고, 비0인 경우 길이에 따라 모터를 켜지만 `changeAmplitude`/`setAmplitude`를 호출하지 않는 것을 확인했다. 클래스 전체에도 두 호출이 없다. 별도의 `AbstractVibratorStep.changeAmplitude`와 `VibratorController.setAmplitude` 구현은 남아 있다.
+
+[AOSP 기준 구현](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/services/core/java/com/android/server/vibrator/SetAmplitudeVibratorStep.java)은 비0 구간에서 `changeAmplitude(amplitude)`를 호출한다. 비교한 AOSP main은 삼성 펌웨어와 동일 revision이라는 뜻이 아니다. 설치된 펌웨어의 파형 경로에서 강도 크기가 전달되지 않는 코드와 G/H 결과가 일치한다는 것이 현재 근거다. 삼성 설정 쪽은 별도 magnitude와 설정 표(`0/3500/6700/10000`)를 사용하는 경로가 있다. 모터 자체의 물리 한계나 모든 Watch7/펌웨어 버전으로 일반화하지 않는다.
+
+[분석·재현 기록](evidence/issue18-firmware-path.txt)에 파일 해시, 호출 조사 범위와 전후 비교 절차를 남겼다. 시스템 JAR/DEX·전체 역어셈블 결과는 저장소나 APK에 재배포하지 않는다. 차단 목록의 삼성 magnitude setter나 시스템 전용 vendor 권한을 우회하지 않는다. 공개 삼성 확장 factory는 고정 패턴용이며 임의 PCM 강약을 연속 표현하는 해결책으로 검증되지 않았다.
+
+현재 해결 후보는 새 베타/정식 펌웨어에서 **동일한 APK·동일600ms G/H**를 재검증하는 것이다. 사용자가 새 업데이트를 확인하고 직접 진행하겠다고 했다. 알려준 표기는 `l300xxu2k1/l300OXM2zzk1`이며 전체 AP 빌드명은 업데이트 후 기기에서 확인한다. 업데이트가 이 결함을 수정했다는 공식 근거나 실기기 결과는 아직 없다. 업데이트 전후 결과가 확보될 때까지 live 강도 전달과 끊김 수정, #18/#37/#39 합격을 보류한다.
 
 ## 물리 지연 측정 절차 — 아직 미실시
 
