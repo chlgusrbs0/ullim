@@ -81,6 +81,7 @@ class MainActivityUiTest {
             assertEquals(com.ullim.watch.DiagnosticsActivity::class.java.name,
                 shadowOf(application).nextStartedActivity.component!!.className)
             assertTrue(CaptureRuntime.canStart())
+            assertNull("required calibration is setup, not a microphone error", CaptureRuntime.failure.value)
         }
     }
 

@@ -81,6 +81,22 @@ class DiagnosticsActivity : ComponentActivity() {
                 ) {
                     Text(pageName, Modifier.semantics { heading() }, textAlign = TextAlign.Center)
                     val calibrating = calibrationState == MotorCalibrationState.RUNNING || calibrationState == MotorCalibrationState.STOPPING
+                    val calibrationText = when (calibrationState) {
+                        MotorCalibrationState.RUNNING -> R.string.motor_calibration_running
+                        MotorCalibrationState.STOPPING -> R.string.motor_calibration_stopping
+                        MotorCalibrationState.COMPLETE -> R.string.motor_calibration_complete
+                        MotorCalibrationState.FAILED -> R.string.motor_calibration_failed
+                        MotorCalibrationState.PERMISSION_REQUIRED -> R.string.motor_calibration_permission
+                        MotorCalibrationState.BUSY -> R.string.motor_calibration_busy
+                        MotorCalibrationState.STOPPED -> R.string.output_stopped
+                        else -> if (hasCalibration) R.string.motor_calibration_saved else R.string.motor_calibration_missing
+                    }
+                    Text(stringResource(calibrationText), textAlign = TextAlign.Center)
+                    Button(onClick = { comparison.stop(); calibration.start() }, enabled = capability.available && !calibrating,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                        Text(stringResource(R.string.motor_calibration_start), textAlign = TextAlign.Center)
+                    }
+                    Text(stringResource(R.string.motor_calibration_notice), textAlign = TextAlign.Center)
                     Text(stringResource(R.string.pulse_comparison_title), Modifier.semantics { heading() }, textAlign = TextAlign.Center)
                     Text(stringResource(R.string.pulse_comparison_notice), textAlign = TextAlign.Center)
                     ComparisonPattern.entries.filter { it.pulsePeriodMs > 0 }.forEach { pattern ->
@@ -104,22 +120,6 @@ class DiagnosticsActivity : ComponentActivity() {
                         Text(stringResource(R.string.envelope_limits, limits.maxPoints, limits.minPointMs, limits.maxPointMs, limits.maxDurationMs), textAlign = TextAlign.Center)
                     }
                     if (capability.probeFailed) Text(stringResource(R.string.probe_failed))
-                    Text(stringResource(R.string.motor_calibration_notice), textAlign = TextAlign.Center)
-                    val calibrationText = when (calibrationState) {
-                        MotorCalibrationState.RUNNING -> R.string.motor_calibration_running
-                        MotorCalibrationState.STOPPING -> R.string.motor_calibration_stopping
-                        MotorCalibrationState.COMPLETE -> R.string.motor_calibration_complete
-                        MotorCalibrationState.FAILED -> R.string.motor_calibration_failed
-                        MotorCalibrationState.PERMISSION_REQUIRED -> R.string.motor_calibration_permission
-                        MotorCalibrationState.BUSY -> R.string.motor_calibration_busy
-                        MotorCalibrationState.STOPPED -> R.string.output_stopped
-                        else -> if (hasCalibration) R.string.motor_calibration_saved else R.string.motor_calibration_missing
-                    }
-                    Text(stringResource(calibrationText), textAlign = TextAlign.Center)
-                    Button(onClick = { comparison.stop(); calibration.start() }, enabled = capability.available && !calibrating,
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                        Text(stringResource(R.string.motor_calibration_start), textAlign = TextAlign.Center)
-                    }
                     Text(stringResource(diagnosticMessage), textAlign = TextAlign.Center)
                     DiagnosticPattern.entries.forEach { pattern ->
                         val label = when (pattern) {

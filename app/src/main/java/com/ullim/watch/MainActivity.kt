@@ -130,7 +130,6 @@ class MainActivity : ComponentActivity() {
             return
         }
         if (MotorProfileStore.load(this, MotorProfileStore.deviceKey(this)) == null) {
-            reportCaptureFailure(this, null, CaptureFailure.MOTOR_CALIBRATION)
             startActivity(Intent(this, DiagnosticsActivity::class.java))
             return
         }
