@@ -1,0 +1,18 @@
+debug
+package: com.ullim.watch
+uses-permission: name='android.permission.VIBRATE'
+uses-permission: name='android.permission.RECORD_AUDIO'
+uses-permission: name='android.permission.POST_NOTIFICATIONS'
+uses-permission: name='android.permission.FOREGROUND_SERVICE'
+uses-permission: name='android.permission.FOREGROUND_SERVICE_MICROPHONE'
+permission: com.ullim.watch.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+uses-permission: name='com.ullim.watch.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
+release-unsigned
+package: com.ullim.watch
+uses-permission: name='android.permission.VIBRATE'
+uses-permission: name='android.permission.RECORD_AUDIO'
+uses-permission: name='android.permission.POST_NOTIFICATIONS'
+uses-permission: name='android.permission.FOREGROUND_SERVICE'
+uses-permission: name='android.permission.FOREGROUND_SERVICE_MICROPHONE'
+permission: com.ullim.watch.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+uses-permission: name='com.ullim.watch.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'

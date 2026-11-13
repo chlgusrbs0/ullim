@@ -8,7 +8,7 @@ Edits wait until initial load completes. Then current choices are applied on the
 
 Application startup loads preferences without creating a model or starting a microphone. Restoring AI ON remains a stored opt-in; actual model work still requires explicit capture start. Until loading finishes, capture uses safe in-memory defaults; restored values then apply. SettingsRuntime updates CaptureRuntime and only an already existing AI worker from the main control thread. Audio-thread AiCaptureFeed never reconciles settings. OFF clears AI context immediately while safe native cleanup remains asynchronous, as documented in models.md.
 
-The service uses LiveDsp, which reads the validated in-memory sensitivity once per 20ms DSP frame. It preserves processing history and applies changes without restarting capture. Mapping/scheduling/core contracts remain unchanged. Main settings and the separate AI details activity share the same controller and save feedback. Activity recreation does not create another store or reset choices. Storage is local and the existing manifest disables backup.
+The service uses LiveDsp, which reads the validated in-memory sensitivity once per 20ms DSP frame. It preserves processing history and applies changes without restarting capture. Mapping/scheduling/core contracts remain unchanged. Main settings and the separate AI details activity share the same controller and save feedback. Activity recreation does not create another store or reset choices. Storage is local. The manifest sets allowBackup=false and the #33 data extraction rules exclude app data from cloud backup and Android device transfer; packaged-rule evidence and remaining native gates are in [privacy.md](privacy.md).
 
 ## Verification and remaining gates
 

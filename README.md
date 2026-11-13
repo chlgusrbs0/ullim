@@ -88,3 +88,4 @@ Windows에서는 `./gradlew.bat`를 사용합니다. APK 경로는 `app/build/ou
 - [docs/error-recovery.md](docs/error-recovery.md) — 오류 코드, 수동 회복 행동과 자원 정리 경계
 - [docs/wear-accessibility.md](docs/wear-accessibility.md) — 큰 글씨·화면 읽기 의미·대비·터치 및 실제 워치 검증 체크리스트
 - [docs/watch-haptic-validation.md](docs/watch-haptic-validation.md) — 워치7 실제 관찰, 연속 출력 통제 비교와 물리 지연 측정 절차
+- [docs/privacy.md](docs/privacy.md) — 원본 오디오 비저장, 실제 APK 권한·백업 제외·설정 삭제 범위와 남은 실기기 검사
