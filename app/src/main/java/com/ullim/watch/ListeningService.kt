@@ -93,6 +93,7 @@ class ListeningService : Service() {
                             lifecycle?.stop()
                             lifecycle = null
                             CaptureRuntime.finished(token)
+                            currentSession = 0
                             stopSelf(currentStartId)
                         }
                     }

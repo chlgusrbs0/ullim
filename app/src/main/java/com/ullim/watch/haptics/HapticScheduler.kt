@@ -43,7 +43,9 @@ class HapticScheduler(
         if (lastTimestampNs?.let { frame.timestampNs != it + 20_000_000L } == true) pending.clear()
         lastTimestampNs = frame.timestampNs
         pending.add(frame)
-        if (frame.isSilent || pending.size * 20L >= chunkMs) {
+        // Keep silence on the same chunk timeline: an early flush would replace
+        // the previous waveform before all of its audible frames have played.
+        if (pending.size * 20L >= chunkMs) {
             lastResult = renderer.renderBatch(pending.toList())
             pending.clear()
             return lastResult != RenderResult.FAILED && lastResult != RenderResult.UNSUPPORTED
