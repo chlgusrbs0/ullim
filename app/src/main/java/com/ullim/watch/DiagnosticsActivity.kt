@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -23,6 +24,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.paneTitle
+import com.ullim.watch.ui.theme.UllimTheme
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
@@ -39,14 +44,16 @@ class DiagnosticsActivity : ComponentActivity() {
         vibrator = getSystemService(VibratorManager::class.java).defaultVibrator
         val capability = HapticCapabilities.detect(AndroidHapticProbe(vibrator))
         setContent {
-            MaterialTheme {
+            val pageName = stringResource(R.string.diagnostics)
+            UllimTheme {
                 Column(
                     modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
-                        .verticalScroll(rememberScrollState()).padding(horizontal = 28.dp, vertical = 36.dp),
+                        .verticalScroll(rememberScrollState()).padding(horizontal = 28.dp, vertical = 36.dp)
+                        .semantics { paneTitle = pageName },
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text(stringResource(R.string.diagnostics), textAlign = TextAlign.Center)
+                    Text(pageName, Modifier.semantics { heading() }, textAlign = TextAlign.Center)
                     Text("${Build.MODEL}\nAndroid ${Build.VERSION.RELEASE} · API ${Build.VERSION.SDK_INT}", textAlign = TextAlign.Center)
                     Text(stringResource(if (capability.available) R.string.motor_available else R.string.motor_unavailable))
                     Text(stringResource(if (capability.amplitudeControl) R.string.amplitude_supported else R.string.amplitude_unsupported), textAlign = TextAlign.Center)
@@ -64,11 +71,11 @@ class DiagnosticsActivity : ComponentActivity() {
                             DiagnosticPattern.LONG -> R.string.diagnostic_long
                             DiagnosticPattern.RHYTHM -> R.string.diagnostic_rhythm
                         }
-                        Button(onClick = { play(pattern, capability) }, enabled = capability.available, modifier = Modifier.fillMaxWidth()) {
+                        Button(onClick = { play(pattern, capability) }, enabled = capability.available, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                             Text(stringResource(label))
                         }
                     }
-                    Button(onClick = { cancelOutput() }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.stop)) }
+                    Button(onClick = { cancelOutput() }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(R.string.stop)) }
                 }
             }
         }

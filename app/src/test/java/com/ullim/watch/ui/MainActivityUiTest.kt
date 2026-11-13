@@ -195,7 +195,7 @@ class MainActivityUiTest {
     @Test fun comparisonLabelsDistinguishSourceFromCommandsAndStopWithoutUiFakeState() {
         compose.onNodeWithText("시각화 중지 · 진동 명령 없음").performScrollTo().assertIsDisplayed()
         requestStart(); confirmRecording()
-        compose.onNodeWithText("입력 소리 · RMS / 엔벌로프").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("입력 소리 · 실선 RMS / 점선 엔벌로프").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("진동 명령 · 물리 측정값 아님").performScrollTo().assertIsDisplayed()
         compose.runOnIdle { CaptureRuntime.stopping(token); CaptureRuntime.detach(owner!!); CaptureRuntime.finished(token) }
         compose.onNodeWithText("시각화 중지 · 진동 명령 없음").performScrollTo().assertIsDisplayed()
@@ -210,7 +210,7 @@ class MainActivityUiTest {
                 com.ullim.watch.core.HapticFrame(token, now, 20, .25f),
             )
         }
-        val input = compose.activity.getString(com.ullim.watch.R.string.graph_input_description, 50)
+        val input = compose.activity.getString(com.ullim.watch.R.string.graph_input_description, 50, 50)
         val output = compose.activity.getString(com.ullim.watch.R.string.graph_command_description, 25)
         compose.waitUntil(5_000) {
             compose.onAllNodesWithContentDescription(input).fetchSemanticsNodes().isNotEmpty()
@@ -218,7 +218,7 @@ class MainActivityUiTest {
         compose.onNodeWithContentDescription(input).performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription(output).performScrollTo().assertIsDisplayed()
         compose.runOnIdle { CaptureRuntime.stopping(token) }
-        compose.onNodeWithContentDescription(compose.activity.getString(com.ullim.watch.R.string.graph_input_description, 0))
+        compose.onNodeWithContentDescription(compose.activity.getString(com.ullim.watch.R.string.graph_input_description, 0, 0))
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription(compose.activity.getString(com.ullim.watch.R.string.graph_command_description, 0))
             .performScrollTo().assertIsDisplayed()

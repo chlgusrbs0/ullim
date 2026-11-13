@@ -86,3 +86,4 @@ Windows에서는 `./gradlew.bat`를 사용합니다. APK 경로는 `app/build/ou
 - [docs/ai-result-display.md](docs/ai-result-display.md) — AI 명칭·모델 점수와 불확실/만료/실패 표시의 검증 경계
 - [docs/persistent-settings.md](docs/persistent-settings.md) — 민감도·AI 로컬 저장, 즉시 적용 및 저장 실패 처리
 - [docs/error-recovery.md](docs/error-recovery.md) — 오류 코드, 수동 회복 행동과 자원 정리 경계
+- [docs/wear-accessibility.md](docs/wear-accessibility.md) — 큰 글씨·화면 읽기 의미·대비·터치 및 실제 워치 검증 체크리스트

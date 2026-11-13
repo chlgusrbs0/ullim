@@ -1,6 +1,7 @@
 package com.ullim.watch.ui.theme
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.wear.compose.material3.ColorScheme
@@ -15,8 +16,9 @@ import androidx.wear.compose.material3.dynamicColorScheme
 @Composable
 fun UllimTheme(content: @Composable () -> Unit) {
     val watchColorScheme = dynamicColorScheme(LocalContext.current)
+    val readableColors = remember(watchColorScheme) { accessibleColors(watchColorScheme ?: ColorScheme()) }
     MaterialTheme(
-        colorScheme = watchColorScheme ?: ColorScheme(),
+        colorScheme = readableColors,
         typography = Typography(defaultFontFamily = FontFamily.SansSerif),
         content = content,
     )

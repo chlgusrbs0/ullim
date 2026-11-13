@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.getValue
@@ -15,12 +16,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.wear.compose.material3.AppScaffold
-import androidx.wear.compose.material3.Button
+import com.ullim.watch.ui.AiModeControl
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
-import androidx.wear.compose.material3.TextButton
+import androidx.wear.compose.material3.OutlinedButton
 import com.ullim.watch.ai.AiRuntime
 import com.ullim.watch.runtime.CaptureRuntime
 import com.ullim.watch.ui.AiResultContent
@@ -39,24 +43,26 @@ class AiControlsActivity : ComponentActivity() {
             val settings by preferences.state.collectAsStateWithLifecycle()
             val display = collectAiDisplay(CaptureRuntime.aiEnabled, CaptureRuntime.state, worker.state)
             val scroll = rememberScrollState()
+            val pageName = stringResource(R.string.ai_controls)
             UllimTheme {
                 AppScaffold {
                     ScreenScaffold(scrollState = scroll) { contentPadding ->
                         Column(
                             Modifier.padding(contentPadding).fillMaxWidth().verticalScroll(scroll)
-                                .padding(horizontal = 24.dp, vertical = 16.dp),
+                                .padding(horizontal = 24.dp, vertical = 16.dp)
+                                .semantics { paneTitle = pageName; isTraversalGroup = true },
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             AiResultContent(display, showOriginal = true)
                             SettingsSaveStatus(settings) { preferences.retrySave() }
                             Text(stringResource(R.string.ai_optional_notice), textAlign = TextAlign.Center)
-                            Button(onClick = {
+                            AiModeControl(enabled, settings.ready) {
                                 preferences.setAiEnabled(!preferences.state.value.values.aiEnabled)
-                            }, enabled = settings.ready, modifier = Modifier.fillMaxWidth()) {
-                                Text(stringResource(if (enabled) R.string.ai_turn_off else R.string.ai_turn_on))
                             }
-                            TextButton(onClick = { finish() }) { Text(stringResource(R.string.ai_back)) }
+                            OutlinedButton(onClick = { finish() }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                                Text(stringResource(R.string.ai_back), textAlign = TextAlign.Center)
+                            }
                         }
                     }
                 }

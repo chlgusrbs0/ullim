@@ -7,6 +7,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -40,8 +43,8 @@ private fun GraphRow(snapshot: VisualizationSnapshot, active: Boolean, output: B
     val secondary = MaterialTheme.colorScheme.secondary
     val baseline = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .45f)
     val latest = if (active) snapshot.points.lastOrNull() else null
-    val description = stringResource(if (output) R.string.graph_command_description else R.string.graph_input_description,
-        ((if (output) latest?.commanded else latest?.rms) ?: 0f).times(100).toInt())
+    val description = if (output) stringResource(R.string.graph_command_description, ((latest?.commanded ?: 0f) * 100).toInt())
+        else stringResource(R.string.graph_input_description, ((latest?.rms ?: 0f) * 100).toInt(), ((latest?.envelope ?: 0f) * 100).toInt())
     Canvas(Modifier.fillMaxWidth().height(44.dp).semantics { contentDescription = description }) {
         val bottom = size.height - 1.dp.toPx()
         val top = 2.dp.toPx()
@@ -50,6 +53,8 @@ private fun GraphRow(snapshot: VisualizationSnapshot, active: Boolean, output: B
         fun y(value: Float) = bottom - value.coerceIn(0f, 1f) * (bottom - top)
         drawLine(baseline, Offset(0f, bottom), Offset(size.width, bottom), 1.dp.toPx())
         if (!active) return@Canvas
+        val rmsPath = Path()
+        val envelopePath = Path()
         var previous: VisualizationPoint? = null
         for (point in snapshot.points) {
             if (output) {
@@ -60,13 +65,19 @@ private fun GraphRow(snapshot: VisualizationSnapshot, active: Boolean, output: B
             } else {
                 val before = previous
                 if (before != null && point.timestampNs - before.timestampNs == 20_000_000L) {
-                    drawLine(secondary, Offset(x(before.timestampNs), y(before.envelope)), Offset(x(point.timestampNs), y(point.envelope)), 2.dp.toPx())
-                    drawLine(primary, Offset(x(before.timestampNs), y(before.rms)), Offset(x(point.timestampNs), y(point.rms)), 1.dp.toPx())
+                    envelopePath.lineTo(x(point.timestampNs), y(point.envelope))
+                    rmsPath.lineTo(x(point.timestampNs), y(point.rms))
                 } else {
+                    envelopePath.moveTo(x(point.timestampNs), y(point.envelope))
+                    rmsPath.moveTo(x(point.timestampNs), y(point.rms))
                     drawCircle(primary, 1.dp.toPx(), Offset(x(point.timestampNs), y(point.rms)))
                 }
             }
             previous = point
+        }
+        if (!output) {
+            drawPath(envelopePath, secondary, style = Stroke(2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))))
+            drawPath(rmsPath, primary, style = Stroke(1.dp.toPx()))
         }
     }
 }

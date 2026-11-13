@@ -23,6 +23,9 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -53,6 +56,12 @@ fun UllimApp(
 ) {
     var screen by rememberSaveable { mutableStateOf(UllimScreen.HOME) }
     val scrollState = rememberScrollState()
+    val pageTitle = stringResource(when (screen) {
+        UllimScreen.HOME -> R.string.app_name
+        UllimScreen.SETTINGS -> R.string.settings_title
+        UllimScreen.GUIDE -> R.string.guide_title
+        UllimScreen.ERROR -> R.string.error_guide_title
+    })
     BackHandler(enabled = screen != UllimScreen.HOME) {
         screen = if (screen == UllimScreen.ERROR) UllimScreen.GUIDE else UllimScreen.HOME
     }
@@ -62,7 +71,8 @@ fun UllimApp(
             ScreenScaffold(scrollState = scrollState) { contentPadding ->
                 Box(Modifier.fillMaxSize().padding(contentPadding), contentAlignment = Alignment.Center) {
                     Column(
-                        Modifier.fillMaxWidth(0.82f).verticalScroll(scrollState).padding(vertical = 16.dp),
+                        Modifier.fillMaxWidth(0.82f).verticalScroll(scrollState).padding(vertical = 16.dp)
+                            .semantics { paneTitle = pageTitle; isTraversalGroup = true },
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
@@ -129,15 +139,16 @@ private fun HomeScreen(
     val phase = state.runtime.listening
     val idle = phase == ListeningState.Idle || phase is ListeningState.Error
     val failure = state.failure.takeIf { phase is ListeningState.Error }
+    val phaseDescription = when (phase) {
+        ListeningState.Idle -> stringResource(R.string.ready_to_listen)
+        is ListeningState.Starting -> stringResource(R.string.starting_listening)
+        is ListeningState.Listening -> stringResource(R.string.active_listening)
+        is ListeningState.Stopping -> stringResource(R.string.stopping_listening)
+        is ListeningState.Error -> phase.reason
+    }
     ScreenTitle(stringResource(R.string.app_name))
     Text(
-        when (phase) {
-            ListeningState.Idle -> stringResource(R.string.ready_to_listen)
-            is ListeningState.Starting -> stringResource(R.string.starting_listening)
-            is ListeningState.Listening -> stringResource(R.string.active_listening)
-            is ListeningState.Stopping -> stringResource(R.string.stopping_listening)
-            is ListeningState.Error -> phase.reason
-        },
+        phaseDescription,
         Modifier.semantics { liveRegion = LiveRegionMode.Polite },
         style = MaterialTheme.typography.bodyMedium,
         textAlign = TextAlign.Center,
@@ -145,7 +156,7 @@ private fun HomeScreen(
     failure?.let { Body(stringResource(R.string.error_code, it.code)) }
     Button(
         onClick = if (idle) onStart else onStop,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).semantics { stateDescription = phaseDescription },
         enabled = if (idle) state.startAllowed else phase is ListeningState.Listening,
     ) {
         Text(stringResource(when (phase) {
