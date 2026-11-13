@@ -46,6 +46,7 @@ class NativeDspProbeActivity : ComponentActivity() {
                     "noise" -> verifyNoiseGate()
                     "temporal" -> verifyTemporal()
                     "boundaries" -> DspBoundaryVerification.run { report -> Log.i(TAG, report) }
+                    "mapping" -> HapticMappingVerification.run { report -> Log.i(TAG, report) }
                     else -> error("UNKNOWN_SCENARIO")
                 }
                 Log.i(TAG, "result=PASS")
