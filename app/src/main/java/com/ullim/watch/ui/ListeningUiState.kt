@@ -11,4 +11,6 @@ data class ListeningUiState(
     val strengthLimited: Boolean = false,
     val microphoneGranted: Boolean = false,
     val notificationsGranted: Boolean = false,
+    val showOnboarding: Boolean = false,
+    val microphonePermissionPermanentlyDenied: Boolean = false,
 )
