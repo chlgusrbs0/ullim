@@ -48,13 +48,14 @@ class NativeClassificationProbeActivity : ComponentActivity() {
     private fun cancel() { cancelled.set(true); worker?.interrupt() }
     private fun active() { if (cancelled.get() || Thread.currentThread().isInterrupted) throw InterruptedException() }
     private fun maybeStart() {
-        if (started || !resumed || !hasWindowFocus() || intent.action !in setOf("com.ullim.watch.PROBE_CLASSIFICATION", "com.ullim.watch.PROBE_HYBRID")) return
+        if (started || !resumed || !hasWindowFocus() || intent.action !in setOf("com.ullim.watch.PROBE_CLASSIFICATION", "com.ullim.watch.PROBE_HYBRID", "com.ullim.watch.PROBE_AI_WORKER")) return
         started = true
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         label.text = "AI 결과 자동 시험 중"
         worker = Thread({
             try {
-                if (intent.action == "com.ullim.watch.PROBE_HYBRID") HybridPolicyVerification.run(this, ::active) { Log.i(TAG, it) }
+                if (intent.action == "com.ullim.watch.PROBE_AI_WORKER") AiWorkerVerification.run(this, ::active) { Log.i(TAG, it) }
+                else if (intent.action == "com.ullim.watch.PROBE_HYBRID") HybridPolicyVerification.run(this, ::active) { Log.i(TAG, it) }
                 else verify()
                 Log.i(TAG, "result=PASS")
                 runOnUiThread { if (!isDestroyed) label.text = "AI 결과 시험 완료" }
