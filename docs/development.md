@@ -1,6 +1,6 @@
 # 울림 로컬 개발·검증 안내
 
-**이 문서는 협업용 절차 명세**다. 아직 #2 앱 초기화 전이므로 Android Gradle 명령이나 갤럭시 워치7 테스트를 실제 실행·통과했다고 주장하지 않는다.
+**이 문서는 협업용 절차 명세**다. #2의 단일 앱과 Gradle Wrapper로 만든 기초 앱은 워치7 설치·기본 화면 실행을 확인했다([실기기 기록](evidence/issue2-watch7.md)). 후속 소리·진동·AI 동작과 성능은 별도 검증하며 해당 PR의 실제 결과를 따른다.
 
 ## 1. 기본 원칙
 
@@ -11,28 +11,41 @@
 
 ## 2. 개발 환경
 
-- Android Studio 및 해당 프로젝트와 호환되는 Android SDK/JDK/Gradle
+- JDK 17, Android SDK Platform 36, Build Tools 35.0.0, Platform Tools
+- Gradle Wrapper 8.13, Android Gradle Plugin 8.13.2, Kotlin/Compose compiler 2.1.21, Wear Compose Material 3 Expressive 1.5.0
+- `ANDROID_HOME` 또는 커밋하지 않는 `local.properties`의 `sdk.dir`로 SDK 경로 설정
 - 갤럭시 워치7, 실제 기기 연결 및 개발자 옵션·무선 디버깅/adb
-- Kotlin / Wear OS 단일 `app` 모듈 (#2에서 최초 생성)
+- Kotlin / Wear OS 단일 `app` 모듈: `com.ullim.watch`, minSdk 34 / compileSdk 36 / targetSdk 35
 - 서버·스마트폰·노트북용 실행 모듈은 구성하지 않는다
 
-## 3. 로컬 명령 (앱 초기화 #2 완료 후에만)
+## 3. 로컬 명령
 
 ```bash
 ./gradlew :app:testDebugUnitTest
 ./gradlew :app:assembleDebug
+./gradlew :app:lintDebug
 ```
 
-Windows PowerShell 등에서 Gradle Wrapper 실행 파일 명령은 환경에 맞게 사용한다(예: `gradlew.bat`). 위 명령의 **실제 실행 결과와 실패 개수**를 PR에 남긴다. 문서 변경만 있는 #1에서는 이 명령을 실행했다고 주장하지 않는다.
+Windows PowerShell에서는 `./gradlew.bat`를 사용한다. 위 명령의 **실제 실행 결과와 실패 개수**를 PR에 남긴다. 아직 단위 테스트 소스가 없는 기초 앱에서 `testDebugUnitTest`가 `NO-SOURCE`로 끝나면 테스트 미실시로 기록한다.
 
-실기기 설치는 #2에서 adb 연결을 확립한 뒤 다음 형식으로 확인한다.
+처음 실행할 때 Wrapper와 Maven 의존성을 내려받기 위한 개발 PC의 인터넷 연결이 필요하다. 앱의 런타임 네트워크 의존성과는 별개다. Wrapper의 배포 ZIP은 고정된 SHA-256으로 검증한다.
+
+워치의 개발자 옵션에서 무선 디버깅을 켜고, 같은 네트워크의 PC에서 워치에 표시된 주소·포트로 연결한다. 페어링 포트와 연결 포트는 다를 수 있으며 연결 정보를 저장소에 기록하지 않는다.
 
 ```bash
-adb devices
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb pair WATCH_IP:PAIRING_PORT
+adb connect WATCH_IP:DEBUG_PORT
+adb devices -l
 ```
 
-워치의 페어링 상태, 실제 ADB 연결 ID, 설치 성공·실행 시각을 기록한다. 아직 생성되지 않은 APK 경로를 성공 증거로 삼지 않는다.
+연결된 여러 기기를 혼동하지 않도록 워치의 serial을 명시한다.
+
+```bash
+adb -s WATCH_SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
+adb -s WATCH_SERIAL shell am start -W -n com.ullim.watch/.MainActivity
+```
+
+워치의 모델·OS/API 버전, 설치 성공·실행 시각과 원형 화면 스크린샷을 검증 증거로 남긴다. #2 화면에는 울림·안내 문구만 있고 마이크 시작 버튼은 없다. 이후 마이크·진동·AI 이슈의 기능까지 구현됐다고 해석하지 않는다. 워치가 연결되지 않았다면 설치·실행은 미실시로 기록하고 #2를 닫지 않는다.
 
 ## 4. 이슈별 테스트 증거
 
