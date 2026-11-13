@@ -54,9 +54,11 @@ class NativeClassificationProbeActivity : ComponentActivity() {
         label.text = "AI 결과 자동 시험 중"
         worker = Thread({
             try {
-                if (intent.action == "com.ullim.watch.PROBE_AI_WORKER") AiWorkerVerification.run(this, ::active) { Log.i(TAG, it) }
-                else if (intent.action == "com.ullim.watch.PROBE_HYBRID") HybridPolicyVerification.run(this, ::active) { Log.i(TAG, it) }
-                else verify()
+                verifyActive {
+                    if (intent.action == "com.ullim.watch.PROBE_AI_WORKER") AiWorkerVerification.run(this, ::active) { Log.i(TAG, it) }
+                    else if (intent.action == "com.ullim.watch.PROBE_HYBRID") HybridPolicyVerification.run(this, ::active) { Log.i(TAG, it) }
+                    else verify()
+                }
                 Log.i(TAG, "result=PASS")
                 runOnUiThread { if (!isDestroyed) label.text = "AI 결과 시험 완료" }
             } catch (_: InterruptedException) { Log.i(TAG, "result=CANCELLED")
@@ -64,6 +66,11 @@ class NativeClassificationProbeActivity : ComponentActivity() {
                 Log.i(TAG, "result=FAIL type=${failure.javaClass.simpleName} code=${failure.message}")
             } finally { runOnUiThread { window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) } }
         }, "ullim-classification-probe").apply { start() }
+    }
+
+    internal fun verifyActive(verification: () -> Unit) {
+        verification()
+        active()
     }
 
     private fun verify() {

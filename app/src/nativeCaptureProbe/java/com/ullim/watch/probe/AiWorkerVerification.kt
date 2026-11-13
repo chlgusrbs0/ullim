@@ -112,6 +112,7 @@ internal object AiWorkerVerification {
             val beforeChanged = changedFrames
             val beforeDifference = commandDifference
             val beforeValid = worker.state.value.successfulInferences
+            val progress = if (enabled.get()) NativeInferenceProgress { worker.state.value.successfulInferences } else null
             var previousDelivery = 0L
             var faultSince = 0L
             var lastHeartbeat = 0L
@@ -144,7 +145,10 @@ internal object AiWorkerVerification {
                 val now = System.nanoTime()
                 if (now - lastHeartbeat >= 100_000_000L) { worker.tick(); lastHeartbeat = now }
                 if (index % 50 == 0) check(power.currentThermalStatus < PowerManager.THERMAL_STATUS_SEVERE) { "THERMAL_TEST_STOP" }
-                if ((index + 1) % 3000 == 0) snapshot("${name}_minute${(index + 1) / 3000}")
+                if ((index + 1) % 3000 == 0) {
+                    snapshot("${name}_minute${(index + 1) / 3000}")
+                    progress?.checkpoint()
+                }
                 if (enabled.get() && worker.state.value.fault != null) {
                     if (faultSince == 0L) {
                         faultSince = now
@@ -171,9 +175,9 @@ internal object AiWorkerVerification {
             feed.refreshMode()
             phase("ON", 15_000)
             check(worker.state.value.fault == null && worker.state.value.successfulInferences >= 100) { "ON_NOT_SUSTAINED" }
-            val beforeOff = worker.state.value.inferenceCount
             enabled.set(false)
             feed.refreshMode()
+            val beforeOff = worker.state.value.inferenceCount
             check(worker.current(1, System.nanoTime()) == null) { "OFF_CONTEXT_RETAINED" }
             phase("OFF_CLEANUP", 1500)
             worker.tick()
