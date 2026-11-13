@@ -94,18 +94,28 @@ foreach ($group in ($rows | Group-Object { $_.group + ':' + $_.name + ':' + $_.v
     $notices = @()
     foreach ($fileGroup in ($group.Group | Group-Object file | Sort-Object Name)) {
         $row = $fileGroup.Group[0]
-        $artifacts += [ordered]@{ name=$row.artifact;
+        $artifact = [ordered]@{ name=$row.artifact;
             sha256=(Get-FileHash -LiteralPath $row.file -Algorithm SHA256).Hash.ToLowerInvariant();
-            configurations=@($fileGroup.Group.configuration | Sort-Object -Unique) }
+            configurations=@($fileGroup.Group.configuration | Sort-Object -Unique); nativeLibraries=@() }
         $zip = [IO.Compression.ZipFile]::OpenRead($row.file)
-        try { $notices += @(Read-ArchiveNotices $zip '' $true) } finally { $zip.Dispose() }
+        try {
+            $notices += @(Read-ArchiveNotices $zip '' $true)
+            foreach ($entry in $zip.Entries | Where-Object { $_.FullName -cmatch '^jni/[^/]+/[^/]+\.so$' } | Sort-Object FullName) {
+                $stream = $entry.Open()
+                try { $hash = [Convert]::ToHexString($sha.ComputeHash($stream)).ToLowerInvariant() }
+                finally { $stream.Dispose() }
+                $artifact.nativeLibraries += [ordered]@{ sourceEntry=$entry.FullName;
+                    apkEntry=('lib/' + $entry.FullName.Substring(4)); bytes=$entry.Length; sha256=$hash }
+            }
+        } finally { $zip.Dispose() }
+        $artifacts += $artifact
     }
     $components += [ordered]@{ coordinate=$group.Name; project=(Get-XmlChildText $project 'name');
         projectUrl=(Get-XmlChildText $project 'url'); developers=$developers; declaredLicenses=$licenses;
         pomChain=@($pomChain | ForEach-Object { [ordered]@{coordinate=$_.coordinate;url=$_.url;sha256=$_.sha256} });
         artifacts=$artifacts; embeddedNotices=@($notices | Sort-Object { $_.sourceEntry + $_.sha256 } -Unique) }
 }
-$result = [ordered]@{ schema=1; source='Actual Debug/Release resolved artifacts and cached upstream POM/ZIP notices';
+$result = [ordered]@{ schema=2; source='Actual Debug/Release resolved artifacts and cached upstream POM/ZIP notices';
     components=$components }
 $nativeManifestPath = Join-Path $noticeRoot 'native-components.json'
 if ([IO.File]::Exists($nativeManifestPath)) {

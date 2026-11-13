@@ -157,11 +157,20 @@ JDK와 Android SDK는 개발 환경의 설치 도구이며 저장소/APK에 배�
 ```powershell
 ./gradlew.bat -I tools/notice-inventory.init.gradle ullimNoticeInventory '-PnoticeInventoryOutput=../runtime-artifacts.json'
 ./tools/collect-third-party-notices.ps1 -InventoryPath ../runtime-artifacts.json -GradleCachePath PATH_TO_GRADLE_CACHE/modules-2/files-2.1
-./tools/verify-packaged-notices.ps1
+./tools/verify-packaged-notices.ps1 -InventoryPath ../runtime-artifacts.json
+./tools/test-packaged-notices.ps1 -InventoryPath ../runtime-artifacts.json
 ```
 
 로컬 artifact 경로가 담긴 입력 JSON은 저장소에 올리지 않습니다. 공개 components.json에는 개인 PC 경로나 인증 정보가 없습니다. 의존성이 바뀌면 목록·부모 POM·원문 고지를 다시 검토하고 Protobuf 같은 별도 고지의 출처도 재확인해야 합니다. 목록 생성이 법적 검토 자체를 대신하지 않습니다.
 
 로컬 빌드·테스트, APK별 고지/모델 바이트 대조와 링크 검사 결과는 [검증 기록](docs/evidence/issue34-packaged-notices.txt)에 있습니다. 검증 도구는 현재 보존한 고지가 APK에 동일하게 들어갔는지 확인하며, 상위 네이티브 출처/고지의 완전성을 판정하지 않습니다. 네이티브 원본 artifact 해시가 바뀌면 수집 도구가 재검토를 요구합니다.
 
-선행 #8/#19/#24가 아직 main 완료 상태가 아니고 네이티브 정확한 소스/고지 및 Eigen Source Form 대응이 미확정이므로, 이 문서 추가만으로 #34를 닫거나 최종 배포 완료를 주장하지 않습니다.
+선행 #1/#8/#19/#24는 main 완료 상태입니다. 이 PR의 누적 제품 기능은 별도 미병합이고, 네이티브 정확한 소스/고지 및 Eigen Source Form 대응은 여전히 미확정이므로 이 문서 추가만으로 #34를 닫거나 최종 배포 완료를 주장하지 않습니다.
+
+### 실제 artifact/네이티브 바이트 드리프트 검사
+
+schema2 목록은 각 artifact의 SHA256과 구성별 JNI entry/크기/SHA256을 기록합니다. 검증기는 위 Gradle 작업이 새로 만든 실제 런타임 목록의 좌표·artifact 이름·구성·파일 해시를 대조하고, Debug/Release 각각의 APK 네이티브 파일 전체 목록과 바이트를 확인합니다. 동일 artifact를 Gradle이 중복 반환한 경우는 같은 좌표/이름/구성/해시에 한해 하나로 정규화합니다. 실제 목록152개(78개 component)와 각 APK12개 JNI entry가 일치했습니다. 변경·누락·추가·중복 JNI 및 좌표/원본 artifact 변경의 여섯 임시 fixture를 기존 검사는 모두 받아들였고 새 검사는 모두 거절했습니다. fixture APK는 설치하거나 배포하지 않습니다.
+
+현재 JNI를 포함하는 부모는 LiteRT1.4.2뿐 아니라 datastore-core-android1.1.7 및 graphics-path1.0.1도 있습니다. 전체 파일 해시 대조는 내부 네이티브 전이 구성요소의 버전/고지/Source Form 완전성을 증명하지 않습니다. 위 native-components.json은 LiteRT 내부의 확인된 부분 목록이며 completeNativeInventory=false를 유지합니다.
+
+기본 APK 경로는 Debug/Release 순서입니다. 다른 경로는 APK마다 대응하는 `-Variants debug,release`를 명시하며 단일 파일에는 예를 들어 `-ApkPaths PATH -Variants debug`를 사용합니다. variant는 호출자가 지정한 빌드 관찰이며 APK의 DEX 전체 출처/서명된 빌드 증명을 판정하는 도구가 아닙니다. 목록과 APK는 같은 코드/빌드로 생성해야 합니다.
