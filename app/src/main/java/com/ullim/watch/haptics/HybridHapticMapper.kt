@@ -39,22 +39,28 @@ class HybridHapticMapper(private val baseline: HapticMapper = EnvelopeHapticMapp
         if (context == null || !context.isFresh(features.sessionId, features.timestampNs)) return null
         val scores = context.scores
         var winnerIndex = -1
-        var runnerUp = 0f
         for (index in scores.indices) {
             if (winnerIndex == -1 || scores[index].confidence > scores[winnerIndex].confidence) {
-                runnerUp = if (winnerIndex == -1) 0f else scores[winnerIndex].confidence
                 winnerIndex = index
-            } else runnerUp = maxOf(runnerUp, scores[index].confidence)
+            }
         }
         if (winnerIndex == -1) return null
         val winner = scores[winnerIndex]
-        if (winner.confidence < .65f || winner.confidence - runnerUp < .15f) return null
-        return when (winner.label) {
-            "Speech", "Conversation" -> Profile.SPEECH
-            "Noise" -> Profile.NOISE
-            "Knock", "Tap", "Clapping" -> Profile.TRANSIENT
-            else -> null
+        val targetProfile = profile(winner.label) ?: return null
+        // Correlated ontology labels can describe the same policy. Do not sum their scores.
+        var competitor = 0f
+        for (score in scores) {
+            if (profile(score.label) != targetProfile) competitor = maxOf(competitor, score.confidence)
         }
+        if (winner.confidence < .65f || winner.confidence - competitor < .15f) return null
+        return targetProfile
+    }
+
+    private fun profile(label: String): Profile? = when (label) {
+        "Speech", "Conversation" -> Profile.SPEECH
+        "Noise", "Static", "White noise", "Pink noise", "Wind noise (microphone)" -> Profile.NOISE
+        "Knock", "Tap", "Clapping" -> Profile.TRANSIENT
+        else -> null
     }
 
     override fun reset() {

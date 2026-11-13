@@ -5,6 +5,7 @@ import com.ullim.watch.core.AudioFrame
 import com.ullim.watch.core.ClassScore
 import com.ullim.watch.core.Classification
 import com.ullim.watch.dsp.DspProcessor
+import com.ullim.watch.ai.ClassificationSmoother
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.sin
@@ -17,6 +18,44 @@ class HybridHapticMapperTest {
         Classification(session, t, t + 1_500_000_000L, listOf(ClassScore(label, score)))
     private fun features(t: Long, session: Long = 1, level: Float = .3f) =
         AudioFeatures(session, t, level, level, level, onset = .5f)
+
+    @Test fun measuredModelNoiseScoresReachTheNoisePolicyAfterRealSmoothing() {
+        // Exact pinned-model scores observed on generated white noise, not a fake Noise winner.
+        val scores = listOf(ClassScore("Static", .66796875f), ClassScore("Noise", .5859375f),
+            ClassScore("White noise", .5f))
+        val smoother = ClassificationSmoother()
+        smoother.accept(Classification(1, 1_000_000_000, 2_500_000_000, scores), 1, 1_000_000_000)
+        val context = smoother.accept(Classification(1, 1_500_000_000, 3_000_000_000, scores), 1, 1_500_000_000)!!
+        assertEquals("Static", context.scores.first().label)
+        val baseline = EnvelopeHapticMapper()
+        val hybrid = HybridHapticMapper()
+        repeat(30) { index ->
+            val input = features(1_500_000_000L + index * 20_000_000L)
+            val base = baseline.map(input)
+            val adjusted = hybrid.map(input, context)
+            assertTrue("confirmed real-model noise must adjust the command", adjusted.commandedIntensity < base.commandedIntensity)
+            assertTrue(adjusted.commandedIntensity >= base.commandedIntensity * .94f - .000001f)
+        }
+    }
+
+    @Test fun noiseGroupingNeverBypassesOtherPolicyUnknownOrLowScoreFallback() {
+        val cases = listOf(
+            listOf(ClassScore("Static", .7f), ClassScore("Speech", .65f)),
+            listOf(ClassScore("Music", .8f), ClassScore("Static", .7f)),
+            listOf(ClassScore("Static", .7f), ClassScore("Music", .65f)),
+            listOf(ClassScore("Static", .64f), ClassScore("Noise", .3f)),
+        )
+        for (scores in cases) {
+            val baseline = EnvelopeHapticMapper()
+            val hybrid = HybridHapticMapper()
+            val first = features(1_500_000_000)
+            baseline.map(first)
+            hybrid.map(first, context(first.timestampNs, "Noise"))
+            val input = features(1_520_000_000)
+            assertEquals(baseline.map(input), hybrid.map(input,
+                Classification(1, input.timestampNs, 3_000_000_000, scores)))
+        }
+    }
 
     @Test fun offIsExactlyBaselineEvenAfterAiChangedPreviousOutput() {
         val baseline = EnvelopeHapticMapper()
