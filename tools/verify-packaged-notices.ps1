@@ -8,6 +8,7 @@ param(
     [ValidateSet('debug','release')][string[]]$Variants = @('debug','release')
 )
 $ErrorActionPreference = 'Stop'
+if ($ApkPaths.Count -lt 1 -or $Variants.Count -lt 1) { throw 'At least one APK/variant pair is required.' }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $assetRoot = [IO.Path]::GetFullPath('app/src/main/assets')
 $noticeRoot = Join-Path $assetRoot 'notices'

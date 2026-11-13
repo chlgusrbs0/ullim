@@ -13,6 +13,14 @@ $fixtureArtifact = Join-Path $scratch 'artifact.bin'
 $failures = @()
 try {
     & $verifier -InventoryPath $inventory | Out-Null
+    $emptyRejected = $false
+    try { & $verifier -ApkPaths @() -Variants @() -InventoryPath $inventory | Out-Null }
+    catch {
+        if ($_.Exception.Message -notmatch 'At least one APK/variant') { throw }
+        $emptyRejected = $true
+    }
+    if (!$emptyRejected) { $failures += 'empty-input' }
+    [pscustomobject]@{ scenario='empty-input'; rejected=$emptyRejected }
     foreach ($scenario in @('changed-native','missing-native','extra-native','duplicate-native','coordinate-drift','artifact-drift')) {
         Copy-Item -LiteralPath $sourceApk -Destination $fixture -Force
         $rows = @(Get-Content -LiteralPath $inventory -Raw | ConvertFrom-Json)
