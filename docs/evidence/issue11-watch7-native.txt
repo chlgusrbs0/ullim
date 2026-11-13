@@ -1,0 +1,7 @@
+11-14 04:09:02.498 28939 28994 I UllimDspProbe: boundaries lengths=true reordered=true duplicate=true referenceState=true gapReset=true partialStop=true oldSession=true
+11-14 04:09:09.794 28939 28994 I UllimDspProbe: stress burst=0 frames=30000 simulatedMinutes=10 elapsedMs=7103 p95Us=105 maxUs=7985 over20ms=0 longestOver=0 activeJavaHeap=3125560
+11-14 04:09:14.961 28939 28994 I UllimDspProbe: stress burst=1 frames=60000 simulatedMinutes=20 elapsedMs=5018 p95Us=57 maxUs=6264 over20ms=0 longestOver=0 activeJavaHeap=3133752
+11-14 04:09:20.256 28939 28994 I UllimDspProbe: stress burst=2 frames=90000 simulatedMinutes=30 elapsedMs=5144 p95Us=55 maxUs=5944 over20ms=0 longestOver=0 activeJavaHeap=3133752
+11-14 04:09:25.479 28939 28994 I UllimDspProbe: stress burst=3 frames=120000 simulatedMinutes=40 elapsedMs=5074 p95Us=54 maxUs=5727 over20ms=0 longestOver=0 activeJavaHeap=3133752
+11-14 04:09:25.479 28939 28994 I UllimDspProbe: stress activeJavaHeapGrowth=8192 limitBytes=4194304 fixtureTypes=7 retainedTimingSamples=30000
+11-14 04:09:25.480 28939 28994 I UllimDspProbe: result=PASS
