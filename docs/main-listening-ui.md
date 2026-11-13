@@ -1,17 +1,26 @@
-# Main listening screen (#25)
+# 최초 실행 안내와 마이크 동의 (#29)
 
-`MainActivity` collects the controller's runtime and separate retry-eligibility flows with lifecycle-aware Compose collectors. `ui/UllimApp` receives those observed values and callbacks. Only navigation is saved in the screen; no remembered boolean represents microphone activity. Returning from a guide/settings screen or recreating the Activity does not issue a capture start.
+## 최초 실행
 
-The primary control reads Start, Starting, Stop or Stopping from the real session phase. Starting and Stopping disable the primary control; Starting also offers a separate cancellation action. The Activity passes the current session token in each stop command. The service ignores old/missing stop tokens and can cancel a matching pending start before microphone ownership attaches. The foreground notification carries the active token and uses a token-specific Intent data URI: updating a new notification cannot replace the token on a retained older PendingIntent handle.
+`MainActivity` reads the onboarding-complete flag from the private `ullim_first_run` preferences. A fresh install opens the Korean onboarding screen. The user can either request microphone permission explicitly or continue without granting it. Both choices finish onboarding and persist the completion flag, so a normal relaunch does not force the guide again.
 
-An error retains its text while the controller waits for native ownership and terminal cleanup. `startAllowed` can change independently of that unchanged error value; both the start button and diagnostic entry update from it. The command handlers check the controller again before starting capture or opening vibration diagnostics.
+The onboarding permission action requests only `RECORD_AUDIO`. A grant returns to the idle home screen; it does not create a session, start the foreground service, or open the microphone. Capture requires a separate tap on the home screen's start control.
 
-Permission flags refresh on creation, resume and permission results. Missing permissions and errors offer an Android app-settings entry. Returning from settings refreshes permission notices without starting capture. The settings page opens the existing optional AI controls and exposes vibration diagnostics only when capture can safely start. Sensitivity persistence and the AI label screen remain #28 and #27 work.
+## Disclosure
 
-The home screen distinguishes input sound level from **commanded** vibration level, and displays the capability limitation when amplitude control is unavailable. These numbers do not measure physical vibration.
+The guide describes the demo as mapping nearby sound level, duration and rhythm changes to haptic changes. It explicitly does not claim to understand all sounds, languages or conversation meaning, and does not present itself as a safety alert or medical device. It explains that microphone access is used for live on-device analysis after the user starts detection, that raw voice is not saved or sent to a server, and that a foreground service/ongoing notification keeps detection active when the display is off. The app and notification both expose a stop action. Haptic intensity/rhythm distinction depends on watch hardware and is not guaranteed.
+
+## Permission recovery
+
+The first-run permission action and the home retry action request `RECORD_AUDIO` only after an explicit user tap. The request-attempt flag is stored separately from the onboarding-complete flag. When Android reports that the permission can no longer be requested through the normal dialog, the home screen offers the app's system settings instead. Returning from settings refreshes the permission state but never starts capture.
+
+Notification permission is requested separately when the user starts detection on Android 13 or later. Denying notifications does not turn microphone permission into a denial; the app can continue only after the user has explicitly started capture.
 
 ## Verification boundary
 
-The JVM suite uses Robolectric SDK34 with native graphics and 192dp round-watch qualifiers. `MainActivityUiTest` renders the actual Activity and Wear Compose controls, taps them, records Android service/activity intents through shadows, and drives the real controller with an unstarted fake microphone owner. It checks pending cancellation, token-bearing stop, disabled transitions, retry after unchanged-error cleanup, navigation/recreation, permission settings/return, AI and diagnostic entry, and commanded levels. AudioRecord and the physical motor never run in these tests.
+`FirstRunOnboardingTest` checks that the permission-consent action completes the guide and requests permission without invoking capture, and that choosing “later” completes the guide without requesting permission. `MainActivityUiTest` continues to exercise the real Activity/controller command path with a fake microphone owner. These host tests do not exercise Android's real permission sheet, a physical microphone, a foreground notification on Wear OS, screen-off behavior, or a Galaxy Watch7. Those remain manual device checks; do not claim them as passed from Robolectric tests.
 
-Run `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` locally (Windows: `gradlew.bat`). Watch7 installation, leaving/returning to the app, rapid taps, actual permissions/service behavior, round-screen touch/scroll/back gestures and microphone/vibration stop video remain required device evidence. Keep the PR Draft and issue open until its device evidence and predecessor merges are complete. No workflows or raw microphone recordings are used.
+
+## Existing main screen behavior
+
+The existing controller-backed main screen remains the only place where capture starts. The first-run guide is an additional navigation state; it does not replace or simulate the runtime's listening state.
