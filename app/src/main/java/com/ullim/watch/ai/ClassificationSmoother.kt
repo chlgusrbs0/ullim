@@ -26,7 +26,9 @@ class ClassificationSmoother {
         val incoming = raw.associate { it.label to it.confidence }
         val smoothed = if (raw.isEmpty()) emptyList() else if (history.isEmpty()) raw else {
             (history.keys + incoming.keys).map { label ->
-                ClassScore(label, .6f * (incoming[label] ?: 0f) + .4f * (history[label] ?: 0f))
+                val previous = history[label] ?: 0f
+                // Equivalent EMA, preserving an unchanged value at confidence/margin boundaries.
+                ClassScore(label, previous + .6f * ((incoming[label] ?: 0f) - previous))
             }.sortedByDescending { it.confidence }.take(5)
         }
         history = smoothed.associate { it.label to it.confidence }

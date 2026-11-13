@@ -9,6 +9,27 @@ class ClassificationSmootherTest {
     private fun result(t: Long, label: String = "Speech", score: Float = .9f, session: Long = 1) =
         Classification(session, t, t + 1_500_000_000L, listOf(ClassScore(label, score)))
 
+    @Test fun confirmationStartsAtExactlyFourHundredMilliseconds() {
+        val smoother = ClassificationSmoother()
+        smoother.accept(result(1_000_000_000), 1, 1_000_000_000)
+        assertTrue(smoother.accept(result(1_399_999_999), 1, 1_399_999_999)!!.scores.isEmpty())
+        assertEquals("Speech", smoother.accept(result(1_400_000_000), 1, 1_400_000_000)!!.scores.first().label)
+    }
+
+    @Test fun minimumScoreAndMarginAreRequiredForEveryRawObservation() {
+        fun pair(top: Float, runnerUp: Float): Classification {
+            val smoother = ClassificationSmoother()
+            fun observation(t: Long) = Classification(1, t, t + 1_500_000_000L,
+                listOf(ClassScore("Speech", top), ClassScore("Knock", runnerUp)))
+            smoother.accept(observation(1_000_000_000), 1, 1_000_000_000)
+            return smoother.accept(observation(1_500_000_000), 1, 1_500_000_000)!!
+        }
+        assertTrue(pair(.349f, .1f).scores.isEmpty())
+        assertEquals("Speech", pair(.35f, .25f).scores.first().label)
+        assertTrue(pair(.5f, .421f).scores.isEmpty())
+        assertEquals("Speech", pair(.5f, .42f).scores.first().label)
+    }
+
     @Test fun confirmsOnlyDistinctWindowsAndNeverExtendsTheirExpiry() {
         val smoother = ClassificationSmoother()
         val first = result(1_000_000_000)
