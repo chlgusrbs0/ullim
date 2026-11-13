@@ -49,6 +49,8 @@ adb -s WATCH_SERIAL shell am start -W -n com.ullim.watch/.MainActivity
 
 ## 4. 이슈별 테스트 증거
 
+DSP 픽스처/부하 시험은 `./gradlew :app:testDebugUnitTest --tests '*DspBoundaryTest' --rerun-tasks`로 재현한다. 테스트는 무음·낮은 음량·클리핑·지속톤·대역 제한 잡음·노크·발화 유사 변조를 코드로 생성하며 실제 음성을 보관하지 않는다. 10분 분량 30,000프레임의 처리 시간, DSP P95/최대 시간, JVM heap 전후를 JUnit XML의 `system-out`에 출력한다. 빠르게 주입하는 데스크톱 합성 시험이며 워치7의 10분 실시간 녹음이나 물리 지연 시험이 아니다. heap 전후 차이는 GC 시점의 영향이 있으므로 메모리 누수 부재/retained memory 증거로 해석하지 않는다.
+
 | 영역 | 최소 증거 | 판정 유의사항 |
 |---|---|---|
 | 문서 (#1) | 문서 링크·범위 체크리스트·선점/PR 규칙 검수 | Gradle/실기기 테스트는 '해당 없음/미실시' |
