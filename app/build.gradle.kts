@@ -29,6 +29,9 @@ android {
             manifest.srcFile("src/nativeCaptureProbe/AndroidManifest.xml")
         }
         sourceSets.getByName("testDebug").java.srcDir("src/nativeCaptureProbeTest/java")
+        if (providers.gradleProperty("nativeProbePackage").orNull == "true") {
+            buildTypes.getByName("debug").applicationIdSuffix = ".nativeprobe"
+        }
     }
 
     testOptions {

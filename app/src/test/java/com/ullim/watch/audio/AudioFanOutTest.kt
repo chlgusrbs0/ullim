@@ -80,18 +80,34 @@ class AudioFanOutTest {
         fanout.accept(AudioFrame(1, 0, ShortArray(15_600)))
         val snapshotTaken = CountDownLatch(1)
         val finishAi = CountDownLatch(1)
+        var heldNs = 0L
         val ai = Thread {
             assertNotNull(fanout.takeLatestAi())
+            val start = System.nanoTime()
             snapshotTaken.countDown()
-            finishAi.await(2, TimeUnit.SECONDS)
+            finishAi.await(5, TimeUnit.SECONDS)
+            heldNs = System.nanoTime() - start
         }
         ai.start()
-        assertTrue(snapshotTaken.await(2, TimeUnit.SECONDS))
-        val before = observed.size
-        fanout.accept(AudioFrame(1, 975_000_000, ShortArray(640)))
-        assertEquals(before + 2, observed.size)
-        finishAi.countDown()
-        ai.join(2000)
+        try {
+            assertTrue(snapshotTaken.await(2, TimeUnit.SECONDS))
+            val before = observed.size
+            val started = System.nanoTime()
+            var accepted = 0
+            do {
+                assertTrue(fanout.accept(AudioFrame(1, 975_000_000L + accepted * 20_000_000L, ShortArray(320))))
+                accepted++
+                Thread.sleep(20)
+            } while (System.nanoTime() - started < 2_000_000_000L)
+            assertTrue("DSP must progress throughout the held AI interval", accepted >= 20)
+            assertEquals(before + accepted, observed.size)
+        } finally {
+            finishAi.countDown()
+            ai.join(2000)
+            fanout.stop()
+        }
         assertFalse(ai.isAlive)
+        assertTrue("AI snapshot was not held for two real seconds", heldNs >= 2_000_000_000L)
+        println("AI snapshot held=${heldNs / 1_000_000}ms; DSP continued without missing submitted frames")
     }
 }
