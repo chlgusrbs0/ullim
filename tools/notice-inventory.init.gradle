@@ -1,0 +1,27 @@
+import groovy.json.JsonOutput
+
+// Local audit only. No application task, dependency or workflow is changed.
+gradle.projectsEvaluated {
+    rootProject.tasks.register('ullimNoticeInventory') {
+        doLast {
+            def output = rootProject.findProperty('noticeInventoryOutput')
+            if (!output) throw new GradleException('Set -PnoticeInventoryOutput=PATH outside the source tree')
+            def app = rootProject.project(':app')
+            def rows = []
+            ['debugRuntimeClasspath', 'releaseRuntimeClasspath'].each { configurationName ->
+                app.configurations.getByName(configurationName).resolvedConfiguration.resolvedArtifacts.each { artifact ->
+                    def id = artifact.moduleVersion.id
+                    rows.add([configuration: configurationName, group: id.group, name: id.name,
+                              version: id.version, artifact: artifact.file.name, file: artifact.file.absolutePath])
+                }
+            }
+            def destination = rootProject.file(output)
+            destination.parentFile.mkdirs()
+            destination.text = JsonOutput.prettyPrint(JsonOutput.toJson(rows.sort { a, b ->
+                (a.group + ':' + a.name + ':' + a.version + ':' + a.configuration) <=>
+                (b.group + ':' + b.name + ':' + b.version + ':' + b.configuration)
+            }))
+            println('Collected ' + rows.size() + ' resolved runtime artifact rows; local inventory written.')
+        }
+    }
+}

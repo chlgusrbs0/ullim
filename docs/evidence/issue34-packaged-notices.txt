@@ -1,0 +1,49 @@
+Issue #34 local verification (2026-11-13, Windows / JBR21 / SDK36)
+
+Source base: 2087228; issue/34-third-party-notices, cumulative feature stack.
+No new Watch7 install; the #18 E/F comparison APK stays on the watch.
+
+Actual resolved Debug/Release inventory: 154 artifact rows, 78 unique coordinates.
+Cached POM chains include inherited license/developer metadata.
+85 unique POM / official documentation and model endpoints: HTTP 200.
+Two AndroidX pinned source URLs: HTTP 200.
+Other pinned upstream source/license texts were retrieved from their official GitHub repositories.
+Kotlin v2.1.21, JUnit r4.13.2, Robolectric repository and TensorFlow model/LICENSE paths resolve.
+README / THIRD_PARTY_NOTICES / docs/models / docs/development: all 44 local Markdown links resolved.
+The count includes this evidence link.
+
+testDebugUnitTest + assembleDebug + assembleRelease + lintDebug: BUILD SUCCESSFUL in 1m 36s.
+104 tasks: 15 executed, 89 up-to-date. JUnit:168 tests, 0 failures, 0 errors, 0 skipped.
+After the final notice wording update: assembleDebug + assembleRelease SUCCESS in 15s (86 tasks).
+Lint: 0 errors; existing warnings remain. No GitHub Actions created or used.
+
+Collector rerun: stable component inventory, 78 components / 2 distinct embedded notice texts.
+Changed native parent artifact SHA-256: rejected (negative check).
+Removed cpuinfo license from a temporary APK copy: rejected (negative check).
+
+Both APKs: 14 notice files match source bytes; unchanged pinned model/labels hashes.
+[
+  {
+    "apk": "app/build/outputs/apk/debug/app-debug.apk",
+    "bytes": 56233676,
+    "sha256": "c6f6f313bef34438d4a80f9b5fa7aba01c47ea209ce79a385fb27c41db7467c7",
+    "noticeFilesMatched": 14,
+    "modelAndLabelsUnchanged": true,
+    "completeNativeProvenance": false
+  },
+  {
+    "apk": "app/build/outputs/apk/release/app-release-unsigned.apk",
+    "bytes": 45470571,
+    "sha256": "714253400595aed43fea0d0998ca82762abb054822b907e71103d89b4272d88e",
+    "noticeFilesMatched": 14,
+    "modelAndLabelsUnchanged": true,
+    "completeNativeProvenance": false
+  }
+]
+
+Unsigned Release is only a local audit artifact, not the final signed/installable release.
+Read-only review: incorrect LiteRT POM repository corrected to Google Maven; additional known native license texts added.
+REMAINING: exact linked native revisions, complete native inventory and Eigen/MPL Source Form correspondence unresolved.
+Pinned native license-reference commits do not prove binary source revisions.
+Prerequisites #8/#19/#24 are not yet completed on main. Keep #34 Draft/open.
+Passing packaging checks does not establish upstream notice/source completeness or hardware quality.

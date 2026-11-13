@@ -55,6 +55,8 @@ Watch7 microphone
 
 JDK 17, Android SDK Platform 36 및 Build Tools 35.0.0을 준비합니다. Android Studio에서 저장소를 열고 SDK 경로를 설정하거나, `ANDROID_HOME`을 지정합니다. Gradle은 저장소의 Wrapper로 실행합니다.
 
+현재 기능 PR은 순차 병합 중이므로, 재현하려는 PR의 검증 대상 브랜치·커밋을 먼저 체크아웃합니다. 빌드 성공과 워치7의 실제 음향·촉각·AI 합격은 별도로 확인합니다.
+
 ```bash
 ./gradlew :app:testDebugUnitTest
 ./gradlew :app:assembleDebug
@@ -75,6 +77,10 @@ Windows에서는 `./gradlew.bat`를 사용합니다. APK 경로는 `app/build/ou
 - AI 분류는 불확실할 수 있고 음원 분리·음성 내용 인식을 보장하지 않습니다.
 - 외부 라이브러리·모델을 직접 재사용할 때는 해당 저작권·라이선스 고지를 보존합니다. 프로젝트 자체 라이선스는 사용자 승인 없이 추가하지 않습니다.
 
+배포 모델과 실제 런타임 의존성의 버전·원저자·라이선스 및 직접 사용/아이디어 참고 구분은 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)에 있습니다. APK의 `assets/notices/`에도 모델·Protobuf 고지, component 목록과 원문 LICENSE/NOTICE를 포함합니다. 이 고지는 울림 자체 코드에 프로젝트 전체 라이선스를 부여하지 않습니다.
+
+LiteRT 내부 일부 네이티브 구성요소의 정확한 소스·고지 대응은 확인 중입니다. 이 항목과 실기기 합격 기준이 해결되기 전에는 최종 배포본으로 취급하지 않습니다.
+
 ## 협업 문서
 
 - [AGENTS.md](AGENTS.md) — 작업 선점·중복 방지·PR 자동 종료 규칙
@@ -89,3 +95,4 @@ Windows에서는 `./gradlew.bat`를 사용합니다. APK 경로는 `app/build/ou
 - [docs/wear-accessibility.md](docs/wear-accessibility.md) — 큰 글씨·화면 읽기 의미·대비·터치 및 실제 워치 검증 체크리스트
 - [docs/watch-haptic-validation.md](docs/watch-haptic-validation.md) — 워치7 실제 관찰, 연속 출력 통제 비교와 물리 지연 측정 절차
 - [docs/privacy.md](docs/privacy.md) — 원본 오디오 비저장, 실제 APK 권한·백업 제외·설정 삭제 범위와 남은 실기기 검사
+- [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) — 모델·런타임·Wrapper 고지와 외부 코드 참고 범위

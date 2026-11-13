@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "parentCoordinate": "com.google.ai.edge.litert:litert:1.4.2",
+  "binaryEntry": "jni/arm64-v8a/libtensorflowlite_jni.so",
+  "completeNativeInventory": false,
+  "exactLinkedSourceRevision": null,
+  "revisionStatus": "Unresolved. A license-reference commit is not evidence of the exact linked binary source revision. Do not substitute LiteRT v1.4.0 or v1.4.1.",
+  "components": [
+    {
+      "name": "XNNPACK",
+      "presenceEvidence": "TfLiteXNNPackDelegateCreate symbol",
+      "linkedVersion": null,
+      "linkedRevision": null,
+      "referenceLicense": "BSD-3-Clause",
+      "file": "native/XNNPACK-LICENSE.txt",
+      "licenseSource": "https://github.com/google/XNNPACK/blob/6e5b056669823d8501f9921a2c9059d6ddbb2ceb/LICENSE",
+      "licenseReferenceCommit": "6e5b056669823d8501f9921a2c9059d6ddbb2ceb",
+      "referenceRole": "Pinned source of license text; not a claimed build/source pin for the bundled binary.",
+      "copiedLicenseSha256": "63f519e15726f4c4f830bd958f694c84fecb4e0a4cacc527d2696bb71ef95ada"
+    },
+    {
+      "name": "cpuinfo",
+      "presenceEvidence": "cpuinfo_get_%s strings",
+      "linkedVersion": null,
+      "linkedRevision": null,
+      "referenceLicense": "BSD-2-Clause",
+      "file": "native/cpuinfo-LICENSE.txt",
+      "licenseSource": "https://github.com/pytorch/cpuinfo/blob/3ce3d87adef69f04e196e25b7f754028d12750c4/LICENSE",
+      "licenseReferenceCommit": "3ce3d87adef69f04e196e25b7f754028d12750c4",
+      "referenceRole": "Pinned source of license text; not a claimed build/source pin for the bundled binary.",
+      "copiedLicenseSha256": "8e7e60636c3aa0cb03571a1a841ce5697f9551ff92b3c426c2561613d15ade70"
+    },
+    {
+      "name": "gemmlowp",
+      "presenceEvidence": "gemmlowp error strings",
+      "linkedVersion": null,
+      "linkedRevision": null,
+      "referenceLicense": "Apache-2.0",
+      "file": "native/gemmlowp-LICENSE.txt",
+      "licenseSource": "https://github.com/google/gemmlowp/blob/16e8662c34917be0065110bfcd9cc27d30f52fdf/LICENSE",
+      "licenseReferenceCommit": "16e8662c34917be0065110bfcd9cc27d30f52fdf",
+      "referenceRole": "Pinned source of license text; not a claimed build/source pin for the bundled binary.",
+      "copiedLicenseSha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "name": "ruy",
+      "presenceEvidence": "ruy source paths",
+      "linkedVersion": null,
+      "linkedRevision": null,
+      "referenceLicense": "Apache-2.0",
+      "file": "native/ruy-LICENSE.txt",
+      "licenseSource": "https://github.com/google/ruy/blob/0face1b4633b877082d26e3d4a75db394ef5fed3/LICENSE",
+      "licenseReferenceCommit": "0face1b4633b877082d26e3d4a75db394ef5fed3",
+      "referenceRole": "Pinned source of license text; not a claimed build/source pin for the bundled binary.",
+      "copiedLicenseSha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "name": "Eigen",
+      "presenceEvidence": "EigenForTFLite threadpool symbols",
+      "linkedVersion": null,
+      "linkedRevision": null,
+      "referenceLicense": "MPL-2.0",
+      "file": "native/Eigen-LICENSE.txt",
+      "licenseSource": "https://github.com/eigenteam/eigen-git-mirror/blob/36b95962756c1fce8e29b1f8bc45967f30773c00/COPYING.MPL2",
+      "licenseReferenceCommit": "36b95962756c1fce8e29b1f8bc45967f30773c00",
+      "referenceRole": "Pinned source of license text; not a claimed build/source pin for the bundled binary.",
+      "copiedLicenseSha256": "fab3dd6bdab226f1c08630b1dd917e11fcb4ec5e1e020e2c16f83a0a13863e85"
+    },
+    {
+      "name": "FlatBuffers",
+      "presenceEvidence": "flatbuffers strings in the arm64 native binary",
+      "linkedVersion": null,
+      "linkedRevision": null,
+      "referenceLicense": "Apache-2.0",
+      "file": "native/FlatBuffers-LICENSE.txt",
+      "licenseSource": "https://github.com/google/flatbuffers/blob/5eb190f00005b8dd1aa4f7ab2db9f01a39e3c76d/LICENSE",
+      "licenseReferenceCommit": "5eb190f00005b8dd1aa4f7ab2db9f01a39e3c76d",
+      "referenceRole": "Pinned source of license text; not a claimed build/source pin for the bundled binary.",
+      "copiedLicenseSha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    }
+  ],
+  "parentArtifactSha256": "9b02cdf9db0a698b341b59e75c54ab8221d6304577cc43830d01024caf1fca74",
+  "observedBinaryVersionString": "2.22.0-dev0+selfbuilt"
+}

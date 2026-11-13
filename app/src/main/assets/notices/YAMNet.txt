@@ -3,5 +3,8 @@ Google / TensorFlow authors
 Source: https://tfhub.dev/google/lite-model/yamnet/classification/tflite/1
 Bundled model and labels are unmodified. Licensed under Apache License 2.0;
 see Apache-2.0.txt in this directory. Model provenance and checksums: docs/models.md.
-LiteRT Interpreter 1.4.2: Google LLC / TensorFlow authors, Apache-2.0.
+LiteRT Interpreter 1.4.2: Google LLC / TensorFlow authors; the parent artifact declares Apache-2.0.
+The runtime artifact's complete LICENSE also includes the Caffe Regents/contributor notice and BSD conditions; it is retained under licenses/ and mapped by components.json.
+See THIRD_PARTY_NOTICES.txt, components.json, and Protobuf-4.28.2-LICENSE.txt for the resolved artifact inventory and additional notices.
+Known native dependencies and remaining source/notice gaps are recorded in native-components.json. The native inventory is not yet complete; final distribution remains pending.
 No project-wide license is granted by these third-party notices.

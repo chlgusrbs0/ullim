@@ -1,0 +1,100 @@
+Third-party notices for Ullim. These notices do not grant a project-wide license for Ullim.
+
+YAMNet classification version 1 and 521-label map: Google / TensorFlow authors, Apache-2.0.
+Source: https://storage.googleapis.com/download.tensorflow.org/models/tflite/task_library/audio_classification/android/lite-model_yamnet_classification_tflite_1.tflite
+yamnet.tflite SHA-256: 10c95ea3eb9a7bb4cb8bddf6feb023250381008177ac162ce169694d05c317de
+yamnet-labels.txt SHA-256: 8e1267a120c1932b7273c0d0e0c5529edbb9a35512b437b1c8982baa59047051 (521 labels, unchanged embedded map).
+See YAMNet.txt and Apache-2.0.txt. Further model provenance is in repository docs/models.md.
+
+Runtime artifact versions, upstream developers, POM chains and SHA-256 values: components.json.
+Full LICENSE/NOTICE entries supplied by runtime artifacts are preserved byte-for-byte under licenses/.
+Each components.json embeddedNotices entry maps the original ZIP entry to its preserved file.
+The LiteRT LICENSE includes the Caffe Regents/contributors copyright and BSD conditions; keep the entire text.
+DataStore external-protobuf 1.1.7 repackages protobuf-javalite 4.28.2. See Protobuf-4.28.2-LICENSE.txt (Google Inc., BSD-3-Clause).
+Known LiteRT native components have additional full license texts under native/ and provenance in native-components.json.
+That native list is incomplete and its reference commits identify license texts, not exact linked binary revisions.
+In particular Eigen/MPL-2.0 source-form correspondence and remaining native provenance must be resolved before final distribution.
+
+| Component | Upstream developer (POM) | Declared license | Scope |
+|---|---|---|---|
+| `androidx.activity:activity-compose:1.10.1` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.activity:activity-ktx:1.10.1` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.activity:activity:1.10.1` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.annotation:annotation-experimental:1.4.1` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.annotation:annotation-jvm:1.9.1` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.arch.core:core-common:2.2.0` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.arch.core:core-runtime:2.2.0` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.autofill:autofill:1.0.0` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.collection:collection-jvm:1.5.0` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.collection:collection-ktx:1.5.0` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.compose.animation:animation-android:1.8.3` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.compose.animation:animation-core-android:1.8.3` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.compose.animation:animation-graphics-android:1.8.3` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.compose.foundation:foundation-android:1.8.3` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.compose.foundation:foundation-layout-android:1.8.3` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.compose.material:material-android:1.8.3` | The Android Open Source Project | Apache-2.0 | Debug |
+| `androidx.compose.material:material-icons-core-android:1.7.8` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.compose.material:material-ripple-android:1.8.3` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.compose.runtime:runtime-android:1.8.3` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.compose.runtime:runtime-saveable-android:1.8.3` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.compose.ui:ui-android:1.8.3` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.compose.ui:ui-geometry-android:1.8.3` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.compose.ui:ui-graphics-android:1.8.3` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.compose.ui:ui-test-manifest:1.8.3` | The Android Open Source Project | Apache-2.0 | Debug |
+| `androidx.compose.ui:ui-text-android:1.8.3` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.compose.ui:ui-tooling-android:1.8.3` | The Android Open Source Project | Apache-2.0 | Debug |
+| `androidx.compose.ui:ui-tooling-data-android:1.8.3` | The Android Open Source Project | Apache-2.0 | Debug |
+| `androidx.compose.ui:ui-tooling-preview-android:1.8.3` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.compose.ui:ui-unit-android:1.8.3` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.compose.ui:ui-util-android:1.8.3` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.concurrent:concurrent-futures:1.1.0` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.core:core-ktx:1.15.0` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.core:core-viewtree:1.0.0` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.core:core:1.15.0` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.customview:customview-poolingcontainer:1.0.0` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.datastore:datastore-android:1.1.7` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.datastore:datastore-core-android:1.1.7` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.datastore:datastore-core-okio-jvm:1.1.7` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.datastore:datastore-preferences-android:1.1.7` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.datastore:datastore-preferences-core-android:1.1.7` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.datastore:datastore-preferences-external-protobuf:1.1.7` | The Android Open Source Project | BSD-3-Clause | Debug, Release |
+| `androidx.datastore:datastore-preferences-proto:1.1.7` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.emoji2:emoji2:1.4.0` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.graphics:graphics-path:1.0.1` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.graphics:graphics-shapes-android:1.0.1` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.interpolator:interpolator:1.0.0` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.lifecycle:lifecycle-common-jvm:2.9.2` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.lifecycle:lifecycle-livedata-core:2.9.2` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.lifecycle:lifecycle-process:2.9.2` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.lifecycle:lifecycle-runtime-android:2.9.2` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.lifecycle:lifecycle-runtime-compose-android:2.9.2` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.lifecycle:lifecycle-runtime-ktx-android:2.9.2` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.lifecycle:lifecycle-viewmodel-android:2.9.2` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.2` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.9.2` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.profileinstaller:profileinstaller:1.4.0` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.savedstate:savedstate-android:1.3.1` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.savedstate:savedstate-ktx:1.3.1` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.startup:startup-runtime:1.1.1` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.tracing:tracing:1.2.0` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.versionedparcelable:versionedparcelable:1.1.1` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.wear.compose:compose-foundation:1.5.0` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.wear.compose:compose-material-core:1.5.0` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `androidx.wear.compose:compose-material3:1.5.0` | The Android Open Source Project | Apache-2.0 | Debug, Release |
+| `com.google.ai.edge.litert:litert-api:1.4.2` | Google AI Edge Authors | Apache-2.0 | Debug, Release |
+| `com.google.ai.edge.litert:litert:1.4.2` | Google AI Edge Authors | Apache-2.0 | Debug, Release |
+| `com.google.guava:listenablefuture:1.0` | Kevin Bourrillion | Apache-2.0 | Debug, Release |
+| `com.squareup.okio:okio-jvm:3.4.0` | Square, Inc. | Apache-2.0 | Debug, Release |
+| `org.jetbrains:annotations:23.0.0` | JetBrains Team | Apache-2.0 | Debug, Release |
+| `org.jetbrains.kotlin:kotlin-android-extensions-runtime:1.9.22` | Kotlin Team | Apache-2.0 | Debug, Release |
+| `org.jetbrains.kotlin:kotlin-parcelize-runtime:1.9.22` | Kotlin Team | Apache-2.0 | Debug, Release |
+| `org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.0` | Kotlin Team | Apache-2.0 | Debug, Release |
+| `org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0` | Kotlin Team | Apache-2.0 | Debug, Release |
+| `org.jetbrains.kotlin:kotlin-stdlib:2.1.21` | Kotlin Team | Apache-2.0 | Debug, Release |
+| `org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2` | JetBrains Team | Apache-2.0 | Debug, Release |
+| `org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.10.2` | JetBrains Team | Apache-2.0 | Debug, Release |
+| `org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:1.7.3` | JetBrains Team | Apache-2.0 | Debug, Release |
+| `org.jspecify:jspecify:1.0.0` | Kevin Bourrillion | Apache-2.0 | Debug, Release |
+
+GameHaptic and google/audio-to-tactile were references, not copied runtime components. Their provenance and the source audit scope are in repository THIRD_PARTY_NOTICES.md.
+Build/test tools are not part of this runtime inventory. Gradle Wrapper notices are retained separately in repository third_party/build-tools/.
