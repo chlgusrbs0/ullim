@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
+        <activity android:name=".probe.NativeSessionProbeActivity"
+            android:exported="true" android:taskAffinity="com.ullim.watch.sessionprobe" />
         <activity android:name=".probe.NativeMotorSettingsProbeActivity"
             android:exported="true" android:taskAffinity="com.ullim.watch.motorsettingsprobe" />
     </application>
