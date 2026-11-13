@@ -5,20 +5,41 @@ import android.content.Context
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioRecord
+import android.media.AudioRecordingConfiguration
 import android.media.MediaRecorder
 import com.ullim.watch.core.AudioFrame
 
 class AndroidPcmInput private constructor(private val recorder: AudioRecord) : PcmInput {
+    private val availability = RecordingAvailability()
+    private var registered = false
+    private val recordingCallback = object : AudioManager.AudioRecordingCallback() {
+        override fun onRecordingConfigChanged(configurations: List<AudioRecordingConfiguration>) {
+            configurations.firstOrNull { it.clientAudioSessionId == recorder.audioSessionId }
+                ?.let { availability.update(it.isClientSilenced) }
+        }
+    }
     override fun start() {
+        recorder.registerAudioRecordingCallback({ it.run() }, recordingCallback)
+        registered = true
         recorder.startRecording()
         check(recorder.recordingState == AudioRecord.RECORDSTATE_RECORDING)
+        availability.initialize(recorder.activeRecordingConfiguration?.isClientSilenced == true)
+        availability.checkReadable()
     }
 
-    override fun read(buffer: ShortArray): Int = recorder.read(buffer, 0, buffer.size, AudioRecord.READ_BLOCKING)
+    override fun read(buffer: ShortArray): Int {
+        availability.checkReadable()
+        val count = recorder.read(buffer, 0, buffer.size, AudioRecord.READ_BLOCKING)
+        availability.checkReadable()
+        return count
+    }
     override fun stop() {
         if (recorder.recordingState == AudioRecord.RECORDSTATE_RECORDING) recorder.stop()
     }
-    override fun release() { recorder.release() }
+    override fun release() {
+        try { if (registered) recorder.unregisterAudioRecordingCallback(recordingCallback) }
+        finally { registered = false; recorder.release() }
+    }
 
     companion object {
         @SuppressLint("MissingPermission")

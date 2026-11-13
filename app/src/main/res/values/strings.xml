@@ -33,7 +33,16 @@
     <string name="microphone_permission_needed">마이크 권한이 필요해요. 권한을 허용한 뒤 다시 시작해 주세요.</string>
     <string name="service_start_failed">지금은 감지를 시작할 수 없어요. 앱 화면에서 다시 시작해 주세요.</string>
     <string name="capture_failed">소리 처리 중 오류가 발생해 멈췄어요. 권한과 기기 상태를 확인한 뒤 다시 시작해 주세요.</string>
-    <string name="capture_cleanup_failed">마이크가 안전하게 종료됐는지 확인할 수 없어요. 감지를 다시 켜기 전에 앱을 완전히 종료한 뒤 다시 열어주세요.</string>
+    <string name="microphone_silenced">시스템이 마이크 입력을 제한했어요. 다른 앱의 녹음이나 시스템 마이크 접근 설정을 확인한 뒤 다시 시작해 주세요.</string>
+    <string name="microphone_initialization_failed">마이크를 준비하지 못했어요. 다른 앱의 녹음을 중지하고 다시 시작해 주세요.</string>
+    <string name="microphone_read_failed">마이크 입력이 끊겨 감지를 중지했어요. 기기와 권한 상태를 확인한 뒤 다시 시작해 주세요.</string>
+    <string name="processing_failed">소리 변환 중 문제가 생겨 감지를 중지했어요. 정리가 끝나면 수동으로 다시 시작해 주세요.</string>
+    <string name="haptic_output_failed">진동 출력에 실패해 감지를 중지했어요. 진동 지원 상태를 확인한 뒤 다시 시작해 주세요.</string>
+    <string name="service_stop_failed">중지 요청을 전달하지 못했어요. 앱 설정에서 강제 종료한 뒤 다시 열어주세요.</string>
+    <string name="error_code">오류 코드: %1$s</string>
+    <string name="open_app_settings">앱 설정 열기</string>
+    <string name="check_haptic_support">진동 지원 확인</string>
+    <string name="capture_cleanup_failed">마이크가 안전하게 종료됐는지 확인할 수 없어요. 앱 설정에서 강제 종료한 뒤 다시 열어주세요.</string>
     <string name="capture_still_stopping">이전 마이크가 정리 중이에요. 잠시 뒤 다시 시작해 주세요.</string>
     <string name="listening_channel">소리 감지 상태</string>
     <string name="listening_notification">울림이 주변 소리를 감지하고 있어요</string>

@@ -21,7 +21,9 @@ import com.ullim.watch.audio.AndroidPcmInput
 import com.ullim.watch.audio.AudioFanOut
 import com.ullim.watch.audio.CaptureStatus
 import com.ullim.watch.audio.CaptureError
+import com.ullim.watch.audio.CaptureException
 import com.ullim.watch.audio.MicrophoneCapture
+import com.ullim.watch.audio.PcmInput
 import com.ullim.watch.ai.AiPhase
 import com.ullim.watch.ai.AiFault
 import com.ullim.watch.ai.AiSnapshot
@@ -36,6 +38,7 @@ import com.ullim.watch.haptics.AndroidEnvelopeDevice
 import com.ullim.watch.haptics.HybridHapticMapper
 import com.ullim.watch.haptics.HapticScheduler
 import com.ullim.watch.runtime.CaptureRuntime
+import com.ullim.watch.runtime.CaptureFailure
 import com.ullim.watch.runtime.ForegroundSession
 import com.ullim.watch.runtime.ForegroundStart
 import kotlinx.coroutines.CoroutineScope
@@ -45,7 +48,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
-class ListeningService : Service() {
+open class ListeningService : Service() {
+    protected open fun createPcmInput(): PcmInput = AndroidPcmInput.create(this)
     private val mainHandler = Handler(Looper.getMainLooper())
     private var lifecycle: ForegroundSession? = null
     private var currentSession = 0L
@@ -94,8 +98,12 @@ class ListeningService : Service() {
         }
         val token = intent.getLongExtra(EXTRA_SESSION, 0)
         if (lifecycle != null) return START_NOT_STICKY
-        if (!CaptureRuntime.isStarting(token) || checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            if (token > 0) CaptureRuntime.fail(token, getString(R.string.microphone_permission_needed))
+        if (!CaptureRuntime.isStarting(token)) {
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            reportCaptureFailure(this, token, CaptureFailure.MIC_PERMISSION)
             stopSelf(startId)
             return START_NOT_STICKY
         }
@@ -104,9 +112,14 @@ class ListeningService : Service() {
     }
 
     private fun startCapture(token: Long, startId: Int) {
-        val device = AndroidEnvelopeDevice(getSystemService(VibratorManager::class.java).defaultVibrator)
+        val device = try { AndroidEnvelopeDevice(getSystemService(VibratorManager::class.java).defaultVibrator) }
+        catch (_: RuntimeException) {
+            reportCaptureFailure(this, token, CaptureFailure.HAPTIC_OUTPUT)
+            stopSelf(startId)
+            return
+        }
         if (!device.capabilities.available) {
-            CaptureRuntime.fail(token, getString(R.string.motor_unavailable))
+            reportCaptureFailure(this, token, if (device.capabilities.probeFailed) CaptureFailure.HAPTIC_OUTPUT else CaptureFailure.HAPTIC_UNSUPPORTED)
             stopSelf(startId)
             return
         }
@@ -120,7 +133,11 @@ class ListeningService : Service() {
             val features = dsp.extract(frame)
             val command = mapper.map(features, ai.current(token, frame.timestampNs))
             scheduler.offer(command)
-            check(scheduler.lastResult != RenderResult.FAILED && scheduler.lastResult != RenderResult.UNSUPPORTED)
+            when (scheduler.lastResult) {
+                RenderResult.FAILED -> throw CaptureException(CaptureError.OUTPUT)
+                RenderResult.UNSUPPORTED -> throw CaptureException(CaptureError.OUTPUT_UNSUPPORTED)
+                else -> Unit
+            }
             CaptureRuntime.visualization.offer(features, command)
             if (frame.timestampNs - lastUiNs >= 100_000_000L) {
                 CaptureRuntime.publish(token, features.rms, command.commandedIntensity)
@@ -130,15 +147,14 @@ class ListeningService : Service() {
         val feed = AiCaptureFeed(token, ai, fanout) { CaptureRuntime.aiEnabled.value }
         aiFeed = feed
         lateinit var capture: MicrophoneCapture
-        capture = MicrophoneCapture({ AndroidPcmInput.create(this) }, { feed.accept(it) }, { status ->
+        capture = MicrophoneCapture(::createPcmInput, { feed.accept(it) }, { status ->
             mainHandler.post {
                 when (status) {
                     CaptureStatus.Recording -> if (!stopping) CaptureRuntime.listening(token, !device.capabilities.amplitudeControl)
                     CaptureStatus.Stopped, is CaptureStatus.Failed -> {
                         val cleanupFailed = status is CaptureStatus.Failed && status.reason == CaptureError.CLEANUP
                         if (!cleanupFailed) CaptureRuntime.detach(capture)
-                        if (status is CaptureStatus.Failed) CaptureRuntime.fail(token,
-                            getString(if (cleanupFailed) R.string.capture_cleanup_failed else R.string.capture_failed))
+                        if (status is CaptureStatus.Failed) reportCaptureFailure(this, token, CaptureFailure.from(status.reason))
                         if (currentSession == token) {
                             lifecycle?.stop()
                             lifecycle = null
@@ -151,15 +167,25 @@ class ListeningService : Service() {
                 }
             }
         })
+        try {
+            fanout.start(token)
+            scheduler.begin(token)
+        } catch (_: RuntimeException) {
+            fanout.stop()
+            runCatching { scheduler.stop() }
+            reportCaptureFailure(this, token, CaptureFailure.HAPTIC_OUTPUT)
+            stopSelf(startId)
+            return
+        }
         if (!CaptureRuntime.attach(token, capture)) {
-            CaptureRuntime.fail(token, getString(R.string.capture_still_stopping))
+            fanout.stop()
+            runCatching { scheduler.stop() }
+            reportCaptureFailure(this, token, CaptureFailure.CLEANUP)
             stopSelf(startId)
             return
         }
         currentSession = token
         stopping = false
-        fanout.start(token)
-        scheduler.begin(token)
         val session = ForegroundSession(
             capture,
             { startForeground(NOTIFICATION_ID, notification(token), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE) },
@@ -169,8 +195,12 @@ class ListeningService : Service() {
         lifecycle = session
         val result = session.start(token)
         if (result != ForegroundStart.STARTED) {
-            CaptureRuntime.detach(capture)
-            CaptureRuntime.fail(token, getString(if (result == ForegroundStart.DENIED) R.string.microphone_permission_needed else R.string.service_start_failed))
+            if (result != ForegroundStart.STILL_STOPPING) CaptureRuntime.detach(capture)
+            reportCaptureFailure(this, token, when (result) {
+                ForegroundStart.DENIED -> CaptureFailure.MIC_PERMISSION
+                ForegroundStart.STILL_STOPPING -> CaptureFailure.CLEANUP
+                else -> CaptureFailure.FOREGROUND_START
+            })
             CaptureRuntime.finished(token)
             currentSession = 0
             lifecycle = null
@@ -235,7 +265,7 @@ class ListeningService : Service() {
         lastAiLogNs = now
         lastAiLogPhase = snapshot.phase
         lastAiLogFault = snapshot.fault
-        Log.i("UllimAI", "session=${snapshot.sessionId} phase=${snapshot.phase} fault=${snapshot.fault} " +
+        Log.i("UllimAI", "session=${snapshot.sessionId} phase=${snapshot.phase} fault=${snapshot.fault} code=${snapshot.fault?.let { "AI_${it.name}" } ?: "NONE"} " +
             "loaded=${snapshot.modelLoaded} busy=${snapshot.busy} cleanupPending=${snapshot.cleanupPending} " +
             "loadNs=${snapshot.loadDurationNs} inferNs=${snapshot.lastInferenceNs} maxInferNs=${snapshot.maxInferenceNs} " +
             "attempts=${snapshot.inferenceCount} validResults=${snapshot.successfulInferences} " +

@@ -41,6 +41,7 @@ internal fun AiResultContent(state: AiDisplayState, showOriginal: Boolean = fals
         AiDisplayStatus.FAILED -> if (state.restartRequired) R.string.ai_restart_needed else R.string.ai_failed
     }
     AiText(stringResource(statusText))
+    state.faultCode?.let { AiText(stringResource(R.string.error_code, it)) }
     when (state.result) {
         AiResultKind.NONE -> Unit
         AiResultKind.WAITING -> AiText(stringResource(R.string.ai_result_waiting))

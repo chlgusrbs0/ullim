@@ -9,6 +9,26 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class MicrophoneCaptureTest {
+    @Test fun typedInputAndConsumerFailuresPreserveCauseWhileAlwaysReleasingTheSource() {
+        for (cause in listOf(CaptureError.SILENCED, CaptureError.OUTPUT, CaptureError.OUTPUT_UNSUPPORTED)) {
+            val statuses = CopyOnWriteArrayList<CaptureStatus>()
+            var releases = 0
+            val capture = MicrophoneCapture({ object : PcmInput {
+                override fun start() {}
+                override fun read(buffer: ShortArray): Int {
+                    if (cause == CaptureError.SILENCED) throw CaptureException(cause)
+                    return buffer.size
+                }
+                override fun stop() {}
+                override fun release() { releases++ }
+            } }, { throw CaptureException(cause) }, statuses::add)
+            capture.start(1)
+            assertTrue(capture.awaitStopped(2000))
+            assertEquals(1, releases)
+            assertEquals(CaptureStatus.Failed(cause), statuses.last())
+        }
+    }
+
     @Test fun failedNativeReleasePreventsAnotherRecorderOnThatCapture() {
         val statuses = CopyOnWriteArrayList<CaptureStatus>()
         val capture = MicrophoneCapture({ object : PcmInput {

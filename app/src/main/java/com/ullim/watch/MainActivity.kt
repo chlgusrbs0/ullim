@@ -22,6 +22,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.ullim.watch.core.ListeningState
 import com.ullim.watch.ai.AiRuntime
 import com.ullim.watch.runtime.CaptureRuntime
+import com.ullim.watch.runtime.CaptureFailure
 import com.ullim.watch.runtime.VisualizationSnapshot
 import com.ullim.watch.ui.ListeningUiState
 import com.ullim.watch.ui.UllimApp
@@ -41,7 +42,7 @@ class MainActivity : ComponentActivity() {
         if (pendingStart) {
             pendingStart = false
             if (microphoneGranted) startCapture()
-            else CaptureRuntime.fail(null, getString(R.string.microphone_permission_needed))
+            else reportCaptureFailure(this, null, CaptureFailure.MIC_PERMISSION)
         }
     }
 
@@ -57,6 +58,7 @@ class MainActivity : ComponentActivity() {
             val levels by CaptureRuntime.levels.collectAsStateWithLifecycle()
             val limited by CaptureRuntime.strengthLimited.collectAsStateWithLifecycle()
             val settings by preferences.state.collectAsStateWithLifecycle()
+            val failure by CaptureRuntime.failure.collectAsStateWithLifecycle()
             val ai = collectAiDisplay(CaptureRuntime.aiEnabled, CaptureRuntime.state, aiWorker.state)
             val uiLifecycle = LocalLifecycleOwner.current.lifecycle
             val visualization by produceState(VisualizationSnapshot(), runtime.listening, uiLifecycle) {
@@ -73,7 +75,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
             UllimApp(
-                state = ListeningUiState(runtime, startAllowed, levels, limited, microphoneGranted, notificationsGranted, visualization, ai, settings),
+                state = ListeningUiState(runtime, startAllowed, levels, limited, microphoneGranted, notificationsGranted, visualization, ai, settings, failure),
                 onStart = ::requestCapture,
                 onStop = ::stopCapture,
                 onAiSettings = { startActivity(Intent(this, AiControlsActivity::class.java)) },
@@ -97,6 +99,13 @@ class MainActivity : ComponentActivity() {
     private fun refreshPermissions() {
         microphoneGranted = checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
         notificationsGranted = checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        if (!microphoneGranted) {
+            val token = CaptureRuntime.stopToken()
+            if (token != null) {
+                reportCaptureFailure(this, token, CaptureFailure.MIC_PERMISSION)
+                stopCapture()
+            }
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -116,33 +125,30 @@ class MainActivity : ComponentActivity() {
 
     private fun startCapture() {
         if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
-            CaptureRuntime.fail(null, getString(R.string.service_start_failed))
+            reportCaptureFailure(this, null, CaptureFailure.FOREGROUND_START)
             return
         }
         val token = CaptureRuntime.requestStart() ?: return
         try {
             startForegroundService(Intent(this, ListeningService::class.java).setAction(ListeningService.ACTION_START).putExtra(ListeningService.EXTRA_SESSION, token))
         } catch (_: ForegroundServiceStartNotAllowedException) {
-            CaptureRuntime.fail(token, getString(R.string.service_start_failed))
+            reportCaptureFailure(this, token, CaptureFailure.FOREGROUND_START)
         } catch (_: SecurityException) {
-            CaptureRuntime.fail(token, getString(R.string.microphone_permission_needed))
+            reportCaptureFailure(this, token, CaptureFailure.MIC_PERMISSION)
         } catch (_: RuntimeException) {
-            CaptureRuntime.fail(token, getString(R.string.service_start_failed))
+            reportCaptureFailure(this, token, CaptureFailure.FOREGROUND_START)
         }
     }
 
     private fun stopCapture() {
-        val token = when (val phase = CaptureRuntime.state.value.listening) {
-            is ListeningState.Starting -> phase.sessionId
-            is ListeningState.Listening -> phase.sessionId
-            is ListeningState.Stopping -> phase.sessionId
-            else -> return
-        }
+        val token = CaptureRuntime.stopToken() ?: return
         if (runCatching {
             startService(Intent(this, ListeningService::class.java).setAction(ListeningService.ACTION_STOP)
                 .putExtra(ListeningService.EXTRA_SESSION, token))
         }.isFailure) {
-            stopService(Intent(this, ListeningService::class.java))
+            if (runCatching { stopService(Intent(this, ListeningService::class.java)) }.getOrDefault(false).not()) {
+                reportCaptureFailure(this, token, CaptureFailure.SERVICE_COMMAND)
+            }
         }
     }
 

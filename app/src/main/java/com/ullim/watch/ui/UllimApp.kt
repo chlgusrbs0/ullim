@@ -67,7 +67,7 @@ fun UllimApp(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         when (screen) {
-                            UllimScreen.HOME -> HomeScreen(state, onStart, onStop, onAppSettings,
+                            UllimScreen.HOME -> HomeScreen(state, onStart, onStop, onAppSettings, onDiagnostics, onAiSettings,
                                 onSettings = { screen = UllimScreen.SETTINGS },
                                 onGuide = { screen = UllimScreen.GUIDE })
                             UllimScreen.SETTINGS -> {
@@ -121,11 +121,14 @@ private fun HomeScreen(
     onStart: () -> Unit,
     onStop: () -> Unit,
     onAppSettings: () -> Unit,
+    onDiagnostics: () -> Unit,
+    onAiSettings: () -> Unit,
     onSettings: () -> Unit,
     onGuide: () -> Unit,
 ) {
     val phase = state.runtime.listening
     val idle = phase == ListeningState.Idle || phase is ListeningState.Error
+    val failure = state.failure.takeIf { phase is ListeningState.Error }
     ScreenTitle(stringResource(R.string.app_name))
     Text(
         when (phase) {
@@ -139,6 +142,7 @@ private fun HomeScreen(
         style = MaterialTheme.typography.bodyMedium,
         textAlign = TextAlign.Center,
     )
+    failure?.let { Body(stringResource(R.string.error_code, it.code)) }
     Button(
         onClick = if (idle) onStart else onStop,
         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
@@ -152,15 +156,18 @@ private fun HomeScreen(
         }), textAlign = TextAlign.Center)
     }
     if (phase is ListeningState.Starting) Action(R.string.cancel_start, onStop)
+    if (failure?.openDiagnostics == true) Action(R.string.check_haptic_support, onDiagnostics, enabled = state.startAllowed)
+    if (failure?.restartRequired == true) Action(R.string.open_app_settings, onAppSettings)
     if (phase is ListeningState.Listening) {
         Body(stringResource(R.string.levels, (state.levels.sound * 100).toInt(), (state.levels.commanded * 100).toInt()))
         if (state.strengthLimited) Body(stringResource(R.string.amplitude_unsupported))
     }
     ComparisonGraph(state.visualization, active = phase is ListeningState.Listening)
     AiResultContent(state.ai)
+    if (state.ai.status == AiDisplayStatus.FAILED) Action(R.string.ai_details, onAiSettings)
     if (!state.microphoneGranted) Body(stringResource(R.string.microphone_permission_needed))
     if (!state.notificationsGranted) Body(stringResource(R.string.notifications_limited))
-    if (!state.microphoneGranted || !state.notificationsGranted || phase is ListeningState.Error) {
+    if (!state.microphoneGranted || !state.notificationsGranted || (failure?.openSettings == true && !failure.restartRequired)) {
         Action(R.string.permission_settings, onAppSettings)
     }
     Action(R.string.settings_title, onSettings)

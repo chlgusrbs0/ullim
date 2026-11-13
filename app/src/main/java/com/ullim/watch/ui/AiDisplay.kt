@@ -20,6 +20,7 @@ data class AiDisplayState(
     val cleanupPending: Boolean = false,
     val restartRequired: Boolean = false,
     val baselineContinues: Boolean = false,
+    val faultCode: String? = null,
 )
 
 /** Presentation only: never changes worker, microphone or haptic state. */
@@ -43,7 +44,8 @@ object AiDisplay {
         }
         val base = AiDisplayState(status = status, cleanupPending = snapshot.cleanupPending,
             restartRequired = snapshot.fault == AiFault.CLEANUP || snapshot.fault == AiFault.EXECUTOR,
-            baselineContinues = runtime.listening is ListeningState.Listening && status != AiDisplayStatus.LISTENING)
+            baselineContinues = runtime.listening is ListeningState.Listening && status != AiDisplayStatus.LISTENING,
+            faultCode = snapshot.fault?.takeIf { status == AiDisplayStatus.FAILED || it == AiFault.CLEANUP || it == AiFault.EXECUTOR }?.let { "AI_${it.name}" })
         if (status != AiDisplayStatus.LISTENING || runtime.listening !is ListeningState.Listening) return base
         val classification = snapshot.classification
             ?: return base.copy(result = if (snapshot.resultExpired) AiResultKind.EXPIRED else AiResultKind.WAITING)

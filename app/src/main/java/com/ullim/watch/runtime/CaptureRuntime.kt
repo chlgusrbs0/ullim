@@ -14,12 +14,14 @@ object CaptureRuntime {
     private val mutableLimited = MutableStateFlow(false)
     private val mutableAiEnabled = MutableStateFlow(false)
     private val mutableSensitivity = MutableStateFlow(1f)
+    private val mutableFailure = MutableStateFlow<CaptureFailure?>(null)
     val state = controller.state
     val startAllowed = controller.startAllowed
     val levels = mutableLevels.asStateFlow()
     val strengthLimited = mutableLimited.asStateFlow()
     val aiEnabled = mutableAiEnabled.asStateFlow()
     val sensitivity = mutableSensitivity.asStateFlow()
+    val failure = mutableFailure.asStateFlow()
     val visualization = VisualizationHistory()
 
     fun setAiEnabled(enabled: Boolean) { mutableAiEnabled.value = enabled }
@@ -28,10 +30,12 @@ object CaptureRuntime {
         mutableAiEnabled.value = values.aiEnabled
     }
     @Synchronized fun canStart(): Boolean = controller.canStart()
+    @Synchronized fun stopToken(): Long? = controller.stopToken()
     @Synchronized fun aiStatus(id: Long, status: AiStatus) { controller.aiStatus(id, status) }
 
     @Synchronized fun requestStart(): Long? {
         val id = controller.requestStart() ?: return null
+        mutableFailure.value = null
         mutableLevels.value = LiveLevels()
         mutableLimited.value = false
         visualization.begin(id)
@@ -51,8 +55,12 @@ object CaptureRuntime {
     @Synchronized fun finished(id: Long) {
         if (controller.finished(id)) { mutableLevels.value = LiveLevels(); mutableLimited.value = false; visualization.end(id) }
     }
-    @Synchronized fun fail(id: Long?, message: String) {
-        if (controller.fail(id, message)) { mutableLevels.value = LiveLevels(); id?.let(visualization::end) }
+    @Synchronized fun fail(id: Long?, message: String, cause: CaptureFailure = CaptureFailure.UNKNOWN): Boolean {
+        if (!controller.fail(id, message, replaceActiveError = cause == CaptureFailure.CLEANUP || cause == CaptureFailure.SERVICE_COMMAND)) return false
+        mutableFailure.value = cause
+        mutableLevels.value = LiveLevels()
+        id?.let(visualization::end)
+        return true
     }
     @Synchronized fun publish(id: Long, sound: Float, commanded: Float) {
         if (controller.isListening(id)) mutableLevels.value = LiveLevels(sound, commanded)

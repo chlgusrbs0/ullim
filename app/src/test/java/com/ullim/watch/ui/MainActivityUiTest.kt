@@ -19,6 +19,8 @@ import com.ullim.watch.AiControlsActivity
 import com.ullim.watch.audio.MicrophoneCapture
 import com.ullim.watch.core.ListeningState
 import com.ullim.watch.runtime.CaptureRuntime
+import com.ullim.watch.runtime.CaptureFailure
+import com.ullim.watch.reportCaptureFailure
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -111,6 +113,41 @@ class MainActivityUiTest {
         compose.runOnIdle { CaptureRuntime.detach(owner!!) }
         assertEquals(error, CaptureRuntime.state.value)
         compose.onNodeWithText("소리 감지 시작").assertIsEnabled()
+    }
+
+    @Test fun failureCodeAndManualRetryFollowRealReleaseAndClearOnNewStart() {
+        requestStart(); confirmRecording()
+        compose.runOnIdle {
+            reportCaptureFailure(compose.activity, token, CaptureFailure.MIC_READ)
+            CaptureRuntime.detach(owner!!); CaptureRuntime.finished(token)
+        }
+        compose.onNodeWithText("오류 코드: MIC_READ").performScrollTo().assertIsDisplayed()
+        requestStart()
+        compose.onNodeWithText("오류 코드: MIC_READ").assertDoesNotExist()
+    }
+
+    @Test fun unsafeCleanupOffersRealSystemSettingsAndKeepsRestartDisabled() {
+        requestStart(); confirmRecording()
+        compose.runOnIdle {
+            reportCaptureFailure(compose.activity, token, CaptureFailure.CLEANUP)
+            CaptureRuntime.finished(token)
+        }
+        compose.onNodeWithText("소리 감지 시작").performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithText("오류 코드: CLEANUP").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("앱 설정 열기").performScrollTo().performClick()
+        assertEquals(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, shadowOf(compose.activity).nextStartedActivity.action)
+    }
+
+    @Test fun permissionRevocationOnReturnReportsCodeAndRequestsCurrentSessionStop() {
+        requestStart(); confirmRecording()
+        shadowOf(application).denyPermissions(Manifest.permission.RECORD_AUDIO)
+        compose.activityRule.scenario.recreate()
+        compose.waitForIdle()
+        val stop = shadowOf(application).nextStartedService
+        assertEquals(ListeningService.ACTION_STOP, stop.action)
+        assertEquals(token, stop.getLongExtra(ListeningService.EXTRA_SESSION, 0))
+        compose.onNodeWithText("오류 코드: MIC_PERMISSION").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("소리 감지 시작").performScrollTo().assertIsNotEnabled()
     }
 
     @Test fun guideAndActivityRecreationPreserveActualListeningWithoutAnotherStart() {

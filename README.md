@@ -85,3 +85,4 @@ Windows에서는 `./gradlew.bat`를 사용합니다. APK 경로는 `app/build/ou
 - [docs/sound-haptic-visualization.md](docs/sound-haptic-visualization.md) — 공통 소리 시간축의 입력·진동 명령 그래프와 물리 측정 구분
 - [docs/ai-result-display.md](docs/ai-result-display.md) — AI 명칭·모델 점수와 불확실/만료/실패 표시의 검증 경계
 - [docs/persistent-settings.md](docs/persistent-settings.md) — 민감도·AI 로컬 저장, 즉시 적용 및 저장 실패 처리
+- [docs/error-recovery.md](docs/error-recovery.md) — 오류 코드, 수동 회복 행동과 자원 정리 경계

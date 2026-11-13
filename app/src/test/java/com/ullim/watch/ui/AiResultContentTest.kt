@@ -78,6 +78,7 @@ class AiResultContentTest {
         compose.onNodeWithText("기본 소리 변환은 계속 작동해요").performScrollTo().assertIsDisplayed()
         compose.runOnIdle { worker.value = worker.value.copy(phase = AiPhase.FAILED, fault = AiFault.INFERENCE) }
         compose.onNodeWithText("말소리").assertDoesNotExist()
+        compose.onNodeWithText("오류 코드: AI_INFERENCE").performScrollTo().assertIsDisplayed()
         recognize("Unknown", .95f)
         compose.onNodeWithText("지원하지 않는 분류예요").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Unknown").assertDoesNotExist()
