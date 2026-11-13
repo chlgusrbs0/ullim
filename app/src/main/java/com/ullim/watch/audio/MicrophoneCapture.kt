@@ -111,10 +111,13 @@ class MicrophoneCapture(
                 try { run.input?.release() } catch (_: RuntimeException) { failure = CaptureError.CLEANUP; released = false }
                 if (released) run.input = null
             }
-            // A failed native release is not evidence that another microphone is safe.
-            synchronized(lock) { if (active === run && released) active = null }
             emit(failure?.let(CaptureStatus::Failed) ?: CaptureStatus.Stopped)
-            run.done.countDown()
+            // Deliver the old terminal status before admitting a new session.
+            synchronized(lock) {
+                // A failed native release is not evidence that another microphone is safe.
+                if (active === run && released) active = null
+                run.done.countDown()
+            }
         }
     }
 }
