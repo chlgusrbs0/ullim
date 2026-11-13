@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
+        <activity android:name=".probe.NativeClassificationProbeActivity"
+            android:exported="true" android:taskAffinity="com.ullim.watch.classificationprobe" />
         <activity android:name=".probe.NativeYamnetProbeActivity"
             android:exported="true" android:taskAffinity="com.ullim.watch.yamnetprobe" />
         <activity android:name=".probe.NativeDspProbeActivity"
