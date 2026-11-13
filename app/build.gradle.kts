@@ -28,6 +28,7 @@ android {
             java.srcDir("src/nativeCaptureProbe/java")
             manifest.srcFile("src/nativeCaptureProbe/AndroidManifest.xml")
         }
+        sourceSets.getByName("testDebug").java.srcDir("src/nativeCaptureProbeTest/java")
     }
 
     testOptions {

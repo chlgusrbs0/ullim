@@ -74,7 +74,7 @@ class NativeCaptureProbeActivity : ComponentActivity() {
     override fun onResume() { super.onResume(); resumed = true; maybeStart() }
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) maybeStart()
+        if (hasFocus) maybeStart() else requestStop("focus-loss")
     }
     override fun onPause() {
         resumed = false
