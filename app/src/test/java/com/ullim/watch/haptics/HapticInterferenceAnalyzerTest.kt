@@ -27,13 +27,13 @@ class HapticInterferenceAnalyzerTest {
             baselineWindowNs = 200,
             postCommandTailNs = 120,
         )
-        analyzer.observe(features(timestampNs = 850, rms = 0.1f))
-        analyzer.observe(features(timestampNs = 950, rms = 0.2f))
-        analyzer.recordCommand(HapticFrame(1, 1_000, 100, 0.7f))
+        analyzer.observe(features(timestampNs = 999_999_850, rms = 0.1f))
+        analyzer.observe(features(timestampNs = 999_999_950, rms = 0.2f))
+        analyzer.recordCommand(HapticFrame(1, 1_000_000_000, 100, 0.7f))
 
-        assertEquals(1, analyzer.observe(features(timestampNs = 1_000, rms = 0.4f)).size)
-        assertEquals(1, analyzer.observe(features(timestampNs = 1_150, rms = 0.6f, peak = 0.9f, onset = 0.8f)).size)
-        assertTrue(analyzer.observe(features(timestampNs = 1_220, rms = 0.8f)).isEmpty())
+        assertEquals(1, analyzer.observe(features(timestampNs = 1_000_000_000, rms = 0.4f)).size)
+        assertEquals(1, analyzer.observe(features(timestampNs = 1_100_000_120, rms = 0.6f, peak = 0.9f, onset = 0.8f)).size)
+        assertTrue(analyzer.observe(features(timestampNs = 1_100_000_121, rms = 0.8f)).isEmpty())
 
         val result = analyzer.snapshots().single()
         assertEquals(2, result.baselineFrameCount)
@@ -76,7 +76,7 @@ class HapticInterferenceAnalyzerTest {
         }
 
         assertEquals(2, analyzer.snapshots().size)
-        assertEquals(1, analyzer.snapshots().first().baselineFrameCount)
+        assertEquals(2, analyzer.snapshots().first().baselineFrameCount)
 
         analyzer.clear()
         assertTrue(analyzer.snapshots().isEmpty())
