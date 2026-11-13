@@ -30,6 +30,7 @@
     <string name="microphone_permission_needed">마이크 권한이 필요해요. 권한을 허용한 뒤 다시 시작해 주세요.</string>
     <string name="service_start_failed">지금은 감지를 시작할 수 없어요. 앱 화면에서 다시 시작해 주세요.</string>
     <string name="capture_failed">소리 처리 중 오류가 발생해 멈췄어요. 권한과 기기 상태를 확인한 뒤 다시 시작해 주세요.</string>
+    <string name="capture_cleanup_failed">마이크가 안전하게 종료됐는지 확인할 수 없어요. 감지를 다시 켜기 전에 앱을 완전히 종료한 뒤 다시 열어주세요.</string>
     <string name="capture_still_stopping">이전 마이크가 정리 중이에요. 잠시 뒤 다시 시작해 주세요.</string>
     <string name="listening_channel">소리 감지 상태</string>
     <string name="listening_notification">울림이 주변 소리를 감지하고 있어요</string>

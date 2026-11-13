@@ -139,7 +139,7 @@ private fun UllimApp(onStart: () -> Unit = {}, onStop: () -> Unit = {}) {
                     if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                         Text(stringResource(R.string.notifications_limited), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall)
                     }
-                    Button(onClick = if (idle) onStart else onStop, enabled = phase !is ListeningState.Stopping, modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = if (idle) onStart else onStop, enabled = if (idle) CaptureRuntime.canStart() else phase !is ListeningState.Stopping, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(if (idle) R.string.start_listening else R.string.stop))
                     }
                     TextButton(onClick = { context.startActivity(Intent(context, AiControlsActivity::class.java)) }) {

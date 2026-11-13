@@ -19,6 +19,7 @@ import android.util.Log
 import com.ullim.watch.audio.AndroidPcmInput
 import com.ullim.watch.audio.AudioFanOut
 import com.ullim.watch.audio.CaptureStatus
+import com.ullim.watch.audio.CaptureError
 import com.ullim.watch.audio.MicrophoneCapture
 import com.ullim.watch.ai.AiPhase
 import com.ullim.watch.ai.AiFault
@@ -122,8 +123,10 @@ class ListeningService : Service() {
                 when (status) {
                     CaptureStatus.Recording -> if (!stopping) CaptureRuntime.listening(token, !device.capabilities.amplitudeControl)
                     CaptureStatus.Stopped, is CaptureStatus.Failed -> {
-                        CaptureRuntime.detach(capture)
-                        if (status is CaptureStatus.Failed) CaptureRuntime.fail(token, getString(R.string.capture_failed))
+                        val cleanupFailed = status is CaptureStatus.Failed && status.reason == CaptureError.CLEANUP
+                        if (!cleanupFailed) CaptureRuntime.detach(capture)
+                        if (status is CaptureStatus.Failed) CaptureRuntime.fail(token,
+                            getString(if (cleanupFailed) R.string.capture_cleanup_failed else R.string.capture_failed))
                         if (currentSession == token) {
                             lifecycle?.stop()
                             lifecycle = null
@@ -136,7 +139,7 @@ class ListeningService : Service() {
                 }
             }
         })
-        if (!CaptureRuntime.attach(capture)) {
+        if (!CaptureRuntime.attach(token, capture)) {
             CaptureRuntime.fail(token, getString(R.string.capture_still_stopping))
             stopSelf(startId)
             return
@@ -156,6 +159,8 @@ class ListeningService : Service() {
         if (result != ForegroundStart.STARTED) {
             CaptureRuntime.detach(capture)
             CaptureRuntime.fail(token, getString(if (result == ForegroundStart.DENIED) R.string.microphone_permission_needed else R.string.service_start_failed))
+            CaptureRuntime.finished(token)
+            currentSession = 0
             lifecycle = null
             stopSelf(startId)
         } else {

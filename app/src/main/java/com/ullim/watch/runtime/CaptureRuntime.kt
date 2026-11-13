@@ -1,8 +1,6 @@
 package com.ullim.watch.runtime
 
 import com.ullim.watch.audio.MicrophoneCapture
-import com.ullim.watch.core.ListeningState
-import com.ullim.watch.core.RuntimeState
 import com.ullim.watch.core.AiStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -10,64 +8,43 @@ import kotlinx.coroutines.flow.asStateFlow
 data class LiveLevels(val sound: Float = 0f, val commanded: Float = 0f)
 
 object CaptureRuntime {
-    private val mutableState = MutableStateFlow(RuntimeState())
+    private val controller = ListeningController()
     private val mutableLevels = MutableStateFlow(LiveLevels())
     private val mutableLimited = MutableStateFlow(false)
     private val mutableAiEnabled = MutableStateFlow(false)
-    val state = mutableState.asStateFlow()
+    val state = controller.state
     val levels = mutableLevels.asStateFlow()
     val strengthLimited = mutableLimited.asStateFlow()
     val aiEnabled = mutableAiEnabled.asStateFlow()
-    private var counter = 0L
-    private var currentId = 0L
-    private var owner: MicrophoneCapture? = null
 
     fun setAiEnabled(enabled: Boolean) { mutableAiEnabled.value = enabled }
-    @Synchronized fun aiStatus(id: Long, status: AiStatus) {
-        val phase = state.value.listening
-        if (currentId == id && (phase is ListeningState.Starting || phase is ListeningState.Listening)) {
-            mutableState.value = mutableState.value.copy(ai = status)
-        }
-    }
+    @Synchronized fun canStart(): Boolean = controller.canStart()
+    @Synchronized fun aiStatus(id: Long, status: AiStatus) { controller.aiStatus(id, status) }
 
     @Synchronized fun requestStart(): Long? {
-        if (owner != null || (state.value.listening != ListeningState.Idle && state.value.listening !is ListeningState.Error)) return null
-        currentId = ++counter
-        mutableState.value = RuntimeState(ListeningState.Starting(currentId))
+        val id = controller.requestStart() ?: return null
         mutableLevels.value = LiveLevels()
-        return currentId
+        mutableLimited.value = false
+        return id
     }
 
-    @Synchronized fun isStarting(id: Long): Boolean = currentId == id && state.value.listening == ListeningState.Starting(id)
-    @Synchronized fun attach(capture: MicrophoneCapture): Boolean {
-        if (owner != null) return false
-        owner = capture
-        return true
-    }
-    @Synchronized fun detach(capture: MicrophoneCapture) { if (owner === capture) owner = null }
+    @Synchronized fun isStarting(id: Long): Boolean = controller.isStarting(id)
+    @Synchronized fun attach(id: Long, capture: MicrophoneCapture): Boolean = controller.attach(id, capture)
+    @Synchronized fun detach(capture: MicrophoneCapture) { controller.detach(capture) }
     @Synchronized fun listening(id: Long, limited: Boolean) {
-        if (!isStarting(id)) return
+        if (!controller.listening(id)) return
         mutableLimited.value = limited
-        mutableState.value = mutableState.value.copy(listening = ListeningState.Listening(id))
     }
     @Synchronized fun stopping(id: Long) {
-        val phase = state.value.listening
-        if (currentId == id && (phase is ListeningState.Starting || phase is ListeningState.Listening)) {
-            mutableState.value = RuntimeState(ListeningState.Stopping(id), AiStatus.DISABLED)
-        }
+        if (controller.stopping(id)) mutableLevels.value = LiveLevels()
     }
     @Synchronized fun finished(id: Long) {
-        if (currentId != id) return
-        mutableLevels.value = LiveLevels()
-        if (state.value.listening !is ListeningState.Error) mutableState.value = RuntimeState()
+        if (controller.finished(id)) { mutableLevels.value = LiveLevels(); mutableLimited.value = false }
     }
     @Synchronized fun fail(id: Long?, message: String) {
-        if (id != null && currentId != id) return
-        if (id == null && owner != null) return
-        mutableState.value = RuntimeState(ListeningState.Error(message))
-        mutableLevels.value = LiveLevels()
+        if (controller.fail(id, message)) mutableLevels.value = LiveLevels()
     }
     @Synchronized fun publish(id: Long, sound: Float, commanded: Float) {
-        if (currentId == id && state.value.listening is ListeningState.Listening) mutableLevels.value = LiveLevels(sound, commanded)
+        if (controller.isListening(id)) mutableLevels.value = LiveLevels(sound, commanded)
     }
 }

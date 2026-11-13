@@ -9,7 +9,9 @@ import org.junit.Test
 class CaptureRuntimeTest {
     @Test fun aiStatusFollowsOnlyActiveSessionAndCannotResurrectAfterStop() {
         val first = CaptureRuntime.requestStart()!!
+        val owner = MicrophoneCapture({ error("not started") }, {}, {})
         try {
+            assertTrue(CaptureRuntime.attach(first, owner))
             CaptureRuntime.setAiEnabled(true)
             assertTrue(CaptureRuntime.aiEnabled.value)
             CaptureRuntime.aiStatus(first, AiStatus.STARTING)
@@ -18,6 +20,7 @@ class CaptureRuntimeTest {
             CaptureRuntime.aiStatus(first, AiStatus.AVAILABLE)
             CaptureRuntime.stopping(first)
             assertEquals(AiStatus.DISABLED, CaptureRuntime.state.value.ai)
+            CaptureRuntime.detach(owner)
             CaptureRuntime.finished(first)
             CaptureRuntime.aiStatus(first, AiStatus.AVAILABLE)
             assertEquals(AiStatus.DISABLED, CaptureRuntime.state.value.ai)
@@ -25,14 +28,17 @@ class CaptureRuntimeTest {
             CaptureRuntime.aiStatus(first, AiStatus.UNAVAILABLE)
             assertEquals(AiStatus.DISABLED, CaptureRuntime.state.value.ai)
             CaptureRuntime.finished(second)
-        } finally { CaptureRuntime.setAiEnabled(false); CaptureRuntime.finished(first) }
+        } finally { CaptureRuntime.setAiEnabled(false); CaptureRuntime.detach(owner); CaptureRuntime.finished(first) }
     }
 
     @Test fun serviceDestructionAfterCompletedStopCannotResurrectStoppingState() {
         val first = CaptureRuntime.requestStart()!!
+        val owner = MicrophoneCapture({ error("not started") }, {}, {})
         try {
+            assertTrue(CaptureRuntime.attach(first, owner))
             CaptureRuntime.listening(first, false)
             CaptureRuntime.stopping(first)
+            CaptureRuntime.detach(owner)
             CaptureRuntime.finished(first)
             // Service.stopSelf() then invokes onDestroy() -> stopCapture() again.
             CaptureRuntime.stopping(first)
@@ -40,7 +46,7 @@ class CaptureRuntimeTest {
             val second = CaptureRuntime.requestStart()
             assertNotNull(second)
             if (second != null) CaptureRuntime.finished(second)
-        } finally { CaptureRuntime.finished(first) }
+        } finally { CaptureRuntime.detach(owner); CaptureRuntime.finished(first) }
     }
 
     @Test fun oldServiceCallbacksCannotOverwriteNewSessionOrReleaseDifferentMicrophone() {
@@ -48,8 +54,8 @@ class CaptureRuntimeTest {
         assertNull(CaptureRuntime.requestStart())
         val owner = MicrophoneCapture({ error("not started") }, {}, {})
         val other = MicrophoneCapture({ error("not started") }, {}, {})
-        assertTrue(CaptureRuntime.attach(owner))
-        assertFalse(CaptureRuntime.attach(other))
+        assertTrue(CaptureRuntime.attach(first, owner))
+        assertFalse(CaptureRuntime.attach(first, other))
         CaptureRuntime.listening(first, true)
         CaptureRuntime.publish(first, 0.2f, 0.5f)
         assertEquals(0.5f, CaptureRuntime.levels.value.commanded, 0f)

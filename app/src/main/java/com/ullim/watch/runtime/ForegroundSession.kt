@@ -11,9 +11,11 @@ class ForegroundSession(
     private val cancelOutput: () -> Unit,
 ) {
     private var active = false
+    private var cleanupRequired = false
 
     @Synchronized fun start(sessionId: Long): ForegroundStart {
         if (active) return ForegroundStart.ALREADY_RUNNING
+        cleanupRequired = true
         return try {
             promote()
             if (capture.start(sessionId)) {
@@ -33,9 +35,11 @@ class ForegroundSession(
     }
 
     @Synchronized fun stop() {
+        if (!cleanupRequired) return
+        cleanupRequired = false
         active = false
-        runCatching { capture.stop() }
         runCatching { cancelOutput() }
+        runCatching { capture.stop() }
         runCatching { demote() }
     }
 }

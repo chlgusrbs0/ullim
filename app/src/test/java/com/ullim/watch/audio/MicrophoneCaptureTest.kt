@@ -9,6 +9,22 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class MicrophoneCaptureTest {
+    @Test fun failedNativeReleasePreventsAnotherRecorderOnThatCapture() {
+        val statuses = CopyOnWriteArrayList<CaptureStatus>()
+        val capture = MicrophoneCapture({ object : PcmInput {
+            override fun start() {}
+            override fun read(buffer: ShortArray) = -1
+            override fun stop() {}
+            override fun release() { error("release failed") }
+        } }, {}, statuses::add)
+        try {
+            capture.start(1)
+            assertTrue(capture.awaitStopped(2000))
+            assertEquals(CaptureStatus.Failed(CaptureError.CLEANUP), statuses.last())
+            assertFalse("release failed but a new recorder was admitted", capture.start(2))
+        } finally { capture.stop(); assertTrue(capture.awaitStopped(2000)) }
+    }
+
     private class BlockingInput : PcmInput {
         val reading = CountDownLatch(1)
         val stopped = CountDownLatch(1)
