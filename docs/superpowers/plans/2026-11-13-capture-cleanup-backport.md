@@ -38,3 +38,9 @@ Consumes/produces: unchanged `start(sessionId): Boolean`, `stop()`, `awaitStoppe
 - [ ] Commit and read-only review; update existing Draft PR44. Continue watch verification after the outstanding rhythm trial. No early issue close.
 
 Ruling: use the existing clean `work/ullim-ui-check` clone on its own #5 branch, preserving primary #35 and #4 review checkouts; no new worktree or implementation agent is needed.
+
+Final review: cleanup backport sound; accepted Important source-fallback, permission-cause and terminal-status-order defects in the complete #5 diff. One fix pass added `PcmInputFactory.kt` / `PcmInputFactoryTest.kt` and a capture ordering regression. Actual behavior RED: ordering1/1 fails; factory4/6 fail. Final GREEN28/28, assemble/lint success14s. No new dependency/public core contract.
+
+Final: minor (deferred): old factory-stop test's unbounded latch and repeated-session spin need failure-cleanup improvement; production semantics are unaffected, but a future failing host test can require manual cleanup.
+
+Native pilot: cumulative old installed35source retainedListening at3..63s; the harness stop-label typo caused force-stop cleanup. No new-candidate/normal-stop/permission pass claimed. User confirms binary-feeling choppy haptics, so current priority returns to #18 quality repair after publishing these verified local fixes. Keep44Draft.

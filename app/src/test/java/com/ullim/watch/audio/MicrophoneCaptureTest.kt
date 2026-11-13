@@ -9,6 +9,34 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class MicrophoneCaptureTest {
+    @Test fun nextSessionWaitsUntilPreviousTerminalStatusHasBeenDelivered() {
+        val terminalEntered = CountDownLatch(1)
+        val releaseTerminal = CountDownLatch(1)
+        val terminalCount = AtomicInteger()
+        val capture = MicrophoneCapture({ object : PcmInput {
+            override fun start() {}
+            override fun read(buffer: ShortArray) = -1
+            override fun stop() {}
+            override fun release() {}
+        } }, {}, { status ->
+            if (status is CaptureStatus.Failed && terminalCount.incrementAndGet() == 1) {
+                terminalEntered.countDown()
+                check(releaseTerminal.await(3, TimeUnit.SECONDS))
+            }
+        })
+        try {
+            assertTrue(capture.start(1))
+            assertTrue(terminalEntered.await(2, TimeUnit.SECONDS))
+            assertFalse("next session overtook previous terminal status", capture.start(2))
+        } finally {
+            releaseTerminal.countDown()
+            capture.stop()
+            assertTrue(capture.awaitStopped(2000))
+        }
+        assertTrue(capture.start(3))
+        assertTrue(capture.awaitStopped(2000))
+    }
+
     @Test fun failedNativeReleaseRetainsRecorderOwnership() {
         val statuses = CopyOnWriteArrayList<CaptureStatus>()
         val opens = AtomicInteger()
