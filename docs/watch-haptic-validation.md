@@ -104,3 +104,18 @@ G/H 두 쌍을 시각으로 대응시킨 결과 앱 요청은1/255였지만 삼�
 `./gradlew.bat :app:testDebugUnitTest :app:assembleDebug :app:lintDebug`: **166 tests / 0 failures / 0 errors, BUILD SUCCESSFUL in 1m23s**. APK SHA-256 `80dffec2f24728dccef5b43145ddf935781e162cbbc0ac832bfd08626c8de34f`를 동일 워치에 `install -r`로 설치했다. 전체 검증은 테스트 이름의 경미한 정리 전 실행이며 제품 소스는 동일하다. 이름 정리 후 비교 테스트4개도8s에 통과했다. 독립 읽기 전용 검토에서 Critical/Important 결함은 없었다. 정확한40/41ms 경계 및 실제 Activity onStop 자동 검사는 추가 검증 여지가 있다. 기본 live scheduler와 core 계약은 변경하지 않았다.
 
 근거: [Android haptics API](https://developer.android.com/develop/ui/views/haptics/haptics-apis), [AOSP 파형 교체 처리](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/services/core/java/com/android/server/vibrator/VibratorManagerService.java), [AOSP pipeline 조건](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/services/core/java/com/android/server/vibrator/HalVibration.java). AOSP 구현은 삼성 빌드의 모터 동작을 직접 증명하지 않는다. 숨김 API/비공개 pipeline 플래그는 사용하지 않는다.
+
+## 실제 감지 경로의 수치 비교 보완 (2026-11-13)
+
+사용자는 ZZK1 업데이트 후에도 작은/큰 소리 모두 비슷한 길이·세기의 짧은 진동이 끊겨 반복된다고 보고했다. 소리 유무만 알리는 동작은 프로젝트 목표의 합격이 아니다. 10초 간격 화면 표본은 짧은 입력 사건을 놓치므로 실제 DSP 프레임 경계와 진동 요청 경계를 집계해 원인을 구분한다.
+
+디버그 앱만 세션마다 `HapticTelemetry`와 투명한 `TracingEnvelopeDevice`를 생성한다. DSP 처리·매핑·스케줄러의 출력 정책은 바꾸지 않는다. 25개 프레임(정상 입력 시 500ms)마다 다음의 수치만 모으며, 소비자가 늦으면 최신 집계 한 개로 교체한다. 원본 PCM·음성·AI 소리 이름·기기 연결 식별자는 모으지 않는다.
+
+- 입력 RMS/엔벌로프/소음 추정/게이트 뒤 level/요청 강도의 최소·최대, 0이 아닌 요청 프레임 수와 스케줄러 거부 수.
+- 앱 콜백 도착 간격과 프레임의 앱 시각 대비 나이. 오디오 첫 샘플 시각은 기존 캡처의 추정치이며 물리 소리 발생 시각이 아니다.
+- 실제 Waveform API 호출 시도 수·간격, 요청한 전체 파형 길이 및 명시적인 양의 amplitude 범위. `defaultAmplitudeSegments`는 값 -1의 요청 수다. 양의 amplitude가 없으면 최소/최대 0으로 기록하므로 이 수치를 모터 무출력으로 해석하지 않는다.
+- cancel 호출 시도 수. API 시도는 성공·물리 모터 반응과 다르며 예외는 기존 렌더러로 그대로 전달한다.
+
+`UllimTrace` 로그 쓰기는 기존 메인 heartbeat에서 최신 집계를 가져와 실행하며 마이크/DSP 콜백에서 로그 I/O를 하지 않는다. 로그는 개별 프레임/개별 API 호출 전체의 원본 이벤트 목록이 아니다. 마지막 25개 미만 프레임은 포함되지 않을 수 있고 메인 스레드가 늦으면 중간 집계가 교체된다. 엔벌로프 요청은 래퍼가 원래 요청 그대로 전달하지만 이 Waveform 전용 호출 수에는 포함하지 않는다. 대상 워치는 엔벌로프 미지원이다.
+
+실기기 시험은 앱 설치 후 짧은 정숙/작은 소리/큰 소리 구간을 비교하고 일반 중지 버튼으로 끝낸다. 실제 입력 RMS와 요청 intensity/amplitude가 달라지는지, 지속 입력 구간에도 호출 교체가 반복되는지 확인한다. 위 수치로 실제 모터 가속도·물리 P95·블라인드 정답률을 대신하지 않는다. 이 코드는 원인 조사 도구이며 끊김/강약 수정의 성공을 뜻하지 않는다.

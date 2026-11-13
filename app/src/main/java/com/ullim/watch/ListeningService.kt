@@ -37,6 +37,8 @@ import com.ullim.watch.haptics.AdaptiveHapticRenderer
 import com.ullim.watch.haptics.AndroidEnvelopeDevice
 import com.ullim.watch.haptics.HybridHapticMapper
 import com.ullim.watch.haptics.HapticScheduler
+import com.ullim.watch.haptics.HapticTelemetry
+import com.ullim.watch.haptics.TracingEnvelopeDevice
 import com.ullim.watch.runtime.CaptureRuntime
 import com.ullim.watch.runtime.CaptureFailure
 import com.ullim.watch.runtime.ForegroundSession
@@ -57,6 +59,7 @@ open class ListeningService : Service() {
     private var stopping = false
     private var aiWorker: AiWorker? = null
     private var aiFeed: AiCaptureFeed? = null
+    private var hapticTelemetry: HapticTelemetry? = null
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var aiObservation: Job? = null
     private var lastAiLogNs = -5_000_000_000L
@@ -66,6 +69,7 @@ open class ListeningService : Service() {
         override fun run() {
             val token = currentSession
             if (token <= 0 || stopping) return
+            logHaptics()
             aiFeed?.refreshMode()
             aiWorker?.tick()
             mainHandler.postDelayed(this, 100)
@@ -127,12 +131,16 @@ open class ListeningService : Service() {
         val mapper = HybridHapticMapper()
         val ai = AiRuntime.worker(this)
         aiWorker = ai
-        val scheduler = HapticScheduler(AdaptiveHapticRenderer(device))
+        val trace = if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) HapticTelemetry(token) else null
+        hapticTelemetry = trace
+        val outputDevice = if (trace != null) TracingEnvelopeDevice(device, trace) else device
+        val scheduler = HapticScheduler(AdaptiveHapticRenderer(outputDevice))
         var lastUiNs = -100_000_000L
         val fanout = AudioFanOut { frame ->
             val features = dsp.extract(frame)
             val command = mapper.map(features, ai.current(token, frame.timestampNs))
-            scheduler.offer(command)
+            val accepted = scheduler.offer(command)
+            trace?.offer(features, command, accepted, System.nanoTime())
             when (scheduler.lastResult) {
                 RenderResult.FAILED -> throw CaptureException(CaptureError.OUTPUT)
                 RenderResult.UNSUPPORTED -> throw CaptureException(CaptureError.OUTPUT_UNSUPPORTED)
@@ -247,6 +255,8 @@ open class ListeningService : Service() {
         if (currentSession > 0) CaptureRuntime.stopping(currentSession)
         stopAi(currentSession)
         lifecycle?.stop()
+        logHaptics()
+        hapticTelemetry = null
     }
 
     private fun stopAi(token: Long) {
@@ -270,6 +280,11 @@ open class ListeningService : Service() {
             "loadNs=${snapshot.loadDurationNs} inferNs=${snapshot.lastInferenceNs} maxInferNs=${snapshot.maxInferenceNs} " +
             "attempts=${snapshot.inferenceCount} validResults=${snapshot.successfulInferences} " +
             "faults=${snapshot.faultCount} timeouts=${snapshot.timeoutCount} operationNs=${snapshot.operationElapsedNs} dropped=${snapshot.droppedWindows}")
+    }
+
+    private fun logHaptics() {
+        val snapshot = hapticTelemetry?.takeLatest() ?: return
+        Log.i("UllimTrace", snapshot.toString())
     }
 
     override fun onDestroy() {
