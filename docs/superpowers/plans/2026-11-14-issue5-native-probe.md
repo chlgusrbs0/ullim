@@ -25,9 +25,9 @@ Reusing the cumulative #17 app would not prove PR44's exact adapter. Adding a pr
 ## One verification unit
 
 - [x] Read issue/all comments/PR; confirm #3 merged; integrate current main (#24).
-- [ ] Add conditional debug manifest/source directories behind `-PnativeCaptureProbe=true`; implement visible 1–60 second probe with numeric-only reporting, duplicate-start check and lifecycle stop. No product behavior changes.
-- [ ] Run existing full unit tests, debug assemble/lint and opt-in assemble/lint. Verify ordinary debug/release manifest excludes the probe; record APK hashes.
-- [ ] Review immutable candidate diff once with a read-only reviewer and fix required findings.
-- [ ] Install exact probe APK. Revoke original microphone grant temporarily and verify PERMISSION/no running microphone. Restore original grant and run 60 seconds in foreground. Ask user for one external sound while actually recording. Record format, sample counts, RMS range, continuity, Stopped, and framework release.
-- [ ] Restore exact improved APK, calibration hash and original runtime permission states; verify microphone stopped.
+- [x] Add conditional debug manifest/source directories behind `-PnativeCaptureProbe=true`; implement visible 1–60 second probe with numeric-only reporting, duplicate-start check and lifecycle stop. No product behavior changes.
+- [x] Run existing full unit tests, debug assemble/lint and opt-in assemble/lint. Verify ordinary debug/release manifest excludes the probe; record APK hashes.
+- [x] Review immutable candidate diff once with a read-only reviewer and fix required findings. Focus-loss regression RED17s → GREEN31 tests/46s; final ordinary 30 tests/33s. No second review requested.
+- [x] Install exact probe APK. Revoke original microphone grant temporarily and verify PERMISSION/no running microphone. Restore original grant and run 60 seconds in foreground. Ask user for one external sound while actually recording. Record format, sample counts, RMS range, continuity, Stopped, and framework release. [Results](../../evidence/issue5-watch7-native.md). Ruling: sample-derived timestamp gaps establish the frame contract only; use elapsed/sample totals/native observations together and do not claim independent hardware drop detection.
+- [x] Restore exact improved APK, calibration hash and original runtime permission states; verify microphone stopped.
 - [ ] Commit evidence, push PR44, mark ready/merge with expected SHA only if all #5 gates pass; verify issue auto-closure.
