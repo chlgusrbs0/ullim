@@ -13,4 +13,5 @@ data class ListeningUiState(
     val microphoneGranted: Boolean = false,
     val notificationsGranted: Boolean = false,
     val visualization: VisualizationSnapshot = VisualizationSnapshot(),
+    val ai: AiDisplayState = AiDisplayState(),
 )

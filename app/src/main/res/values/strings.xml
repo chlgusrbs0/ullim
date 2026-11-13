@@ -49,6 +49,13 @@
     <string name="graph_input_description">입력 소리 RMS 최근 %1$d%%. 함께 표시된 선은 엔벌로프예요.</string>
     <string name="graph_command_description">진동 명령 최근 %1$d%%. 물리 진동 측정값이 아니에요.</string>
     <string name="ai_controls">AI 보조</string>
+    <string name="ai_result_waiting">최근 결과를 기다려요</string>
+    <string name="ai_uncertain">판별 불확실</string>
+    <string name="ai_result_expired">최근 결과가 만료됐어요</string>
+    <string name="ai_unsupported">지원하지 않는 분류예요</string>
+    <string name="ai_model_score">모델 점수 %1$d%% · 정답 확률이 아니에요</string>
+    <string name="ai_original_result">%1$s (모델 원문)</string>
+    <string name="ai_original_label">모델 원문: %1$s</string>
     <string name="ai_disabled">AI 보조 꺼짐</string>
     <string name="ai_waiting_for_capture">AI 보조 켜짐 · 감지 시작을 기다려요</string>
     <string name="ai_loading">AI를 준비하고 있어요</string>

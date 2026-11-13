@@ -79,6 +79,29 @@ class AiWorkerTest {
         }
     }
 
+    @Test fun expiredResultMetadataSurvivesClearingAndResetsOnNextResultOffAndSession() {
+        fixture({ Engine() }) { worker, clock ->
+            worker.start(1, true)
+            await { worker.state.value.modelLoaded && !worker.state.value.busy }
+            assertTrue(worker.offer(frame()))
+            await { worker.state.value.classification != null && !worker.state.value.busy }
+            clock.set(4_500_000_000)
+            worker.tick()
+            assertNull(worker.state.value.classification)
+            assertTrue(worker.state.value.resultExpired)
+            clock.set(5_000_000_000)
+            assertTrue(worker.offer(frame(5_000_000_000)))
+            await { worker.state.value.classification != null && !worker.state.value.busy }
+            assertFalse(worker.state.value.resultExpired)
+            clock.set(6_500_000_000); worker.tick()
+            assertTrue(worker.state.value.resultExpired)
+            worker.setEnabled(1, false)
+            assertFalse(worker.state.value.resultExpired)
+            worker.stop(1); worker.start(2, false)
+            assertFalse(worker.state.value.resultExpired)
+        }
+    }
+
     @Test fun offClearsContextImmediatelyButClosesOnlyAfterInferenceReturns() {
         val entered = CountDownLatch(1)
         val release = CountDownLatch(1)

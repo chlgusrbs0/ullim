@@ -20,10 +20,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.ullim.watch.core.ListeningState
+import com.ullim.watch.ai.AiRuntime
 import com.ullim.watch.runtime.CaptureRuntime
 import com.ullim.watch.runtime.VisualizationSnapshot
 import com.ullim.watch.ui.ListeningUiState
 import com.ullim.watch.ui.UllimApp
+import com.ullim.watch.ui.collectAiDisplay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -46,11 +48,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         pendingStart = savedInstanceState?.getBoolean("pendingStart") ?: false
         refreshPermissions()
+        val aiWorker = AiRuntime.worker(this)
         setContent {
             val runtime by CaptureRuntime.state.collectAsStateWithLifecycle()
             val startAllowed by CaptureRuntime.startAllowed.collectAsStateWithLifecycle()
             val levels by CaptureRuntime.levels.collectAsStateWithLifecycle()
             val limited by CaptureRuntime.strengthLimited.collectAsStateWithLifecycle()
+            val ai = collectAiDisplay(CaptureRuntime.aiEnabled, CaptureRuntime.state, aiWorker.state)
             val uiLifecycle = LocalLifecycleOwner.current.lifecycle
             val visualization by produceState(VisualizationSnapshot(), runtime.listening, uiLifecycle) {
                 value = VisualizationSnapshot()
@@ -66,7 +70,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
             UllimApp(
-                state = ListeningUiState(runtime, startAllowed, levels, limited, microphoneGranted, notificationsGranted, visualization),
+                state = ListeningUiState(runtime, startAllowed, levels, limited, microphoneGranted, notificationsGranted, visualization, ai),
                 onStart = ::requestCapture,
                 onStop = ::stopCapture,
                 onAiSettings = { startActivity(Intent(this, AiControlsActivity::class.java)) },

@@ -1,0 +1,17 @@
+# AI result display (#27)
+
+Home shows a compact AI summary after the sound/command graphs. The AI controls show the same summary with translated classes' original model labels. Both use `collectAiDisplay` to collect the real process choice, controller and worker StateFlows with lifecycle-aware subscriptions. The pure `AiDisplay` projection never starts capture, changes AI mode or affects DSP/haptics. Opening home creates the process worker holder but does not start a native model job or microphone.
+
+OFF immediately suppresses recognition. Idle/error/stopping capture, wrong worker sessions and loading/delayed/failed execution cannot display an old label or score. Each displayed classification is checked again against the active session and the current monotonic time. Future and expired results are not recognized. Empty, low or ambiguous scores show `판별 불확실`; the display conservatively requires score >=0.35 and margin >=0.08 after normalizing duplicate labels. The worker's temporal smoother remains responsible for confirming distinct windows; the UI does not invent confirmations.
+
+Exact Korean names come from SoundLabels. Untranslated model classes retain their original string marked `모델 원문`; Unknown/unsupported sentinel results show an unsupported message. A numeric percentage is explicitly labeled **model score, not correctness probability**. No classification is presented as a danger warning or a measured accuracy guarantee.
+
+The worker's `resultExpired` metadata distinguishes first-result waiting from a result that its heartbeat has cleared at expiry. Context clearing, a new result, OFF and new sessions reset this flag. Expired UI projection removes both label and score even if a caller still retains the Classification object. The service heartbeat supplies expiration changes while no inference completes, and lifecycle collection refreshes state on return. Main also redraws from the bounded graph reader while Listening. Pending native cleanup and restart-required faults remain visible without pretending a blocked native call was terminated.
+
+Wear text wraps without ellipsis in scrollable screens. The main start/stop control and both graphs precede the AI content. Host tests do not prove Watch7 circular-edge readability, gesture behavior or font scaling.
+
+## Evidence boundary
+
+Pure display tests cover execution phases, capture/worker/result session gates, exact expiry and future time, low/empty/tied/duplicate scores, Korean/original/Unknown mapping and cleanup flags. A real AiWorker test advances its injected monotonic clock across expiry, next results, OFF and new sessions. Robolectric Compose tests drive mock classification/runtime/choice StateFlows through the same production collector: loading→fresh Speech→Knock→uncertain→expired→OFF, delayed/failure/stopping suppression and original-label/cleared-expiry behavior.
+
+Run `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` locally. These tests use synthetic classifications and an injected engine; they do not load native YAMNet or establish recognition accuracy. Watch7 screenshots for every state, full original-label wrapping, actual offline inference, new/old sound transitions and graph/control responsiveness remain unverified. Keep the PR Draft and #27 open until device evidence and predecessor main merges exist. No workflows, PCM/voice storage, classification logs or remote services were added.
