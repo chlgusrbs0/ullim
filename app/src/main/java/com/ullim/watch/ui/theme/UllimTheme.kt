@@ -1,33 +1,23 @@
 package com.ullim.watch.ui.theme
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
+import androidx.wear.compose.material3.ColorScheme
 import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.Typography
 import androidx.wear.compose.material3.dynamicColorScheme
 
 /**
- * Uses the watch's Wear Material 3 palette when dynamic colors are available.
- * The Wear defaults remain the fallback and provide the round-screen shape system.
+ * Follows the current watch-face palette when Wear OS provides dynamic colors.
+ * Wear Material 3 defaults are used when dynamic colors are unavailable.
  */
 @Composable
 fun UllimTheme(content: @Composable () -> Unit) {
-    val fallbackColorScheme = MaterialTheme.colorScheme
-    val colorScheme = dynamicColorScheme(LocalContext.current) ?: fallbackColorScheme
-    val defaultTypography = MaterialTheme.typography
-    val typography = defaultTypography.copy(
-        titleLarge = defaultTypography.titleLarge.copy(fontFamily = FontFamily.SansSerif),
-        titleMedium = defaultTypography.titleMedium.copy(fontFamily = FontFamily.SansSerif),
-        bodyLarge = defaultTypography.bodyLarge.copy(fontFamily = FontFamily.SansSerif),
-        bodyMedium = defaultTypography.bodyMedium.copy(fontFamily = FontFamily.SansSerif),
-        bodySmall = defaultTypography.bodySmall.copy(fontFamily = FontFamily.SansSerif),
-        labelLarge = defaultTypography.labelLarge.copy(fontFamily = FontFamily.SansSerif),
-    )
-
+    val watchColorScheme = dynamicColorScheme(LocalContext.current)
     MaterialTheme(
-        colorScheme = colorScheme,
-        typography = typography,
-        shapes = MaterialTheme.shapes,
+        colorScheme = watchColorScheme ?: ColorScheme(),
+        typography = Typography(defaultFontFamily = FontFamily.SansSerif),
         content = content,
     )
 }
