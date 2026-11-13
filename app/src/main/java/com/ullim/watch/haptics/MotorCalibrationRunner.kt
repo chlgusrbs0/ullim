@@ -49,7 +49,8 @@ class MotorCalibrationRunner(
         firmwareKey = MotorProfileStore.deviceKey(context)
         pulseFallback = !device.capabilities.amplitudeControl ||
             MotorVibrationPolicy.requiresPulseFallback(Build.MODEL, firmwareKey)
-        onDiagnostic("start pulse=$pulseFallback amplitudeControl=${device.capabilities.amplitudeControl}")
+        onDiagnostic("start pulse=$pulseFallback amplitudeControl=${device.capabilities.amplitudeControl} " +
+            "globalIntensityKnown=${!firmwareKey.endsWith("|globalIntensity=-")}")
         stopping = false
         pending = null
         accumulator = null

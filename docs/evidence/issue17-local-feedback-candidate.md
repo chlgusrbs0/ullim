@@ -73,7 +73,19 @@ f7c6bc7/2ea5d9be…를 실제 install-r/설치 해시 대조했고 보정 파일
 
 공식 참조: [Builder 버전](https://developer.android.com/reference/android/os/VibrationEffect.Builder), [AOSP vendor session 정의](https://android.googlesource.com/platform/frameworks/base/+/HEAD/core/java/android/os/Vibrator.java). 공개 오디오 API 재조회는 자체 작성 Java958byte dex를 app_process에서 실행했으며 마이크 수집/오디오 재생/진동 출력은 하지 않았다. 최초 조회는 연결 offline으로 실패했고 같은 주소의 무선 연결을 복구한 뒤 false/false 결과를 얻어 정리했다. 글씨 크기1.0/충전 중 화면 유지0은 그대로다.
 
-이는 유기적으로 바뀌는 연속 강도가 물리적으로 불가능하다는 결론이 아니다. **현재 펌웨어와 확인한 일반 앱 제어 경로에서 원하는 연속 강약을 아직 달성하지 못했다**는 결론이다. 다음 핵심 비교는 강도 전달이 정상인 펌웨어/기기에서 같은600ms G/H를 확인하는 것이며, 재요청에 따른 끊김도 별도 남는다. 사용자 승인 없이 펌웨어 다운그레이드/초기화/플래시를 하지 않았다. 현재 개선된 감지·보정은 유지하며 #17/#18/#37/#39의 남은 기준을 낮추거나 완료 처리하지 않는다.
+이는 유기적으로 바뀌는 연속 강도가 물리적으로 불가능하다는 결론이 아니다. **현재 펌웨어와 확인한 일반 앱 제어 경로에서 원하는 연속 강약을 아직 달성하지 못했다**는 결론이다. 베타이기 때문이라고 단정하지 않으며 다른 정식 펌웨어 비교도 필수 선행 조건으로 요구하지 않는다. 사용자의 지적에 따라 현재 워치의 삼성 설정과 앱의 제어 경로 차이를 먼저 추적한다. 재요청에 따른 끊김도 별도 남는다. 사용자 승인 없이 펌웨어 다운그레이드/초기화/플래시를 하지 않았다. 현재 개선된 감지·보정은 유지하며 #17/#18/#37/#39의 남은 기준을 낮추거나 완료 처리하지 않는다.
+
+### 같은 워치의 삼성 설정 경로 추적과 보정 키 누락 수정
+
+ZZK1의 framework.jar를 실제 읽어 해시 `57dfb17c9cc8a57523d077aca2574f58c3ece0174d2fd3893d5336162c8bffe7`/47,756,911bytes를 확인했다. SecClockworkSettings.apk는 `225d35879d00a63284f08f2da5a1d1c7911511ba2f97fe04a5bf32ffda679de6`/30,193,847bytes다. 두 파일과 DEX·전체 역어셈블은 로컬 분석에만 보관하고 저장소에 재배포하지 않는다.
+
+설정 앱의 별도 StVibrationIntensitySettingsFragment에는500ms OneShot1/255와 기본 속성 호출이 있어 L/M 대조 후보를 만들고218개 시험/빌드·Lint가 통과했다. 그러나 설치 전에 추가 추적으로 가설을 기각했다. 현재 framework의 createOneShot은 createWaveform으로 위임하며,500ms·한 StepSegment는 haptic-feedback candidate이고 서비스가 UNKNOWN 속성을 TOUCH(18)로 보정한다. 속성을 생략하는 것만으로 별도 강도 경로를 얻는다고 볼 근거가 없다. 실제 소리·진동 메뉴 구현인 StSoundVibrationsSettingsFragment는 Global.setting_vibration_intensity를 쓰고 삼성 인덱스 패턴으로 미리보기를 재생한다. 따라서 별도 화면용500ms 코드를 실제 메뉴 동작이라고 먼저 설명했던 부분을 정정했다.
+
+L/M 후보는 워치에 설치하지 않았고 관련 런타임/화면/테스트 변경도 제거했다. 패치는 저장소 밖에 보존했다. 최종 APK를 검사해 SETTINGS_MIN/OneShotDevice 잔재가 없는 것도 확인했다. 동등한 제어 경로의 손목 시험을 추가로 요구하지 않았다.
+
+추적 과정에서 실제 Global.setting_vibration_intensity가 MotorProfileStore.deviceKey에 빠져 있음을 발견했다. 호스트에서 이 값0→1을 바꿔도 기존 보정값이 유효하게 남는 RED1건(11s)을 재현한 뒤, **읽기만 하는** 이 값을 식별 키에 포함했다. 이후 새 보정값을 읽을 때 강도 설정이 다르면 거절한다. 현재 실행 중 설정 변경의 즉시 중지는 별도 통합 회귀 항목이며 이 수정으로 검증됐다고 쓰지 않는다. 기존 파일은 누락된 값을 추정해 이관하지 않고 명시적 보정을 다시 요구한다. [Global 설정은 일반 앱이 읽을 수 있지만 임의 쓰기는 허용되지 않는다](https://developer.android.com/reference/android/provider/Settings.Global)는 공식 계약을 따른다. 워치의 값은3으로 읽혔으며 변경하지 않았다.
+
+최종 전체217 tests/실패0/오류0/skip0, assembleDebug/lintDebug 성공30s. APK53,154,165bytes, SHA256 `b6e5b2e2afe5b4cdac156762b320433f8abf7ef27ca28945b7c60ad7eb90b06a`. 이 시점에는 아직 설치 전이며, 워치에는 기존 f7c6bc7/2ea5d9be…가 유지된다. 기존 APK를 로컬에 정확히 백업했고 숫자 보정 파일4,244bytes도 앱 내부에 복사해 원본과 SHA256 `72771daf6596561a46d7815a5ffa40a69cb16ffd32c547ced418d68d2e0342fb`가 같은 것을 확인했다. 녹음 PCM·음성 백업이 아니다. 새 키의 실제 앱 읽기 가능 여부와 재보정은 사용자가 준비되면 검증한다. 매끈한 연속 강약이 해결됐다는 변경은 아니다.
 
 ## 남은 실제 검증
 

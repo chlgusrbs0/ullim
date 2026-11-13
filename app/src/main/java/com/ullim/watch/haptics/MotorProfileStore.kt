@@ -18,7 +18,10 @@ object MotorProfileStore {
         val values = intensityKeys.joinToString("|") { key ->
             runCatching { Settings.System.getString(context.contentResolver, key) }.getOrNull() ?: "-"
         }
-        return "${Build.MODEL}|${Build.FINGERPRINT}|${Build.VERSION.INCREMENTAL}|$values"
+        val globalIntensity = runCatching {
+            Settings.Global.getString(context.contentResolver, "setting_vibration_intensity")
+        }.getOrNull() ?: "-"
+        return "${Build.MODEL}|${Build.FINGERPRINT}|${Build.VERSION.INCREMENTAL}|$values|globalIntensity=$globalIntensity"
     }
 
     fun load(context: Context, firmwareKey: String): MotorNoiseProfile? = try {
