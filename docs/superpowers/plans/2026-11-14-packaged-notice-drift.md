@@ -10,7 +10,7 @@ Architecture: collector emits schema2 catalog with each AAR JNI library's APK pa
 - [x] Implement collector/schema/verifier checks and regenerate against real resolved artifacts. Do not change native completeInventory=false or invent source revisions.
 - [x] Verify real Debug/Release plus all six isolated negative fixtures; local full tests/build/lint/release. Test code creates its own temporary files, never modifies source artifacts or installs APKs.
 - [x] One fresh independent read-only review. One required fix pass, RED→GREEN/full appropriate checks, no re-review. Record decisions and remaining native source gate.
-- [ ] Commit/push original PR71 branch, update exact evidence and DoD/predecessor status. Keep Draft/open if provenance gate remains.
+- [x] Commit/push original PR71 branch, update exact evidence and DoD/predecessor status. Keep Draft/open if provenance gate remains.
 
 Review focus: APK variant versus graph association, unknown/duplicate/missing libraries, metadata hashes versus actual artifacts, stale catalog rejection, unsigned fixture test isolation, no overclaim about DEX origin/native license completeness.
 
@@ -25,3 +25,5 @@ Final: Ruling: inventory/variant association is caller-provided local build evid
 Final: Ruling: Watch7 runtime is outside this tooling-only unit and was not exercised or changed; APK/package checks cannot establish hardware behavior, which remains under the existing issue gates.
 
 Final: fixed empty-input success — empty-input fixture RED→GREEN; both real APK checks and all7 negative fixtures pass. Local Gradle test/build/lint/release SUCCESS2s (102 tasks reused because product inputs unchanged), previous full168/168 tests/0 failures/errors/skips and build37s remain valid. Native source completeness remains false; no second review.
+
+Published source/evidence e55194b and updated PR71 title/body with corrected predecessor states, 7 negative checks, current APK hashes, deferred case issue and unresolved native provenance/Source Form. Draft/open retained; no merge or issue closure. Current worktree product files and Watch7 were unchanged.
