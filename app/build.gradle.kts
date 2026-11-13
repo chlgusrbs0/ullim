@@ -24,6 +24,17 @@ android {
 
     androidResources { noCompress += "tflite" }
 
+    // Opt-in local hardware verification; absent from normal debug and every release.
+    if (providers.gradleProperty("nativeCaptureProbe").orNull == "true") {
+        sourceSets.getByName("debug") {
+            java.srcDir("src/nativeCaptureProbe/java")
+            manifest.srcFile("src/nativeCaptureProbe/AndroidManifest.xml")
+        }
+        if (providers.gradleProperty("nativeProbePackage").orNull == "true") {
+            buildTypes.getByName("debug").applicationIdSuffix = ".nativeprobe"
+        }
+    }
+
     testOptions {
         unitTests.isIncludeAndroidResources = true
         unitTests.all {

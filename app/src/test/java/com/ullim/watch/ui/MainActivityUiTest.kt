@@ -184,7 +184,7 @@ class MainActivityUiTest {
         compose.onNodeWithText("권한 설정").performScrollTo().performClick()
         val settings = shadowOf(compose.activity).nextStartedActivity
         assertEquals(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, settings.action)
-        assertEquals("package:com.ullim.watch", settings.data.toString())
+        assertEquals("package:${application.packageName}", settings.data.toString())
     }
 
     @Test fun permissionsRefreshOnReturnFromAndroidSettingsWithoutStartingCapture() {

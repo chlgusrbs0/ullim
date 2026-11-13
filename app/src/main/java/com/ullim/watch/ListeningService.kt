@@ -42,6 +42,8 @@ import com.ullim.watch.haptics.TracingEnvelopeDevice
 import com.ullim.watch.haptics.MotorNoiseSuppressor
 import com.ullim.watch.haptics.MotorOutputTimeline
 import com.ullim.watch.haptics.MotorProfileStore
+import com.ullim.watch.haptics.MotorSettingsObservation
+import com.ullim.watch.haptics.MotorSettingsWatcher
 import com.ullim.watch.haptics.MotorTrackingDevice
 import com.ullim.watch.runtime.CaptureRuntime
 import com.ullim.watch.runtime.CaptureFailure
@@ -56,11 +58,14 @@ import kotlinx.coroutines.launch
 
 open class ListeningService : Service() {
     protected open fun createPcmInput(): PcmInput = AndroidPcmInput.create(this)
+    protected open fun createMotorSettingsObservation(expectedKey: String, onInvalidated: () -> Unit): MotorSettingsObservation =
+        MotorSettingsWatcher(applicationContext, expectedKey, onInvalidated = onInvalidated)
     private val mainHandler = Handler(Looper.getMainLooper())
     private var lifecycle: ForegroundSession? = null
     private var currentSession = 0L
     private var currentStartId = 0
     private var stopping = false
+    private var motorSettingsObservation: MotorSettingsObservation? = null
     private var aiWorker: AiWorker? = null
     private var aiFeed: AiCaptureFeed? = null
     private var hapticTelemetry: HapticTelemetry? = null
@@ -120,6 +125,8 @@ open class ListeningService : Service() {
     }
 
     private fun startCapture(token: Long, startId: Int) {
+        stopping = false
+        closeMotorSettingsObservation()
         val device = try { AndroidEnvelopeDevice(getSystemService(VibratorManager::class.java).defaultVibrator) }
         catch (_: RuntimeException) {
             reportCaptureFailure(this, token, CaptureFailure.HAPTIC_OUTPUT)
@@ -132,8 +139,33 @@ open class ListeningService : Service() {
             return
         }
         val motorTimeline = MotorOutputTimeline()
-        val motorProfile = MotorProfileStore.load(this, MotorProfileStore.deviceKey(this))
+        val motorKey = MotorProfileStore.deviceKey(this)
+        val motorProfile = MotorProfileStore.load(this, motorKey)
         if (motorProfile == null) {
+            reportCaptureFailure(this, token, CaptureFailure.MOTOR_CALIBRATION)
+            stopSelf(startId)
+            return
+        }
+        val observation = try {
+            createMotorSettingsObservation(motorKey) {
+                if (!stopping && (currentSession == token || CaptureRuntime.isStarting(token))) {
+                    stopCapture()
+                    val persisted = MotorProfileStore.invalidate(this)
+                    reportCaptureFailure(this, token, CaptureFailure.MOTOR_CALIBRATION)
+                    if (!persisted && applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+                        Log.w("UllimError", "session=$token code=MOTOR_CALIBRATION_PERSISTENCE")
+                    }
+                    if (lifecycle == null) stopSelf(currentStartId)
+                }
+            }
+        } catch (_: RuntimeException) {
+            reportCaptureFailure(this, token, CaptureFailure.MOTOR_CALIBRATION)
+            stopSelf(startId)
+            return
+        }
+        motorSettingsObservation = observation
+        if (!runCatching { observation.start() }.getOrDefault(false) || stopping || !CaptureRuntime.isStarting(token)) {
+            closeMotorSettingsObservation()
             reportCaptureFailure(this, token, CaptureFailure.MOTOR_CALIBRATION)
             stopSelf(startId)
             return
@@ -194,6 +226,7 @@ open class ListeningService : Service() {
             fanout.start(token)
             scheduler.begin(token)
         } catch (_: RuntimeException) {
+            closeMotorSettingsObservation()
             fanout.stop()
             runCatching { scheduler.stop() }
             reportCaptureFailure(this, token, CaptureFailure.HAPTIC_OUTPUT)
@@ -201,6 +234,7 @@ open class ListeningService : Service() {
             return
         }
         if (!CaptureRuntime.attach(token, capture)) {
+            closeMotorSettingsObservation()
             fanout.stop()
             runCatching { scheduler.stop() }
             reportCaptureFailure(this, token, CaptureFailure.CLEANUP)
@@ -213,7 +247,7 @@ open class ListeningService : Service() {
             capture,
             { startForeground(NOTIFICATION_ID, notification(token), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE) },
             { stopForeground(STOP_FOREGROUND_REMOVE) },
-            { fanout.stop(); scheduler.stop(); dsp.reset(); mapper.reset(); stopAi(token) },
+            { closeMotorSettingsObservation(); fanout.stop(); scheduler.stop(); dsp.reset(); mapper.reset(); stopAi(token) },
         )
         lifecycle = session
         val result = session.start(token)
@@ -267,11 +301,18 @@ open class ListeningService : Service() {
 
     private fun stopCapture() {
         stopping = true
+        closeMotorSettingsObservation()
         if (currentSession > 0) CaptureRuntime.stopping(currentSession)
         stopAi(currentSession)
         lifecycle?.stop()
         logHaptics()
         hapticTelemetry = null
+    }
+
+    private fun closeMotorSettingsObservation() {
+        val observation = motorSettingsObservation
+        motorSettingsObservation = null
+        runCatching { observation?.close() }
     }
 
     private fun stopAi(token: Long) {
