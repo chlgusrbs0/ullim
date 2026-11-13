@@ -4,6 +4,7 @@ import com.ullim.watch.core.AudioFrame
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -77,16 +78,22 @@ class AudioFanOutTest {
         val observed = CopyOnWriteArrayList<AudioFrame>()
         val fanout = AudioFanOut(observed::add)
         fanout.start(1)
-        fanout.accept(AudioFrame(1, 0, ShortArray(15_600)))
+        fanout.accept(AudioFrame(1, 0, ShortArray(15_600) { 7 }))
         val snapshotTaken = CountDownLatch(1)
         val finishAi = CountDownLatch(1)
+        val childFailure = AtomicReference<Throwable?>()
         var heldNs = 0L
         val ai = Thread {
-            assertNotNull(fanout.takeLatestAi())
-            val start = System.nanoTime()
-            snapshotTaken.countDown()
-            finishAi.await(5, TimeUnit.SECONDS)
-            heldNs = System.nanoTime() - start
+            try {
+                val snapshot = fanout.takeLatestAi()!!
+                val start = System.nanoTime()
+                snapshotTaken.countDown()
+                assertTrue(finishAi.await(5, TimeUnit.SECONDS))
+                assertEquals(1L, snapshot.sessionId)
+                assertEquals(0L, snapshot.timestampNs)
+                assertTrue(snapshot.copySamples().all { it == 7.toShort() })
+                heldNs = System.nanoTime() - start
+            } catch (failure: Throwable) { childFailure.set(failure) }
         }
         ai.start()
         try {
@@ -107,6 +114,7 @@ class AudioFanOutTest {
             fanout.stop()
         }
         assertFalse(ai.isAlive)
+        assertNull("AI snapshot changed during use: ${childFailure.get()}", childFailure.get())
         assertTrue("AI snapshot was not held for two real seconds", heldNs >= 2_000_000_000L)
         println("AI snapshot held=${heldNs / 1_000_000}ms; DSP continued without missing submitted frames")
     }

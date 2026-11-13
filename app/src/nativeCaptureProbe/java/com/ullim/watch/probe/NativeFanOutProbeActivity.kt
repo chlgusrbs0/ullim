@@ -23,6 +23,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
 /** Synthetic-only native verification; never opens the microphone or vibrator. */
 class NativeFanOutProbeActivity : ComponentActivity() {
@@ -82,41 +83,47 @@ class NativeFanOutProbeActivity : ComponentActivity() {
         val fanout = AudioFanOut { count.incrementAndGet() }
         val pcm = ShortArray(320)
         val heaps = mutableListOf<Long>()
+        fanout.start(1)
         // First burst warms class/JIT state; the following three measure retained Java heap.
         repeat(4) { run ->
             checkActive()
-            count.set(0)
-            fanout.start(run + 1L)
             val before = System.nanoTime()
             repeat(30_000) { index ->
                 checkActive()
-                check(fanout.accept(AudioFrame(run + 1L, index * 20_000_000L, pcm))) { "FRAME_REJECTED" }
+                val globalIndex = run * 30_000L + index
+                check(fanout.accept(AudioFrame(1, globalIndex * 20_000_000L, pcm))) { "FRAME_REJECTED" }
             }
-            check(count.get() == 30_000) { "DSP_COUNT" }
-            check(fanout.takeLatestAi()?.sampleCount == 15_600) { "AI_WINDOW" }
-            check(fanout.takeLatestAi() == null) { "AI_QUEUE" }
-            fanout.stop()
+            check(count.get() == (run + 1) * 30_000) { "DSP_COUNT" }
+            // Measure the still-active session without draining its AI slot or clearing history.
             val heap = usedHeap()
             heaps.add(heap)
             Log.i(TAG, "burst=$run frames=${count.get()} elapsedMs=${(System.nanoTime() - before) / 1_000_000} usedJavaHeap=$heap")
         }
+        check(fanout.takeLatestAi()?.sampleCount == 15_600) { "AI_WINDOW" }
+        check(fanout.takeLatestAi() == null) { "AI_QUEUE" }
+        fanout.stop()
         val retainedGrowth = heaps.last() - heaps.first()
         check(retainedGrowth < 4 * 1024 * 1024) { "JAVA_HEAP_GROWTH" }
         Log.i(TAG, "javaHeapGrowth=$retainedGrowth limitBytes=4194304 simulatedMinutes=40")
 
         count.set(0)
         fanout.start(5)
-        repeat(50) { fanout.accept(AudioFrame(5, it * 20_000_000L, pcm)) }
+        repeat(50) { fanout.accept(AudioFrame(5, it * 20_000_000L, ShortArray(320) { 7 })) }
         val taken = CountDownLatch(1)
         val finish = CountDownLatch(1)
+        val childFailure = AtomicReference<Throwable?>()
         var heldNs = 0L
         val ai = Thread({
-            val snapshot = fanout.takeLatestAi()
-            if (snapshot == null) return@Thread
-            val began = System.nanoTime()
-            taken.countDown()
-            finish.await(5, TimeUnit.SECONDS)
-            heldNs = System.nanoTime() - began
+            try {
+                val snapshot = fanout.takeLatestAi() ?: error("AI_SNAPSHOT_MISSING")
+                val began = System.nanoTime()
+                taken.countDown()
+                check(finish.await(5, TimeUnit.SECONDS)) { "AI_WAIT_TIMEOUT" }
+                // The first snapshot is emitted at 15,600 samples; later input has not reached the next cadence.
+                check(snapshot.sessionId == 5L && snapshot.timestampNs == 0L) { "AI_IDENTITY" }
+                check((0 until snapshot.sampleCount).all { snapshot.sampleAt(it) == 7.toShort() }) { "AI_SNAPSHOT_CHANGED" }
+                heldNs = System.nanoTime() - began
+            } catch (failure: Throwable) { childFailure.set(failure) }
         }, "ullim-held-ai").apply { isDaemon = true; start() }
         var submitted = 0
         try {
@@ -135,6 +142,7 @@ class NativeFanOutProbeActivity : ComponentActivity() {
             fanout.stop()
         }
         check(!ai.isAlive && heldNs >= 2_000_000_000L) { "AI_STALL_DURATION" }
+        check(childFailure.get() == null) { "AI_SNAPSHOT_FAILED" }
         Log.i(TAG, "aiHeldMs=${heldNs / 1_000_000} dspFramesDuringStall=$submitted")
 
         var fresh = true
