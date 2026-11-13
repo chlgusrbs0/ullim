@@ -22,6 +22,8 @@ android {
         compose = true
     }
 
+    androidResources { noCompress += "tflite" }
+
     // Explicit local hardware verification only; never part of normal debug or release.
     if (providers.gradleProperty("nativeCaptureProbe").orNull == "true") {
         sourceSets.getByName("debug") {
@@ -64,6 +66,7 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.wear.compose:compose-material3:1.5.0")
+    implementation("com.google.ai.edge.litert:litert:1.4.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
     testImplementation("androidx.compose.ui:ui-test-junit4")
