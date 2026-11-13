@@ -7,6 +7,7 @@ import com.ullim.watch.runtime.CaptureRuntime
 import com.ullim.watch.settings.SettingsRuntime
 import org.junit.Assert.*
 import org.junit.Rule
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -22,6 +23,12 @@ import org.robolectric.annotation.LooperMode
 @LooperMode(LooperMode.Mode.PAUSED)
 class PersistentSettingsUiTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+
+    @Before fun completeInitialNotice() {
+        compose.activity.getSharedPreferences("ullim_first_run", 0).edit().putBoolean("onboarding_complete", true).commit()
+        compose.activityRule.scenario.recreate()
+        compose.waitForIdle()
+    }
 
     @Test fun settingsChangeLiveValuesSurviveActivityRecreationAndResetToExplicitDefaults() {
         val settings = SettingsRuntime.get(compose.activity)

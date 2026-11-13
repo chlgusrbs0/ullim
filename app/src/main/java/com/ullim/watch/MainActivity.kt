@@ -38,6 +38,12 @@ class MainActivity : ComponentActivity() {
     private var pendingStart = false
     private var microphoneGranted by mutableStateOf(false)
     private var notificationsGranted by mutableStateOf(false)
+    private var showOnboarding by mutableStateOf(true)
+    private var microphonePermissionPermanentlyDenied by mutableStateOf(false)
+    private val firstRun by lazy { getSharedPreferences(PREFERENCES_NAME, MODE_PRIVATE) }
+    private val microphonePermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+        refreshPermissions() // Permission alone never starts capture.
+    }
     private val permissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         refreshPermissions()
         if (pendingStart) {
@@ -49,7 +55,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        pendingStart = savedInstanceState?.getBoolean("pendingStart") ?: false
+        showOnboarding = !firstRun.getBoolean(KEY_ONBOARDING_COMPLETE, false)
+        pendingStart = !showOnboarding && (savedInstanceState?.getBoolean("pendingStart") ?: false)
         refreshPermissions()
         val aiWorker = AiRuntime.worker(this)
         val preferences = SettingsRuntime.get(this)
@@ -76,7 +83,8 @@ class MainActivity : ComponentActivity() {
                 }
             }
             UllimApp(
-                state = ListeningUiState(runtime, startAllowed, levels, limited, microphoneGranted, notificationsGranted, visualization, ai, settings, failure),
+                state = ListeningUiState(runtime, startAllowed, levels, limited, microphoneGranted, notificationsGranted,
+                    visualization, ai, settings, failure, showOnboarding, microphonePermissionPermanentlyDenied),
                 onStart = ::requestCapture,
                 onStop = ::stopCapture,
                 onAiSettings = { startActivity(Intent(this, AiControlsActivity::class.java)) },
@@ -88,6 +96,8 @@ class MainActivity : ComponentActivity() {
                 onAiToggle = { preferences.setAiEnabled(!preferences.state.value.values.aiEnabled) },
                 onSettingsReset = { preferences.reset() },
                 onSettingsRetry = { preferences.retrySave() },
+                onCompleteOnboarding = ::completeOnboarding,
+                onRequestMicrophone = ::requestMicrophonePermission,
             )
         }
     }
@@ -100,6 +110,9 @@ class MainActivity : ComponentActivity() {
     private fun refreshPermissions() {
         microphoneGranted = checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
         notificationsGranted = checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        microphonePermissionPermanentlyDenied = !microphoneGranted &&
+            firstRun.getBoolean(KEY_MICROPHONE_REQUESTED, false) &&
+            !shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)
         if (!microphoneGranted) {
             val token = CaptureRuntime.stopToken()
             if (token != null) {
@@ -115,16 +128,22 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestCapture() {
-        if (pendingStart || !CaptureRuntime.canStart()) return
+        if (showOnboarding || pendingStart || !CaptureRuntime.canStart()) return
         refreshPermissions()
-        if (microphoneGranted) startCapture()
-        else {
-            pendingStart = true
-            permissions.launch(arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.POST_NOTIFICATIONS))
+        if (!microphoneGranted) {
+            requestMicrophonePermission()
+            return
         }
+        if (!notificationsGranted) {
+            pendingStart = true
+            permissions.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
+            return
+        }
+        startCapture()
     }
 
     private fun startCapture() {
+        if (showOnboarding || !microphoneGranted) return
         if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
             reportCaptureFailure(this, null, CaptureFailure.FOREGROUND_START)
             return
@@ -163,5 +182,25 @@ class MainActivity : ComponentActivity() {
         } catch (_: RuntimeException) {
             Toast.makeText(this, R.string.settings_open_failed, Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun completeOnboarding() {
+        firstRun.edit().putBoolean(KEY_ONBOARDING_COMPLETE, true).apply()
+        showOnboarding = false
+    }
+
+    private fun requestMicrophonePermission() {
+        if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) return
+        refreshPermissions()
+        if (microphoneGranted) return
+        if (microphonePermissionPermanentlyDenied) { openAppSettings(); return }
+        firstRun.edit().putBoolean(KEY_MICROPHONE_REQUESTED, true).apply()
+        microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
+    }
+
+    companion object {
+        private const val PREFERENCES_NAME = "ullim_first_run"
+        private const val KEY_ONBOARDING_COMPLETE = "onboarding_complete"
+        private const val KEY_MICROPHONE_REQUESTED = "microphone_permission_requested"
     }
 }

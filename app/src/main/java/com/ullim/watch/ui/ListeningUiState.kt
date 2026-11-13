@@ -18,4 +18,6 @@ data class ListeningUiState(
     val ai: AiDisplayState = AiDisplayState(),
     val settings: SettingsState = SettingsState(),
     val failure: CaptureFailure? = null,
+    val showOnboarding: Boolean = false,
+    val microphonePermissionPermanentlyDenied: Boolean = false,
 )

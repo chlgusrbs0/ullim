@@ -48,6 +48,7 @@ class MainActivityUiTest {
     private var owner: MicrophoneCapture? = null
 
     @Before fun allowMicrophoneAndRefreshActivity() {
+        application.getSharedPreferences("ullim_first_run", 0).edit().putBoolean("onboarding_complete", true).commit()
         shadowOf(application).grantPermissions(Manifest.permission.RECORD_AUDIO, Manifest.permission.POST_NOTIFICATIONS)
         assertTrue(MotorProfileStore.save(application, MotorProfileStore.deviceKey(application), MotorNoiseProfile(DoubleArray(257), DoubleArray(257))))
         compose.activityRule.scenario.recreate()
