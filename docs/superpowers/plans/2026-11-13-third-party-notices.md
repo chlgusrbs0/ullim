@@ -26,7 +26,7 @@
 - [x] Write source THIRD_PARTY_NOTICES.md and bundled complete attribution/license texts plus exact model metadata/hashes.
 - [x] Update README provenance/reproduction links and check local/external links using appropriate authenticated sources.
 - [x] Assemble/inspect Debug and Release APK notice entries and unchanged model bytes; run appropriate local validation.
-- [ ] Read-only review, address important gaps, commit/push Draft PR main with Closes #34. Keep predecessor and unresolved notice/verification gates explicit.
+- [x] Read-only review; fix the Google Maven POM mapping and add known native notices. Commit/push Draft PR71 to main with Closes #34, retaining the unresolved native provenance and predecessor gates.
 
 ## Remaining gates
 
