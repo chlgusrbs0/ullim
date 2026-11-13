@@ -1,6 +1,6 @@
 # #17 자기 진동 재입력 수정 후보
 
-2026-11-14 KST. 실제 워치 검증 전 후보이며 **최종 촉각 품질 합격/해결 완료를 주장하지 않는다.** 사용자가 모든 기존 담당 작업을 이 대화로 명시적으로 이관했다. 기존 #17의 분석기 커밋 dca9b97을 보존하고 실제 앱808d3f4를 통합한 기준은87ba6cdc다.
+2026-11-14 KST. 실제 워치 설치·초기 보정 시험 중인 후보이며 **최종 촉각 품질 합격/해결 완료를 주장하지 않는다.** 사용자가 모든 기존 담당 작업을 이 대화로 명시적으로 이관했다. 기존 #17의 분석기 커밋 dca9b97을 보존하고 실제 앱808d3f4를 통합한 기준은87ba6cdc다.
 
 ## 실제 관찰과 한계
 
@@ -26,6 +26,14 @@
 최초 전체 `testDebugUnitTest / assembleDebug / lintDebug` 성공33s, **208 tests, failures0/errors0/skips0**. 읽기 전용 검토에서 amplitude 제어 미지원 기기의 보정 출력과 실제 출력 방식이 달라지는 Important 1건을 확인했다. 해당 기기를 주입한 회귀 시험이 실제 RED로 실패한 뒤, 보정도 실제 renderer와 같이 pulse 방식을 선택하도록 수정했다. 수정 후 전체 **209 tests, failures0/errors0/skips0**, 빌드·Lint 성공32s, Lint0 errors/12기존 warnings/1hint.
 
 앞선 전체 실행에서 기존 PersistentSettingsUiTest의 저장 대기5초 timeout1건이 있었고, 그 단독 재실행은 통과했다. 별도로 보정 필수 조건 추가로 ServiceFailureTest의 기존 무보정 fixture가 실패해 명시적 유효 보정 fixture를 준비한 뒤 원래 read-failure/정리 검증을 유지했다. 실패를 제외하거나 skip하지 않았다.
+
+### 인계 작업 추가 통합 및 실제 설치
+
+push 전 원격 브랜치를 다시 조회해 이전 담당자의 추가 `1fcae52/54a9e7b`(진동 on/off 수치 비교기와4개 시험)를 발견했다. 기존 작업을 덮어쓰지 않고 merge28973631e39f962853682ada54de4c7a7d2afbed로 보존했다. 이 소스로 전체 **213 tests, failures0/errors0/skips0**, assembleDebug/lintDebug 성공48s, Lint0 errors/12기존 warnings/1hint를 확인했다.
+
+이 APK는53,012,409bytes, SHA256 `ddd9ef44a6e740d3a3dfc8d9f025b7e27d6a32371a0a3208a72025ba4476d3d8`이다. 실제 SM-L300/L300XXU2ZZK1에 `install -r` 성공했고, 기기의 설치된 base.apk에서 같은 해시를 읽었다. MainActivity cold 실행 성공, 설치 전 ListeningService 없음/마이크 미실행, 설치 직후에도 마이크 미실행을 확인했다. 글씨 크기1.0, 충전 중 화면 유지0이다. 앱 데이터 삭제나 초기화는 하지 않았다. 이 설치 확인은 보정·실제 반응 합격이 아니다.
+
+사용자의 첫 보정 결과는 **실패**였다. AppOps에서 마이크 사용2s913ms 뒤 미실행, ListeningService 없음, private no_backup에 보정 파일 없음이 확인됐다. 기존 기록은 실패 단계를 구분하지 못했으므로 기준을 완화하지 않고 debug 전용 수치 진단을 추가했다. 보정의 표본 수/평균·최대 전력/실패 단계/명령 지연/최종 저장 여부만 main thread에서 기록하며 원음·스펙트럼 배열을 로그로 남기지 않는다. 수집·판정 정책은 바꾸지 않았다. 이 진단 추가본은 전체213 tests/실패0/오류0/skip0 및 assembleDebug/lintDebug 성공54s. 중간 컴파일의 BuildConfig 참조 실패는 기존 FLAG_DEBUGGABLE 방식을 사용해 수정했다. APK SHA256 `f25aab1639a31c1c57fc66bd74272a4f1987a459b235aabc74fd108ccca8d697`이다.
 
 ## 남은 실제 검증
 

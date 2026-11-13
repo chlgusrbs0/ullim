@@ -61,6 +61,8 @@ class DiagnosticsActivity : ComponentActivity() {
         calibration = MotorCalibrationRunner(this, vibrator, {
             calibrationState = it
             if (it == MotorCalibrationState.COMPLETE) hasCalibration = true
+        }, onDiagnostic = {
+            if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) Log.i("UllimCalibration", it)
         })
         comparison = HapticComparison(AndroidWaveformDevice(vibrator), onUpdate = {
             comparisonState = it

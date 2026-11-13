@@ -10,6 +10,16 @@ class MotorCalibration(private val sessionId: Long, private val startNs: Long, p
     private var quietCount = 0
     private val starts = LongArray(2) { -1 }
     private val measurements = Array(2) { mutableListOf<DoubleArray>() }
+    private var outcome = "NOT_FINISHED"
+
+    /** Bounded scalar diagnostics only, read on the UI thread after assessment. */
+    @Synchronized fun diagnostics(): String {
+        val energies = measurements.map { phase -> phase.map { it.sum() }.sorted() }
+        return "assessment=$outcome quietFrames=$quietCount phaseFrames=${measurements.map { it.size }} " +
+            "quietPower=${if (quietCount == 0) 0.0 else quiet.sum() / quietCount} " +
+            "medianPower=${energies.map { it.getOrNull(it.size / 2) ?: 0.0 }} " +
+            "maxPower=${energies.map { it.lastOrNull() ?: 0.0 }}"
+    }
 
     @Synchronized fun recordPhase(index: Int, actualStartNs: Long) {
         require(index in 0..1)
@@ -36,20 +46,23 @@ class MotorCalibration(private val sessionId: Long, private val startNs: Long, p
     }
 
     @Synchronized fun finish(): MotorNoiseProfile? {
-        if (quietCount < 8 || measurements.any { it.size < 8 }) return null
+        if (quietCount < 8 || measurements.any { it.size < 8 }) return reject("MISSING_FRAMES")
         val baseline = DoubleArray(quiet.size) { quiet[it] / quietCount }
-        if (baseline.sum() > .02 * .02) return null
+        if (baseline.sum() > .02 * .02) return reject("NOISY_BASELINE")
         val bounds = Array(2) { DoubleArray(quiet.size) }
         for (phase in measurements.indices) {
             val energies = measurements[phase].map { it.sum() }.sorted()
             val median = energies[energies.size / 2]
-            if (energies.last() > maxOf(1e-5, median * 2)) return null
+            if (energies.last() > maxOf(1e-5, median * 2)) return reject("UNSTABLE_PHASE_$phase")
             for (power in measurements[phase]) for (bin in power.indices) {
                 bounds[phase][bin] = maxOf(bounds[phase][bin], (power[bin] - baseline[bin]).coerceAtLeast(0.0))
             }
         }
         // An ignored/muted output must not produce a profile that disables protection.
-        if (bounds[1].sum() < maxOf(1e-6, baseline.sum() * 4)) return null
+        if (bounds[1].sum() < maxOf(1e-6, baseline.sum() * 4)) return reject("NO_MOTOR_COUPLING")
+        outcome = "COMPLETE"
         return MotorNoiseProfile(bounds[0], bounds[1], pulseFallback)
     }
+
+    private fun reject(reason: String): MotorNoiseProfile? { outcome = reason; return null }
 }

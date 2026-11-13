@@ -25,6 +25,7 @@ class MotorCalibrationRunner(
     private val sourceFactory: () -> PcmInput = { AndroidPcmInput.create(context) },
     private val clockNs: () -> Long = System::nanoTime,
     private val device: WaveformDevice = AndroidWaveformDevice(vibrator),
+    private val onDiagnostic: (String) -> Unit = {},
 ) {
     private val handler = Handler(Looper.getMainLooper())
     private val timers = Handler(Looper.getMainLooper())
@@ -48,6 +49,7 @@ class MotorCalibrationRunner(
         firmwareKey = MotorProfileStore.deviceKey(context)
         pulseFallback = !device.capabilities.amplitudeControl ||
             MotorVibrationPolicy.requiresPulseFallback(Build.MODEL, firmwareKey)
+        onDiagnostic("start pulse=$pulseFallback amplitudeControl=${device.capabilities.amplitudeControl}")
         stopping = false
         pending = null
         accumulator = null
@@ -65,6 +67,7 @@ class MotorCalibrationRunner(
                         timers.postDelayed({
                             if (token == id) {
                                 pending = accumulator?.finish()
+                                onDiagnostic(accumulator?.diagnostics() ?: "assessment=NO_ACCUMULATOR")
                                 endState = if (pending == null) MotorCalibrationState.FAILED else MotorCalibrationState.COMPLETE
                                 stopNative()
                             }
@@ -82,6 +85,7 @@ class MotorCalibrationRunner(
                             val profile = pending
                             val success = status == CaptureStatus.Stopped && endState == MotorCalibrationState.COMPLETE && profile != null &&
                                 MotorProfileStore.deviceKey(context) == firmwareKey && MotorProfileStore.save(context, firmwareKey, profile)
+                            onDiagnostic("terminal=$status end=$endState saved=$success")
                             val finalState = if (success) MotorCalibrationState.COMPLETE
                                 else if (status is CaptureStatus.Failed || endState == MotorCalibrationState.COMPLETE) MotorCalibrationState.FAILED else endState
                             pending = null; accumulator = null; capture = null; token = 0
@@ -116,6 +120,7 @@ class MotorCalibrationRunner(
             if (token != id || capture == null || stopping || call >= 10) return
             val dueNs = startedNs + call * 60_000_000L
             if (clockNs() - dueNs > 40_000_000L) {
+                onDiagnostic("assessment=LATE phase=$index call=$call lateNs=${clockNs() - dueNs}")
                 endState = MotorCalibrationState.FAILED; pending = null; stopNative(); return
             }
             try {
