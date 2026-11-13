@@ -11,6 +11,7 @@ import android.content.pm.PackageManager
 import android.content.pm.ApplicationInfo
 import android.content.pm.ServiceInfo
 import android.graphics.drawable.Icon
+import android.net.Uri
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
@@ -72,8 +73,18 @@ class ListeningService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         currentStartId = startId
         if (intent?.action == ACTION_STOP) {
-            stopCapture()
-            if (lifecycle == null) stopSelf(startId)
+            val token = intent.getLongExtra(EXTRA_SESSION, 0)
+            if (token > 0 && token == currentSession) {
+                stopCapture()
+                if (lifecycle == null) stopSelf(startId)
+            } else if (currentSession == 0L && CaptureRuntime.isStarting(token)) {
+                // A user can cancel before the START command has attached an owner.
+                CaptureRuntime.stopping(token)
+                CaptureRuntime.finished(token)
+                stopSelf(startId)
+            } else if (currentSession == 0L && CaptureRuntime.canStart()) {
+                stopSelf(startId)
+            }
             return START_NOT_STICKY
         }
         if (intent?.action != ACTION_START) {
@@ -150,7 +161,7 @@ class ListeningService : Service() {
         scheduler.begin(token)
         val session = ForegroundSession(
             capture,
-            { startForeground(NOTIFICATION_ID, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE) },
+            { startForeground(NOTIFICATION_ID, notification(token), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE) },
             { stopForeground(STOP_FOREGROUND_REMOVE) },
             { fanout.stop(); scheduler.stop(); dsp.reset(); mapper.reset(); stopAi(token) },
         )
@@ -183,13 +194,15 @@ class ListeningService : Service() {
         }
     }
 
-    private fun notification(): Notification {
+    internal fun notification(token: Long): Notification {
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(NotificationChannel(CHANNEL_ID, getString(R.string.listening_channel), NotificationManager.IMPORTANCE_LOW).apply {
             enableVibration(false)
             setSound(null, null)
         })
-        val stop = PendingIntent.getService(this, 1, Intent(this, ListeningService::class.java).setAction(ACTION_STOP), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val stop = PendingIntent.getService(this, 1, Intent(this, ListeningService::class.java)
+            .setAction(ACTION_STOP).setData(Uri.parse("ullim://session/$token/stop"))
+            .putExtra(EXTRA_SESSION, token), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val open = PendingIntent.getActivity(this, 2, Intent(this, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         return Notification.Builder(this, CHANNEL_ID).setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(getString(R.string.listening_notification)).setContentText(getString(R.string.local_audio_notice))

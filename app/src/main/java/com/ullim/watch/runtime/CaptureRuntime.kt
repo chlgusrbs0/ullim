@@ -13,6 +13,7 @@ object CaptureRuntime {
     private val mutableLimited = MutableStateFlow(false)
     private val mutableAiEnabled = MutableStateFlow(false)
     val state = controller.state
+    val startAllowed = controller.startAllowed
     val levels = mutableLevels.asStateFlow()
     val strengthLimited = mutableLimited.asStateFlow()
     val aiEnabled = mutableAiEnabled.asStateFlow()

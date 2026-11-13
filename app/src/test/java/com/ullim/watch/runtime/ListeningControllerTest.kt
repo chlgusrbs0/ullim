@@ -9,6 +9,22 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ListeningControllerTest {
+    @Test fun retryEligibilityChangesObservablyEvenWhenErrorStateStaysEqual() {
+        val controller = ListeningController()
+        val id = controller.requestStart()!!
+        val owner = Any()
+        controller.attach(id, owner)
+        controller.fail(id, "cleanup pending")
+        controller.finished(id)
+        val error = controller.state.value
+        assertFalse(controller.startAllowed.value)
+        controller.detach(owner)
+        assertEquals(error, controller.state.value)
+        assertTrue(controller.startAllowed.value)
+        assertNotNull(controller.requestStart())
+        assertFalse(controller.startAllowed.value)
+    }
+
     @Test fun concurrentStartsAdmitExactlyOneSession() {
         val controller = ListeningController()
         val gate = CountDownLatch(1)

@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">울림</string>
-    <string name="tagline">소리를 느끼는 순간</string>
-    <string name="foundation_status">소리 감지 기능은\n아직 준비 중이에요</string>
     <string name="diagnostics">진동 진단</string>
     <string name="diagnostic_not_measured">강약 구별과 물리 지연은\n아직 측정하지 않았어요</string>
     <string name="motor_available">진동 모터 있음</string>
@@ -23,6 +21,11 @@
     <string name="output_failed">진동 출력에 실패했어요</string>
     <string name="output_stopped">출력을 중지했어요</string>
     <string name="start_listening">소리 감지 시작</string>
+    <string name="starting_action">시작 중</string>
+    <string name="stopping_action">중지 중</string>
+    <string name="cancel_start">시작 취소</string>
+    <string name="permission_settings">권한 설정</string>
+    <string name="settings_open_failed">설정을 열 수 없어요. 워치 설정에서 울림의 앱 권한을 확인해 주세요.</string>
     <string name="ready_to_listen">소리를 진동으로 느껴보세요</string>
     <string name="starting_listening">감지를 시작하고 있어요</string>
     <string name="active_listening">소리 감지 중</string>
@@ -52,11 +55,10 @@
     <string name="ai_back">돌아가기</string>
     <string name="notifications_limited">알림 권한이 꺼져 있어 작동 알림이 제한될 수 있어요</string>
     <string name="settings_title">설정</string>
-    <string name="settings_placeholder">민감도와 AI 설정은 후속 업데이트에서 제공돼요</string>
     <string name="guide_title">사용 안내</string>
-    <string name="guide_body">울림은 주변 소리의 크기와 리듬을 손목의 진동 변화로 전달하는 것을 목표로 해요. 감지 기능은 아직 연결되지 않았으며, 현재는 기본 화면과 이동 기능을 제공해요.</string>
+    <string name="guide_body">소리 감지 시작을 누르고 마이크 권한을 허용해 주세요. 주변 소리의 크기와 리듬을 진동 변화로 전달해요. 화면을 벗어나도 감지가 이어지며, 중지 버튼으로 마이크와 진동을 끌 수 있어요. 원본 음성은 저장하거나 전송하지 않아요. 실제 진동 전달 성능은 아직 검증 중이에요.</string>
     <string name="error_guide_action">문제 해결 안내</string>
     <string name="error_guide_title">문제가 생겼나요?</string>
-    <string name="error_guide_body">현재 버전에는 소리 감지 기능이 연결되어 있지 않아요. 기능이 제공된 뒤 문제가 발생하면 마이크 권한과 기기 지원 상태를 확인해 주세요.</string>
+    <string name="error_guide_body">감지를 시작할 수 없다면 마이크 권한을 확인하고 앱 화면에서 다시 시도해 주세요. 이전 마이크가 정리 중이라면 기다려 주세요. 안전한 종료를 확인할 수 없다는 안내가 나오면 앱을 완전히 종료한 뒤 다시 열어주세요. AI 보조가 실패해도 기본 소리 변환은 계속 사용할 수 있어요.</string>
     <string name="back_action">뒤로</string>
 </resources>

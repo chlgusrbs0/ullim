@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.asStateFlow
 class ListeningController {
     private val mutableState = MutableStateFlow(RuntimeState())
     val state = mutableState.asStateFlow()
+    private val mutableStartAllowed = MutableStateFlow(true)
+    val startAllowed = mutableStartAllowed.asStateFlow()
     private var sequence = 0L
     private var currentId = 0L
     private var owner: Any? = null
@@ -23,7 +25,7 @@ class ListeningController {
         acquired = false
         settled = false
         completionRequested = false
-        mutableState.value = RuntimeState(ListeningState.Starting(currentId))
+        emit(RuntimeState(ListeningState.Starting(currentId)))
         return currentId
     }
 
@@ -45,20 +47,20 @@ class ListeningController {
         if (owner !== resource) return false
         owner = null
         if (completionRequested) complete()
-        else if (state.value.listening !is ListeningState.Error) mutableState.value = RuntimeState(ListeningState.Stopping(currentId))
+        else if (state.value.listening !is ListeningState.Error) emit(RuntimeState(ListeningState.Stopping(currentId)))
         return true
     }
 
     @Synchronized fun listening(id: Long): Boolean {
         if (!isStarting(id) || owner == null) return false
-        mutableState.value = mutableState.value.copy(listening = ListeningState.Listening(id))
+        emit(mutableState.value.copy(listening = ListeningState.Listening(id)))
         return true
     }
 
     @Synchronized fun stopping(id: Long): Boolean {
         val phase = state.value.listening
         if (id <= 0 || currentId != id || (phase !is ListeningState.Starting && phase !is ListeningState.Listening)) return false
-        mutableState.value = RuntimeState(ListeningState.Stopping(id))
+        emit(RuntimeState(ListeningState.Stopping(id)))
         return true
     }
 
@@ -66,7 +68,7 @@ class ListeningController {
         if (id <= 0 || currentId != id) return false
         completionRequested = true
         if (owner == null) complete()
-        else if (state.value.listening !is ListeningState.Error) mutableState.value = RuntimeState(ListeningState.Stopping(id))
+        else if (state.value.listening !is ListeningState.Error) emit(RuntimeState(ListeningState.Stopping(id)))
         return true
     }
 
@@ -75,21 +77,26 @@ class ListeningController {
         if (id == null) {
             if (!settled || owner != null || (phase != ListeningState.Idle && phase !is ListeningState.Error)) return false
         } else if (id <= 0 || currentId != id || phase == ListeningState.Idle || phase is ListeningState.Error) return false
-        mutableState.value = RuntimeState(ListeningState.Error(message))
         // Failure before any resource acquisition needs no asynchronous release barrier.
         if (!acquired && owner == null) settled = true
+        emit(RuntimeState(ListeningState.Error(message)))
         return true
     }
 
     @Synchronized fun aiStatus(id: Long, status: AiStatus): Boolean {
         if (!isStarting(id) && !isListening(id)) return false
-        mutableState.value = mutableState.value.copy(ai = status)
+        emit(mutableState.value.copy(ai = status))
         return true
     }
 
     private fun complete() {
         settled = true
         completionRequested = false
-        if (state.value.listening !is ListeningState.Error) mutableState.value = RuntimeState()
+        emit(if (state.value.listening !is ListeningState.Error) RuntimeState() else state.value)
+    }
+
+    private fun emit(value: RuntimeState) {
+        mutableState.value = value
+        mutableStartAllowed.value = canStart()
     }
 }
