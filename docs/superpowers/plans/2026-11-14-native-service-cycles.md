@@ -16,7 +16,7 @@
 - [x] Implement bounded orchestration Activity and declaration, leaving production service/controller/mapper unchanged. Success requires calibration saved,3 cycles, actual AI successes, zero terminal recording configurations and AI unloaded/not busy/no pending cleanup.
 - [x] Run opt-in full tests/build/lint and normal tests/build/release; assert probe exclusion in normal manifest/DEX. Commit source.
 - [x] One independent read-only review of this unit. One required fix pass with RED→GREEN and full suite; no repeat reviewer.
-- [ ] If watch remains reachable, install only own probe, grant own microphone/notification permissions, run once and poll the same process. Inspect service/AppOps/numeric logs and original app/profile hashes. Remove own probe only after observed terminal result and cleanup. Reopen original idle screen.
+- [x] If watch remains reachable, install only own probe, grant own microphone/notification permissions, run once and poll the same process. Inspect service/AppOps/numeric logs and original app/profile hashes. Remove own probe only after observed terminal result and cleanup. Reopen original idle screen.
 - [ ] Record exact source/APK/native evidence and limits, update PR61. Do not merge/close23 while predecessors/remaining OS scenarios or physical gates are missing.
 
 ## Review focus
@@ -32,3 +32,5 @@ One fresh read-only review of24afe91 found3 Important items: each mode's save er
 Final: Ruling: physical tactile response, end-to-end latency and remaining OS scenarios remain unproven and open; this verifier measures actual capture/AI/service cycle cleanup only. Treating it as final acceptance could hide hardware/OS failures, so no such merge/closure is authorized by this evidence.
 
 Final: fixed all4 findings — corresponding four regression tests RED16s→GREEN, full244/244; opt-in test/build/lint/releaseUnitTest compilation42s. Normal236/236 test/build/lint/release58s before probe-only review fixes; normal manifest/DEX exclude the Session Activity. Test sources are debug-only even when the probe property is enabled, release test compilation passed. No production runtime files changed.
+
+Watch outcome: native installed/hashed source0eec917, terminal FAIL CALIBRATION_FAILED/UNSTABLE_PHASE_0, cycles0/inferences0/cleanupVerified=true/3664ms. Audio use2s890ms then inactive, service records absent. Own probe removed and original4b206f/profile47a/stay-on1/font1.0 preserved. Do not retry unchanged until the placement/measurement condition is deliberately controlled; no threshold weakening or fixture substitution. Service-cycle success remains unproven.
