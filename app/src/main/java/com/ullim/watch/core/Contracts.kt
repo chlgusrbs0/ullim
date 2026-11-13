@@ -42,7 +42,12 @@ data class AudioFeatures(
 ) {
     init {
         identity(sessionId, timestampNs)
-        listOf(rms, peak, envelope, noise, onset, level).forEach(::unitValue)
+        unitValue(rms)
+        unitValue(peak)
+        unitValue(envelope)
+        unitValue(noise)
+        unitValue(onset)
+        unitValue(level)
     }
     val isSilent: Boolean get() = level == 0f
 }

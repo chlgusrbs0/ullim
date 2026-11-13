@@ -1,0 +1,2 @@
+11-14 03:43:23.774 27398 27443 I UllimDspProbe: envelope frames=30000 simulatedMinutes=10 totalMs=3761 maxExtractUs=5994 sineRms=0.35353953 attack=0.31606027 release=0.11627209 order=true reset=true
+11-14 03:43:23.774 27398 27443 I UllimDspProbe: result=PASS
