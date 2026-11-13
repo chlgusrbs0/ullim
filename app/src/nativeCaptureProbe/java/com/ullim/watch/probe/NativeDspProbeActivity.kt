@@ -45,6 +45,7 @@ class NativeDspProbeActivity : ComponentActivity() {
                     "envelope" -> verifyEnvelope()
                     "noise" -> verifyNoiseGate()
                     "temporal" -> verifyTemporal()
+                    "boundaries" -> DspBoundaryVerification.run { report -> Log.i(TAG, report) }
                     else -> error("UNKNOWN_SCENARIO")
                 }
                 Log.i(TAG, "result=PASS")
