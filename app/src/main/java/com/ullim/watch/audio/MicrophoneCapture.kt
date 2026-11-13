@@ -3,6 +3,7 @@ package com.ullim.watch.audio
 import com.ullim.watch.core.AudioFrame
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 interface PcmInput {
     fun start()
@@ -27,7 +28,8 @@ class MicrophoneCapture(
     private val clockNs: () -> Long = System::nanoTime,
 ) {
     private class Run(val sessionId: Long) {
-        @Volatile var stopped = false
+        val stopRequested = AtomicBoolean()
+        val stopped: Boolean get() = stopRequested.get()
         var input: PcmInput? = null
         val done = CountDownLatch(1)
     }
@@ -48,8 +50,11 @@ class MicrophoneCapture(
 
     fun stop() {
         val run = active ?: return
-        run.stopped = true
-        synchronized(run) { runCatching { run.input?.stop() } }
+        if (!run.stopRequested.compareAndSet(false, true)) return
+        // Native start/stop/release stay serialized, but never make the UI caller
+        // wait for a native operation holding the run monitor.
+        Thread({ synchronized(run) { runCatching { run.input?.stop() } } }, "ullim-audio-stop")
+            .apply { isDaemon = true }.start()
     }
 
     fun awaitStopped(timeoutMs: Long): Boolean = latest?.done?.await(timeoutMs, TimeUnit.MILLISECONDS) ?: true
@@ -95,14 +100,19 @@ class MicrophoneCapture(
         } catch (_: Exception) {
             if (!run.stopped) failure = if (recording) CaptureError.READ else CaptureError.INITIALIZATION
         } finally {
+            var released = true
             synchronized(run) {
                 runCatching { run.input?.stop() }
-                try { run.input?.release() } catch (_: RuntimeException) { failure = CaptureError.CLEANUP }
-                run.input = null
+                try { run.input?.release() } catch (_: RuntimeException) { failure = CaptureError.CLEANUP; released = false }
+                if (released) run.input = null
             }
-            synchronized(lock) { if (active === run) active = null }
             emit(failure?.let(CaptureStatus::Failed) ?: CaptureStatus.Stopped)
-            run.done.countDown()
+            // Deliver the old terminal status before admitting a new session.
+            synchronized(lock) {
+                // A failed native release is not evidence that another microphone is safe.
+                if (active === run && released) active = null
+                run.done.countDown()
+            }
         }
     }
 }
