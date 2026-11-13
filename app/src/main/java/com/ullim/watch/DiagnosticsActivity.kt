@@ -29,6 +29,7 @@ import androidx.wear.compose.material3.Text
 import com.ullim.watch.haptics.AndroidHapticProbe
 import com.ullim.watch.haptics.DiagnosticPattern
 import com.ullim.watch.haptics.HapticCapabilities
+import com.ullim.watch.ui.theme.UllimTheme
 
 class DiagnosticsActivity : ComponentActivity() {
     private lateinit var vibrator: Vibrator
@@ -39,7 +40,7 @@ class DiagnosticsActivity : ComponentActivity() {
         vibrator = getSystemService(VibratorManager::class.java).defaultVibrator
         val capability = HapticCapabilities.detect(AndroidHapticProbe(vibrator))
         setContent {
-            MaterialTheme {
+            UllimTheme {
                 Column(
                     modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
                         .verticalScroll(rememberScrollState()).padding(horizontal = 28.dp, vertical = 36.dp),
