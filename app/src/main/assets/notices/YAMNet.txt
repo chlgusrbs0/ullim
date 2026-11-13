@@ -1,0 +1,7 @@
+YAMNet classification version 1 and its embedded 521-label map
+Google / TensorFlow authors
+Source: https://tfhub.dev/google/lite-model/yamnet/classification/tflite/1
+Bundled model and labels are unmodified. Licensed under Apache License 2.0;
+see Apache-2.0.txt in this directory. Model provenance and checksums: docs/models.md.
+LiteRT Interpreter 1.4.2: Google LLC / TensorFlow authors, Apache-2.0.
+No project-wide license is granted by these third-party notices.

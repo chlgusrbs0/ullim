@@ -32,6 +32,11 @@ enum class DiagnosticPattern {
 
     fun waveform(amplitudeControl: Boolean): DiagnosticWaveform {
         val strength = when (this) { WEAK -> 60; MEDIUM -> 130; else -> 220 }
+        if (!amplitudeControl) {
+            if (this != RHYTHM) return PulseFallback.encode(strength / 255f, if (this == LONG) 600 else 100)
+            val onMs = PulseFallback.encode(strength / 255f, 70).timings[1]
+            return DiagnosticWaveform(longArrayOf(0, onMs, 170 - onMs, onMs, 320 - onMs, onMs, 70 - onMs), intArrayOf(0, -1, 0, -1, 0, -1, 0))
+        }
         val amplitude = if (amplitudeControl) strength else -1
         return if (this == RHYTHM) {
             DiagnosticWaveform(longArrayOf(0, 70, 100, 70, 250, 70), intArrayOf(0, amplitude, 0, amplitude, 0, amplitude))

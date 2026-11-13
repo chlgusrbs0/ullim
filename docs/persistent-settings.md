@@ -1,0 +1,21 @@
+# Local sensitivity and AI settings (#28)
+
+Defaults are sensitivity **100%** and AI **OFF**. Wear settings offer 75–125% sensitivity, an AI toggle, current output capability, reset and storage feedback. Sensitivity is a DSP response parameter, not a measured physical motor gain. Capability is reported only after actual capture initialization; idle does not imply full amplitude support.
+
+One application-owned SettingsController asynchronously loads `files/datastore/ullim_settings.preferences_pb`, using Preferences DataStore 1.1.7 with the existing Kotlin stack. It stores schema1, sensitivity and AI choice only. Missing keys, invalid types, nonfinite/out-of-range sensitivity or unsupported schema use safe defaults. Missing schema permits compatible old keys; unknown keys are ignored and preserved on writes. ReplaceFileCorruptionHandler replaces malformed preference bytes with empty/default preferences. No PCM, classification history or voice data is stored.
+
+Edits wait until initial load completes. Then current choices are applied on the main/control scope immediately; no UI/DSP waits for disk. A serialized writer keeps at most one running request and one conflated latest pending choice. Revision checks prevent an older completion/error from changing newer save status. Loading happens once, so delayed storage emissions cannot turn AI back on after a newer OFF. The current choice is durable only after its save succeeds: pending and failed writes are visibly distinguished, and failure leaves the in-memory choice applied with explicit retry/reset actions. An interrupted/failed write may leave an older persisted value for next process startup.
+
+Application startup loads preferences without creating a model or starting a microphone. Restoring AI ON remains a stored opt-in; actual model work still requires explicit capture start. Until loading finishes, capture uses safe in-memory defaults; restored values then apply. SettingsRuntime updates CaptureRuntime and only an already existing AI worker from the main control thread. Audio-thread AiCaptureFeed never reconciles settings. OFF clears AI context immediately while safe native cleanup remains asynchronous, as documented in models.md.
+
+The service uses LiveDsp, which reads the validated in-memory sensitivity once per 20ms DSP frame. It preserves processing history and applies changes without restarting capture. Mapping/scheduling/core contracts remain unchanged. Main settings and the separate AI details activity share the same controller and save feedback. Activity recreation does not create another store or reset choices. Storage is local and the existing manifest disables backup.
+
+## Verification and remaining gates
+
+Actual DataStore tests write/reopen/reset a temporary file, recover corrupt protobuf bytes, and validate typed/schema defaults. Controller tests cover delayed load, edit guards, blocked I/O with immediate application, conflated latest OFF/sensitivity, save failure/retry and read fallback. LiveDsp tests change the actual CaptureRuntime value during an uninterrupted synthetic stream and compare next-frame DSP levels/haptic commands against a fixed-sensitivity reference, preserving timestamps/duration/bounds.
+
+Actual MainActivity Compose tests tap settings, change sensitivity/AI, recreate and reset, checking runtime values and completed storage. AI details activity tests exercise its shared toggle/recreation/back. In PAUSED Robolectric, tests explicitly drive Android's main Looper for I/O completion; this is test scheduling, not a fake storage result. Existing independent AI/DSP tests still cover OFF fallback while AI work is blocked. These tests are not physical wrist or native model evidence.
+
+Run `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` locally. Watch7 setting→actual response, offline AI OFF continuity, OS process restart persistence, hardware limitations and UI readability remain unverified. Keep the PR Draft and #28 open pending that evidence and predecessor main merges. No GitHub Actions, remote service or raw audio storage is used.
+
+References: [Android DataStore guide](https://developer.android.com/topic/libraries/architecture/datastore), [DataStore release history](https://developer.android.com/jetpack/androidx/releases/datastore#1.1.7).
