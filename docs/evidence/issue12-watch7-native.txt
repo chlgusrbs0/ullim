@@ -1,0 +1,2 @@
+11-14 05:00:49.085   404   708 I UllimDspProbe: mapping synthetic=true motor=false ai=false strengths=0.26461217,0.5456316,0.85 sensitivities=0.18710907,0.26461217,0.3742181 knockFrames=5,20,45 intervalsMs=300,500 simulatedContinuousMs=5000 nonzeroFrames=250 minimum=0.38466227 quietTail=0 speechDistinct=92 speechRange=0.8499317
+11-14 05:00:49.085   404   708 I UllimDspProbe: result=PASS

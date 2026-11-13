@@ -52,6 +52,50 @@ class DspBoundaryTest {
         assertTrue(dsp.extract(AudioFrame(1, 2_000_000_000, ShortArray(320))).isSilent)
     }
 
+    @Test fun rejectedInputLeavesTheNextValidFrameIdenticalToTheReference() {
+        val dsp = DspProcessor()
+        val reference = DspProcessor()
+        val first = AudioFrame(1, 20_000_000, ShortArray(320) { 10_000 })
+        assertEquals(reference.extract(first), dsp.extract(first))
+        for (length in listOf(1, 319, 321, 640)) {
+            assertTrue(dsp.extract(AudioFrame(1, 40_000_000, ShortArray(length) { 32_767 })).isSilent)
+        }
+        assertTrue(dsp.extract(AudioFrame(1, 0, ShortArray(320) { 32_767 })).isSilent)
+        assertTrue(dsp.extract(first).isSilent)
+        val next = AudioFrame(1, 40_000_000, ShortArray(320) { 5_000 })
+        assertEquals(reference.extract(next), dsp.extract(next))
+    }
+
+    @Test fun oldSessionCannotAlterTheCurrentSessionHistory() {
+        val dsp = DspProcessor()
+        val reference = DspProcessor()
+        val first = AudioFrame(2, 0, ShortArray(320) { 12_000 })
+        assertEquals(reference.extract(first), dsp.extract(first))
+        assertTrue(dsp.extract(AudioFrame(1, 20_000_000, ShortArray(320) { 32_767 })).isSilent)
+        val next = AudioFrame(2, 20_000_000, ShortArray(320))
+        assertEquals(reference.extract(next), dsp.extract(next))
+    }
+
+    @Test fun partialAssemblyAndStopPreventTailFromReachingDsp() {
+        val dsp = DspProcessor()
+        val outputs = mutableListOf<com.ullim.watch.core.AudioFeatures>()
+        val fanout = AudioFanOut { outputs.add(dsp.extract(it)) }
+        fanout.start(1)
+        fanout.accept(AudioFrame(1, 0, ShortArray(100) { 10_000 }))
+        assertTrue(outputs.isEmpty())
+        fanout.accept(AudioFrame(1, 6_250_000, ShortArray(540) { 10_000 }))
+        assertEquals(listOf(0L, 20_000_000L), outputs.map { it.timestampNs })
+        fanout.accept(AudioFrame(1, 40_000_000, ShortArray(100) { 32_767 }))
+        fanout.stop()
+        assertFalse(fanout.accept(AudioFrame(1, 46_250_000, ShortArray(220) { 32_767 })))
+        assertEquals(2, outputs.size)
+        fanout.start(2)
+        assertFalse(fanout.accept(AudioFrame(1, 60_000_000, ShortArray(320) { 32_767 })))
+        fanout.accept(AudioFrame(2, 0, ShortArray(320)))
+        assertEquals(3, outputs.size)
+        assertTrue(outputs.last().isSilent)
+    }
+
     @Test fun tenMinuteDspStreamReportsDesktopTimingAndHeap() {
         val dsp = DspProcessor()
         val durations = LongArray(30_000)
