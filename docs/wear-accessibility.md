@@ -16,6 +16,8 @@ Controls have a minimum48dp touch target and text is allowed to wrap; font scale
 - Existing MainActivity, settings persistence, AI and capture/error tests run alongside these checks; accessibility labels do not drive microphone or model state.
 - A synchronous View draw generated and was visually inspected at `app/build/host-ui/large-font-home.png`. It is a192px host viewport after scrolling to the large primary button, not a Watch7 screenshot. PixelCopy/captureToImage timed out under PAUSED Robolectric and is not claimed as working device capture.
 
+The unmodified synthetic [host preview](evidence/issue31-host-2x.png) is retained for review. It shows the viewport scrolled to the primary button; preceding text can be outside the scroll viewport. It does not prove circular hardware clipping, actual TalkBack output or that a whole screen fits without scrolling.
+
 Run `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` locally. Native TalkBack has not been run; semantics tests do not establish spoken focus order or actual assistive-service behavior.
 
 ## Remaining device/dependency checklist
