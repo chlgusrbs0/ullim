@@ -57,6 +57,24 @@ push 전 원격 브랜치를 다시 조회해 이전 담당자의 추가 `1fcae5
 
 공식 Android 문서도 [강도 제어가 더 매끈한 촉각을 가능하게 한다](https://developer.android.com/develop/ui/views/haptics/haptics-apis)고 설명하며, [모터와 드라이버의 상승/감쇠 특성](https://developer.android.com/develop/ui/views/haptics/actuators)이 출력에 영향을 준다고 설명한다. 일반 LRA 설명을 특정 Watch7의 공진 주파수 실측으로 사용하지 않는다. 해당 워치에서 이미 실패한 표준 강도 숫자 변경을 다시 성공했다고 처리하지 않는다.
 
+### I/J/K 실제 결과와 현재 제어 경로의 한계
+
+f7c6bc7/2ea5d9be…를 실제 install-r/설치 해시 대조했고 보정 파일4,244bytes와 원래01:35 저장 시각이 유지됐다. 사용자는 가장 촘촘한 간격보다 현재 간격에서 진동 느낌이 더 뚜렷하며, 원하는600ms 단일 진동 같은 자연스러운 연속 느낌에 미치지 못한다고 보고했다. 각 조건의 앞뒤 강약 정답이나 물리 가속도는 수집하지 않았다. 빠른 간격을 live에 채택하지 않는다.
+
+`issue17-pulse-comparison-native.txt`에는 I/J/K 모두 한 호출로 COMPLETE한 사례가 있다. 최초 I는 약1초 뒤 다른 비교 선택으로 중단됐으므로 모든 요청이 정상1.5초를 끝냈다고 주장하지 않는다. 일부 비교 사이 간격은 요청한2초보다 짧았으며 탐색 결과로만 해석한다. 앱 명령 일정 지연0~1ms는 물리 반응 지연이 아니다. 비교 뒤 마이크 미실행/서비스 없음을 확인했다.
+
+| 경로 | 확인 결과 | 현재 판단 |
+| --- | --- | --- |
+| 표준 Waveform amplitude | 동일600ms의1/255가 두 베타 버전에서 비슷함. 해당 표준 처리 단계의 강도 전달 누락과 일치 | 켜고 끄는 폴백을 매끈한 강도 제어로 간주하지 않음 |
+| 엔벌로프/primitive | 현재 워치 능력 검사에서 엔벌로프 미지원/지원 primitive 없음 | 현재 기기의 대안으로 검증되지 않음 |
+| 오디오 촉각/HapticGenerator | ZZK1에서 공개 API를 다시 조회해 모두false | 오디오 I/O 없이 지원 여부만 조회. 임시 dex는 조회 뒤 제거 |
+| 새 VibrationEffect.Builder | 공식 문서상37.2 추가, 실제 기기 sdk_full37.0/API37/REL | 현재 버전에 사용할 수 있는 해결책으로 채택하지 않음 |
+| Vendor session | AOSP의 startVendorSession은 @hide/@SystemApi이며 별도 vendor/session 권한 요구 | 일반 앱의 공식 제어 경로가 아니며 호출·권한 우회하지 않음 |
+
+공식 참조: [Builder 버전](https://developer.android.com/reference/android/os/VibrationEffect.Builder), [AOSP vendor session 정의](https://android.googlesource.com/platform/frameworks/base/+/HEAD/core/java/android/os/Vibrator.java). 공개 오디오 API 재조회는 자체 작성 Java958byte dex를 app_process에서 실행했으며 마이크 수집/오디오 재생/진동 출력은 하지 않았다. 최초 조회는 연결 offline으로 실패했고 같은 주소의 무선 연결을 복구한 뒤 false/false 결과를 얻어 정리했다. 글씨 크기1.0/충전 중 화면 유지0은 그대로다.
+
+이는 유기적으로 바뀌는 연속 강도가 물리적으로 불가능하다는 결론이 아니다. **현재 펌웨어와 확인한 일반 앱 제어 경로에서 원하는 연속 강약을 아직 달성하지 못했다**는 결론이다. 다음 핵심 비교는 강도 전달이 정상인 펌웨어/기기에서 같은600ms G/H를 확인하는 것이며, 재요청에 따른 끊김도 별도 남는다. 사용자 승인 없이 펌웨어 다운그레이드/초기화/플래시를 하지 않았다. 현재 개선된 감지·보정은 유지하며 #17/#18/#37/#39의 남은 기준을 낮추거나 완료 처리하지 않는다.
+
 ## 남은 실제 검증
 
 워치3초 보정 성공·권한·화면 이탈/중지 정리, 박수 한 번 뒤 재발진 종료, 작은/큰 소리의 구별, 짧음/지속음/간격의 보존, 실제 CPU/프레임 지연을 확인해야 한다. 스펙트럼이 모터와 겹치는 실제 소리를 과하게 줄일 위험이 있다. 현재 케이스 바깥 주파수·착용 조건에서도 시험해야 하며 소프트웨어 테스트나 API 명령 시간을 물리 P95/두 참여자의 블라인드 강도·리듬 합격으로 대체하지 않는다. GitHub Actions, raw PCM/voice 파일·전송, hidden API/root/sysfs 접근은 없다.
