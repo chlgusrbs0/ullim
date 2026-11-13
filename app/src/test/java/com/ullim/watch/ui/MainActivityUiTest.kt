@@ -41,7 +41,7 @@ class MainActivityUiTest {
     private var owner: MicrophoneCapture? = null
 
     @Before fun allowMicrophoneAndRefreshActivity() {
-        application.getSharedPreferences("ullim_first_run", Application.MODE_PRIVATE).edit().clear().commit()
+        application.getSharedPreferences("ullim_first_run", android.content.Context.MODE_PRIVATE).edit().clear().commit()
         compose.activityRule.scenario.recreate()
         compose.waitForIdle()
         compose.onNodeWithText("나중에").performScrollTo().performClick()
@@ -135,7 +135,7 @@ class MainActivityUiTest {
     }
 
     @Test fun deniedPermissionHasAnAppSettingsEntry() {
-        application.getSharedPreferences("ullim_first_run", Application.MODE_PRIVATE).edit()
+        application.getSharedPreferences("ullim_first_run", android.content.Context.MODE_PRIVATE).edit()
             .putBoolean("microphone_permission_requested", true).commit()
         shadowOf(application).denyPermissions(Manifest.permission.RECORD_AUDIO)
         compose.activityRule.scenario.recreate()
@@ -147,7 +147,7 @@ class MainActivityUiTest {
     }
 
     @Test fun permissionsRefreshOnReturnFromAndroidSettingsWithoutStartingCapture() {
-        application.getSharedPreferences("ullim_first_run", Application.MODE_PRIVATE).edit()
+        application.getSharedPreferences("ullim_first_run", android.content.Context.MODE_PRIVATE).edit()
             .putBoolean("microphone_permission_requested", true).commit()
         shadowOf(application).denyPermissions(Manifest.permission.RECORD_AUDIO)
         compose.activityRule.scenario.recreate()
