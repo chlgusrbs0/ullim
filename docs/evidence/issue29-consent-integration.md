@@ -29,7 +29,15 @@ Windows / JBR21 / SDK36 / Gradle8.13. 원본 마이크·음성 파일이나 실�
 
 5. opt-in 전체 `:app:testDebugUnitTest :app:assembleDebug :app:lintDebug :app:compileReleaseUnitTestKotlin -PnativeCaptureProbe=true`: **251 tests, failures/errors/skipped0**, BUILD SUCCESSFUL 49초. 제품3개 Activity의 affinity는 모두 `com.ullim.watch.nativeprobe.main`, 검증 전용2개는 별도 affinity다. APK52909182bytes/SHA256 `815239cfd77c962173b81c0447b77a5c802bf23bd1242b83b0f2a3ef0046f5bb`. 설치·실행하지 않았다.
 
-위 해시는 검토 전 빌드의 식별자이며 이후 수정 시 최종 산출물과 구분한다. 독립 검토 결과는 후속 기록에 남긴다.
+위 산출물의 제품 코드 커밋은 `332fb0c3355a5bca836c855390e1685aa30bc184`다. 이후 변경은 검토 결과 기록뿐이며 APK를 재설치하지 않았다.
+
+## 독립 검토
+
+별도 읽기 전용 검토가 `8a9457a..332fb0c`를 확인했다. Critical/Important 없음, opt-in 결과 XML251/실패·오류·skip0을 독립적으로 읽었다. 일반243/build/lint/release는 위 실행 기록 근거이며 검토자가 재실행한 것이 아니다. 수정 요구가 없어 추가 구현·재검토를 하지 않았다.
+
+Minor2건을 후속 검사로 남긴다. (1) 알림 권한 요청을 확인하는 테스트는 결과 callback/Activity 재생성의 pendingStart 복원을 직접 끝까지 검사하지 않는다. 코드는 안내/전경/보정/세션 장벽으로 보호하지만 회귀 범위를 더 넓힐 여지가 있다. (2) 기본 글씨의 새 안내는 확인했으나 기존2× 글씨 테스트에 이 안내를 추가하지 않아 큰 글씨에서의 버튼 도달/넘침은 직접 검사하지 않았다. 관찰된 제품 실패라는 뜻은 아니며 접근성 완료로 간주하지 않는다.
+
+검토에서 판단을 유보한 실제 OS 권한 창·영구 거절·복귀 시점·원형 화면·스크린리더와 물리 소리/진동/백그라운드 인수는 아래 실기기 게이트로 유지한다. 이 판단으로 Draft 통합만 진행하며 main 머지·#29 완료는 하지 않는다.
 
 ## 남은 완료 조건
 
