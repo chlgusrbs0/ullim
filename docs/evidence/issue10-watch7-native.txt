@@ -1,0 +1,2 @@
+11-14 03:58:54.972 28385 28431 I UllimDspProbe: temporal knockFrames=5,20,45 intervalsMs=300,500 continuousFrames=251 onsets=1 speechDistinctLevels=94 tail=0.0 refractory=true sessionReset=true
+11-14 03:58:54.972 28385 28431 I UllimDspProbe: result=PASS
