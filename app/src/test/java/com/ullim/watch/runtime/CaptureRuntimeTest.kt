@@ -6,6 +6,21 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class CaptureRuntimeTest {
+    @Test fun serviceDestructionAfterCompletedStopCannotResurrectStoppingState() {
+        val first = CaptureRuntime.requestStart()!!
+        try {
+            CaptureRuntime.listening(first, false)
+            CaptureRuntime.stopping(first)
+            CaptureRuntime.finished(first)
+            // Service.stopSelf() then invokes onDestroy() -> stopCapture() again.
+            CaptureRuntime.stopping(first)
+            assertEquals(ListeningState.Idle, CaptureRuntime.state.value.listening)
+            val second = CaptureRuntime.requestStart()
+            assertNotNull(second)
+            if (second != null) CaptureRuntime.finished(second)
+        } finally { CaptureRuntime.finished(first) }
+    }
+
     @Test fun oldServiceCallbacksCannotOverwriteNewSessionOrReleaseDifferentMicrophone() {
         val first = CaptureRuntime.requestStart()!!
         assertNull(CaptureRuntime.requestStart())

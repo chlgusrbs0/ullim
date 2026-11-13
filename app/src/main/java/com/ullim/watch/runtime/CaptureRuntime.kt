@@ -40,7 +40,10 @@ object CaptureRuntime {
         mutableState.value = RuntimeState(ListeningState.Listening(id))
     }
     @Synchronized fun stopping(id: Long) {
-        if (currentId == id && state.value.listening !is ListeningState.Error) mutableState.value = RuntimeState(ListeningState.Stopping(id))
+        val phase = state.value.listening
+        if (currentId == id && (phase is ListeningState.Starting || phase is ListeningState.Listening)) {
+            mutableState.value = RuntimeState(ListeningState.Stopping(id))
+        }
     }
     @Synchronized fun finished(id: Long) {
         if (currentId != id) return
