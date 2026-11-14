@@ -26,10 +26,10 @@ class SettingsRepositoryTest {
         val file = File(temporary.root, "settings.preferences_pb")
         withStore(file) { repository ->
             assertEquals(UserSettings(), repository.load())
-            repository.save(UserSettings(1.25f, true))
+            repository.save(UserSettings(.75f, false))
         }
         withStore(file) { repository ->
-            assertEquals(UserSettings(1.25f, true), repository.load())
+            assertEquals(UserSettings(.75f, false), repository.load())
             repository.save(UserSettings())
         }
         withStore(file) { assertEquals(UserSettings(), it.load()) }
@@ -44,7 +44,7 @@ class SettingsRepositoryTest {
         withStore(file) { it.save(expected) }
         withStore(file) {
             assertEquals(expected, it.load())
-            it.save(expected.copy(tuning = TuningSettings.DEFAULT))
+            it.save(expected.copy(tuning = MvpDefaults.tuning))
         }
         withStore(file) { assertEquals(UserSettings(.75f, false), it.load()) }
     }
@@ -61,7 +61,7 @@ class SettingsRepositoryTest {
 
     @Test fun wrongTypesInvalidNumbersAndFutureSchemaHaveSafeDefaults() {
         for (value in listOf(Float.NaN, Float.POSITIVE_INFINITY, -1f, 2f)) {
-            assertEquals(1f, SettingsRepository.decode(preferencesOf(floatPreferencesKey("sensitivity") to value)).sensitivity)
+            assertEquals(MvpDefaults.SENSITIVITY, SettingsRepository.decode(preferencesOf(floatPreferencesKey("sensitivity") to value)).sensitivity)
         }
         val wrong = preferencesOf(stringPreferencesKey("sensitivity") to "loud", stringPreferencesKey("ai_enabled") to "yes")
         assertEquals(UserSettings(), SettingsRepository.decode(wrong))

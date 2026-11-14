@@ -117,7 +117,7 @@
     <string name="settings_title">설정</string>
     <string name="sensitivity_value">민감도 %1$d%%</string>
     <string name="sensitivity_state">현재 민감도 %1$d%%</string>
-    <string name="sensitivity_defaults" formatted="false">기본 민감도 100% · 조절 범위 75~125%\nAI 기본값은 켜짐이에요</string>
+    <string name="sensitivity_defaults" formatted="false">기본 민감도 125% · 조절 범위 75~125%\nAI 기본값은 켜짐이에요</string>
     <string name="sensitivity_down">민감도 낮추기</string>
     <string name="sensitivity_up">민감도 높이기</string>
     <string name="settings_loading">설정을 불러오고 있어요</string>

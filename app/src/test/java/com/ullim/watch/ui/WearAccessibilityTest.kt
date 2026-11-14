@@ -15,6 +15,7 @@ import java.io.File
 import com.ullim.watch.core.ListeningState
 import com.ullim.watch.core.RuntimeState
 import com.ullim.watch.settings.SettingsState
+import com.ullim.watch.settings.UserSettings
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -30,7 +31,7 @@ import org.robolectric.annotation.LooperMode
 @LooperMode(LooperMode.Mode.PAUSED)
 class WearAccessibilityTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
-    private var state by mutableStateOf(ListeningUiState(microphoneGranted = true, notificationsGranted = true, settings = SettingsState(ready = true)))
+    private var state by mutableStateOf(ListeningUiState(microphoneGranted = true, notificationsGranted = true, settings = SettingsState(values = UserSettings(sensitivity = 1f), ready = true)))
     private var starts = 0
 
     private fun render() {

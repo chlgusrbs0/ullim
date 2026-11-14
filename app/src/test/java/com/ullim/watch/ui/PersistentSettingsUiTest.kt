@@ -40,20 +40,20 @@ class PersistentSettingsUiTest {
         // needs its Looper driven as well as the Compose frame clock.
         compose.waitUntil(5_000) { shadowOf(Looper.getMainLooper()).idle(); settings.state.value.ready }
         compose.onNodeWithText("설정").performScrollTo().performClick()
-        compose.onNodeWithText("민감도 100%").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("민감도 높이기").performScrollTo().performClick()
-        assertEquals(1.25f, CaptureRuntime.sensitivity.value)
-        compose.onNodeWithText("민감도 높이기").assertIsNotEnabled()
+        compose.onNodeWithText("민감도 125%").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("민감도 낮추기").performScrollTo().performClick()
+        assertEquals(1f, CaptureRuntime.sensitivity.value)
+        compose.onNodeWithText("민감도 높이기").assertIsEnabled()
         compose.onNode(isToggleable()).performScrollTo().assertIsOn().performClick()
         assertFalse(CaptureRuntime.aiEnabled.value)
         compose.waitUntil(5_000) { shadowOf(Looper.getMainLooper()).idle(); !settings.state.value.saving }
         assertNull(settings.state.value.error)
         compose.activityRule.scenario.recreate()
         compose.waitForIdle()
-        compose.onNodeWithText("민감도 125%").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("민감도 100%").performScrollTo().assertIsDisplayed()
         compose.onNode(isToggleable()).performScrollTo().assertIsOff().assertIsEnabled()
         compose.onNodeWithText("기본 설정 복원").performScrollTo().performClick()
-        assertEquals(1f, CaptureRuntime.sensitivity.value)
+        assertEquals(1.25f, CaptureRuntime.sensitivity.value)
         assertTrue(CaptureRuntime.aiEnabled.value)
         compose.waitUntil(5_000) { shadowOf(Looper.getMainLooper()).idle(); !settings.state.value.saving }
         compose.onNodeWithText("설정 저장됨").performScrollTo().assertIsDisplayed()

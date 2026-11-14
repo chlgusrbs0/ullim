@@ -3,7 +3,7 @@ package com.ullim.watch.runtime
 import com.ullim.watch.audio.MicrophoneCapture
 import com.ullim.watch.core.AiStatus
 import com.ullim.watch.settings.UserSettings
-import com.ullim.watch.settings.TuningSettings
+import com.ullim.watch.settings.MvpDefaults
 import com.ullim.watch.haptics.AiTactileStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,8 +21,8 @@ object CaptureRuntime {
     private val mutableLevels = MutableStateFlow(LiveLevels())
     private val mutableLimited = MutableStateFlow(false)
     private val mutableAiEnabled = MutableStateFlow(false)
-    private val mutableSensitivity = MutableStateFlow(1f)
-    private val mutableTuning = MutableStateFlow(TuningSettings.DEFAULT)
+    private val mutableSensitivity = MutableStateFlow(MvpDefaults.SENSITIVITY)
+    private val mutableTuning = MutableStateFlow(MvpDefaults.tuning)
     private val mutableFailure = MutableStateFlow<CaptureFailure?>(null)
     val state = controller.state
     val startAllowed = controller.startAllowed
