@@ -14,6 +14,18 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class MotorProfileStoreTest {
+    @Test fun fullOutputRequiresNewCalibrationWithoutDeletingTheOldNumericProfile() {
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        val key = MotorProfileStore.deviceKey(context)
+        val oldKey = key.removeSuffix("|output=100")
+        val profile = MotorNoiseProfile(DoubleArray(257) { .0001 }, DoubleArray(257) { .0002 }, true)
+        assertTrue(MotorProfileStore.save(context, oldKey, profile))
+        assertNull(MotorProfileStore.load(context, key))
+        assertNotNull(MotorProfileStore.load(context, oldKey))
+        assertTrue(MotorProfileStore.save(context, key, profile))
+        assertNotNull(MotorProfileStore.load(context, key))
+    }
+
     @Test fun persistedInvalidationKeepsNumericProfileButRequiresANewSuccessfulCalibration() {
         val context = ApplicationProvider.getApplicationContext<Application>()
         val profile = MotorNoiseProfile(DoubleArray(257) { .0001 }, DoubleArray(257) { .0002 })
@@ -35,7 +47,7 @@ class MotorProfileStoreTest {
         listOf("haptic_feedback_intensity", "VIB_FEEDBACK_MAGNITUDE", "VIB_RECVCALL_MAGNITUDE", "SEM_VIBRATION_NOTIFICATION_INTENSITY")
             .forEachIndexed { index, key -> Settings.System.putInt(context.contentResolver, key, index + 1) }
         Settings.Global.putInt(context.contentResolver, "setting_vibration_intensity", 3)
-        assertEquals("${Build.MODEL}|${Build.FINGERPRINT}|${Build.VERSION.INCREMENTAL}|1|2|3|4|globalIntensity=3", MotorProfileStore.deviceKey(context))
+        assertEquals("${Build.MODEL}|${Build.FINGERPRINT}|${Build.VERSION.INCREMENTAL}|1|2|3|4|globalIntensity=3|output=100", MotorProfileStore.deviceKey(context))
         assertEquals(5, MotorProfileStore.settingUris().distinct().size)
         assertTrue(MotorProfileStore.settingUris().contains(Settings.Global.getUriFor("setting_vibration_intensity")))
     }

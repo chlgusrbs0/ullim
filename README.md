@@ -88,3 +88,9 @@ Windows에서는 `./gradlew.bat`를 사용합니다. APK 경로는 `app/build/ou
 - [docs/error-recovery.md](docs/error-recovery.md) — 오류 코드, 수동 회복 행동과 자원 정리 경계
 - [docs/wear-accessibility.md](docs/wear-accessibility.md) — 큰 글씨·화면 읽기 의미·대비·터치 및 실제 워치 검증 체크리스트
 - [docs/watch-haptic-validation.md](docs/watch-haptic-validation.md) — 워치7 실제 관찰, 연속 출력 통제 비교와 물리 지연 측정 절차
+
+
+## AI 분석과 출력 확인
+메인의 **AI 분석 보기**에서 YAMNet의 실시간 분류 후보·모델 점수, 확정 결과, 실제 촉각 정책과 추론 횟수를 확인합니다. 마이크 입력→모터 보정 후 입력, 기본 진동→AI 후 요청을 나란히 표시합니다. 점수는 음량이나 정답 확률이 아닙니다. 종류별 소리 분리·제거 기능을 뜻하지 않습니다.
+
+앱의 출력 상한은100% 요청으로 확장했습니다. 워치의 시스템 진동 설정과 물리 응답은 별도입니다. 기존85% 범위의 숫자 보정은100% 출력 보정으로 한 번 다시 받아야 합니다. 안내에 따라 착용한 상태에서 **모터 간섭 보정 · 3초**를 실행합니다.

@@ -9,6 +9,20 @@ import kotlin.math.PI
 import kotlin.math.sin
 
 class EnvelopeHapticMapperTest {
+    @Test fun middleLevelUsesMoreOutputAndMaximumCanReachFullRange() {
+        fun settled(level: Float): Float {
+            val mapper = EnvelopeHapticMapper()
+            var result = 0f
+            repeat(30) { index ->
+                result = mapper.map(AudioFeatures(1, index * 20_000_000L, level, level, level)).commandedIntensity
+            }
+            return result
+        }
+        assertEquals(.8f, settled(.5f), .00001f)
+        assertEquals(1f, settled(1f), .00001f)
+        assertTrue(listOf(.1f, .2f, .3f, .4f, .5f, .75f, 1f).map(::settled).zipWithNext().all { (a,b) -> a < b })
+    }
+
     @Test fun pcmStrengthAndUserSensitivityKeepTheirOrderThroughDspAndMapper() {
         fun output(amplitude: Int, sensitivity: Float): Float {
             val dsp = DspProcessor().apply { this.sensitivity = sensitivity }
@@ -55,7 +69,7 @@ class EnvelopeHapticMapperTest {
             EnvelopeHapticMapper().map(AudioFeatures(1, 0, level, level, level)).commandedIntensity
         }
         assertTrue(intensities.zipWithNext().all { (a, b) -> a <= b })
-        assertTrue(intensities.all { it in 0f..0.85f })
+        assertTrue(intensities.all { it in 0f..1f })
     }
 
     @Test fun threeKnocksRetainLeadingEdgesAndTheirIntervalsWithoutAi() {

@@ -32,6 +32,7 @@ import com.ullim.watch.ui.collectAiDisplay
 import com.ullim.watch.ui.theme.UllimTheme
 import com.ullim.watch.settings.SettingsRuntime
 import com.ullim.watch.ui.SettingsSaveStatus
+import com.ullim.watch.ui.SignalPathContent
 
 class AiControlsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,6 +42,7 @@ class AiControlsActivity : ComponentActivity() {
         setContent {
             val enabled by CaptureRuntime.aiEnabled.collectAsStateWithLifecycle()
             val settings by preferences.state.collectAsStateWithLifecycle()
+            val levels by CaptureRuntime.levels.collectAsStateWithLifecycle()
             val display = collectAiDisplay(CaptureRuntime.aiEnabled, CaptureRuntime.state, worker.state)
             val scroll = rememberScrollState()
             val pageName = stringResource(R.string.ai_controls)
@@ -55,6 +57,8 @@ class AiControlsActivity : ComponentActivity() {
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             AiResultContent(display, showOriginal = true)
+                            SignalPathContent(levels, enabled)
+                            Text(stringResource(R.string.ai_role_notice), textAlign = TextAlign.Center)
                             SettingsSaveStatus(settings) { preferences.retrySave() }
                             Text(stringResource(R.string.ai_optional_notice), textAlign = TextAlign.Center)
                             AiModeControl(enabled, settings.ready) {

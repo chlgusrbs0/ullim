@@ -11,6 +11,7 @@ import kotlin.math.roundToInt
 
 enum class AiDisplayStatus { OFF, WAITING, LOADING, LISTENING, DELAYED, FAILED }
 enum class AiResultKind { NONE, WAITING, UNCERTAIN, EXPIRED, UNSUPPORTED, RECOGNIZED }
+data class AiCandidateDisplay(val label: String, val scorePercent: Int)
 data class AiDisplayState(
     val status: AiDisplayStatus = AiDisplayStatus.OFF,
     val result: AiResultKind = AiResultKind.NONE,
@@ -21,6 +22,9 @@ data class AiDisplayState(
     val restartRequired: Boolean = false,
     val baselineContinues: Boolean = false,
     val faultCode: String? = null,
+    val candidates: List<AiCandidateDisplay> = emptyList(),
+    val completedInferences: Long = 0,
+    val automaticRetries: Int = 0,
 )
 
 /** Presentation only: never changes worker, microphone or haptic state. */
@@ -42,7 +46,14 @@ object AiDisplay {
                 AiPhase.FAILED -> AiDisplayStatus.FAILED
             }
         }
+        val candidates = snapshot.rawClassification?.takeIf {
+            status == AiDisplayStatus.LISTENING && session != null && it.isFresh(session, nowNs)
+        }?.scores?.sortedByDescending { it.confidence }?.take(3)?.map {
+            AiCandidateDisplay(SoundLabels.display(it.label), (it.confidence * 100).roundToInt())
+        }.orEmpty()
         val base = AiDisplayState(status = status, cleanupPending = snapshot.cleanupPending,
+            candidates = candidates, completedInferences = if (snapshot.sessionId == session) snapshot.successfulInferences else 0,
+            automaticRetries = if (snapshot.sessionId == session) snapshot.automaticRetries else 0,
             restartRequired = snapshot.fault == AiFault.CLEANUP || snapshot.fault == AiFault.EXECUTOR,
             baselineContinues = runtime.listening is ListeningState.Listening && status != AiDisplayStatus.LISTENING,
             faultCode = snapshot.fault?.takeIf { status == AiDisplayStatus.FAILED || it == AiFault.CLEANUP || it == AiFault.EXECUTOR }?.let { "AI_${it.name}" })

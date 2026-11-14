@@ -6,6 +6,21 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AiDisplayTest {
+    @Test fun rawCandidatesRemainVisibleWithoutPretendingTheyAreConfirmedAndExpire() {
+        val raw = result(ClassScore("Walk, footsteps", .5f), ClassScore("Speech", .3f))
+        val worker = snapshot(result()).copy(rawClassification = raw, successfulInferences = 8, automaticRetries = 1)
+        val state = display(worker)
+        assertEquals(AiResultKind.UNCERTAIN, state.result)
+        assertNull(state.label)
+        assertEquals("걷는 소리·발소리", state.candidates.first().label)
+        assertEquals(50, state.candidates.first().scorePercent)
+        assertEquals(8L, state.completedInferences)
+        assertEquals(1, state.automaticRetries)
+        assertTrue(display(worker, 2_500_000_000).candidates.isEmpty())
+        assertTrue(AiDisplay.project(false, runtime, worker, 1_100_000_000).candidates.isEmpty())
+        assertTrue(display(worker.copy(phase = AiPhase.FAILED)).candidates.isEmpty())
+    }
+
     private val runtime = RuntimeState(ListeningState.Listening(7))
     private fun result(vararg scores: ClassScore, session: Long = 7, time: Long = 1_000_000_000L) =
         Classification(session, time, time + 1_500_000_000, scores.toList())

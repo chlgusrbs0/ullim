@@ -50,7 +50,7 @@ class MotorCalibrationRunner(
         pulseFallback = !device.capabilities.amplitudeControl ||
             MotorVibrationPolicy.requiresPulseFallback(Build.MODEL, firmwareKey)
         onDiagnostic("start pulse=$pulseFallback amplitudeControl=${device.capabilities.amplitudeControl} " +
-            "globalIntensityKnown=${!firmwareKey.endsWith("|globalIntensity=-")}")
+            "globalIntensityKnown=${!firmwareKey.contains("|globalIntensity=-|")}")
         stopping = false
         pending = null
         accumulator = null
@@ -113,7 +113,7 @@ class MotorCalibrationRunner(
         val startedNs = clockNs()
         accumulator?.recordPhase(index, startedNs)
         val waveform = if (pulseFallback) {
-            val part = PulseFallback.encode(if (index == 0) .2f else .85f, 20)
+            val part = PulseFallback.encode(if (index == 0) .2f else 1f, 20)
             DiagnosticWaveform(LongArray(part.timings.size * 3) { part.timings[it % part.timings.size] },
                 IntArray(part.amplitudes.size * 3) { part.amplitudes[it % part.amplitudes.size] })
         } else DiagnosticWaveform(longArrayOf(0, 60), intArrayOf(0, if (device.capabilities.amplitudeControl) amplitude else -1))

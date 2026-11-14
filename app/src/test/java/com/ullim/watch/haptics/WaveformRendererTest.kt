@@ -39,7 +39,7 @@ class WaveformRendererTest {
         renderer.begin(1)
         assertEquals(RenderResult.SENT, renderer.render(HapticFrame(1, 0, 20, 1f)))
         assertEquals(20L, device.played.single().timings.sum())
-        assertTrue(device.played.single().amplitudes.max() <= 217)
+        assertEquals(255, device.played.single().amplitudes.max())
     }
 
     @Test fun unsupportedMotorNeverReceivesCommands() {
