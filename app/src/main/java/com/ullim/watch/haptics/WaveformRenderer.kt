@@ -42,18 +42,16 @@ class WaveformRenderer(private val device: WaveformDevice, private val forcePuls
             if (batch.all { it.isSilent }) {
                 device.cancel()
                 RenderResult.SILENT
+            } else if (strengthLimited) {
+                val pulse = PulseFallback.encodeBatch(batch)
+                device.play(pulse.timings, pulse.amplitudes)
+                RenderResult.SENT
             } else {
                 val timings = mutableListOf(0L)
                 val amplitudes = mutableListOf(0)
                 for (frame in batch) {
-                    if (strengthLimited) {
-                        val pulse = PulseFallback.encode(frame.commandedIntensity, frame.durationMs)
-                        timings.addAll(pulse.timings.toList())
-                        amplitudes.addAll(pulse.amplitudes.toList())
-                    } else {
-                        timings.add(frame.durationMs)
-                        amplitudes.add(if (frame.isSilent) 0 else (frame.commandedIntensity * 255).roundToInt().coerceIn(1, 255))
-                    }
+                    timings.add(frame.durationMs)
+                    amplitudes.add(if (frame.isSilent) 0 else (frame.commandedIntensity * 255).roundToInt().coerceIn(1, 255))
                 }
                 device.play(timings.toLongArray(), amplitudes.toIntArray())
                 RenderResult.SENT
