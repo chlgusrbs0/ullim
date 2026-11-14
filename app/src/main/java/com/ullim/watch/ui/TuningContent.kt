@@ -31,6 +31,7 @@ internal fun TuningContent(
     settings: SettingsState, phase: ListeningState, levels: LiveLevels,
     onChange: (TuningParameter, Float) -> Unit, onReset: () -> Unit,
     onRetry: () -> Unit, onStop: () -> Unit, onBack: () -> Unit,
+    onPhone: () -> Unit = {},
 ) {
     var groupName by rememberSaveable { mutableStateOf<String?>(null) }
     var parameterName by rememberSaveable { mutableStateOf<String?>(null) }
@@ -66,6 +67,7 @@ internal fun TuningContent(
                         TuningButton("${p.label}\n${p.display(settings.values.tuning[p])}", { parameterName = p.name }, settings.ready)
                     }
                 } else {
+                    TuningButton("휴대폰에서 조절", onPhone)
                     TuningText("값을 바꾸면 감지 중에도 바로 반영돼요. 자동 저장되어 앱·워치를 다시 시작해도 유지돼요.")
                     TuningGroup.entries.forEach { g ->
                         TuningButton(g.label, { groupName = g.name }, settings.ready)

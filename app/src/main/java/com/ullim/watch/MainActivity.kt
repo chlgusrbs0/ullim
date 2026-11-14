@@ -89,6 +89,7 @@ class MainActivity : ComponentActivity() {
                 onStop = ::stopCapture,
                 onAiSettings = { startActivity(Intent(this, AiControlsActivity::class.java)) },
                 onTuning = { startActivity(Intent(this, TuningActivity::class.java)) },
+                onPhoneTuning = { startActivity(Intent(this, PhoneTuningActivity::class.java)) },
                 onDiagnostics = {
                     if (CaptureRuntime.canStart()) startActivity(Intent(this, DiagnosticsActivity::class.java))
                 },

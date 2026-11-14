@@ -56,6 +56,7 @@ fun UllimApp(
     onCompleteOnboarding: () -> Unit = {},
     onRequestMicrophone: () -> Unit = {},
     onTuning: () -> Unit = {},
+    onPhoneTuning: () -> Unit = {},
 ) {
     var screen by rememberSaveable { mutableStateOf(if (state.showOnboarding) UllimScreen.ONBOARDING else UllimScreen.HOME) }
     val scrollState = rememberScrollState()
@@ -105,9 +106,10 @@ fun UllimApp(
                             }
                             UllimScreen.HOME -> HomeScreen(state, onStart, onStop, onAppSettings, onDiagnostics, onAiSettings, onRequestMicrophone,
                                 onSettings = { screen = UllimScreen.SETTINGS },
-                                onGuide = { screen = UllimScreen.GUIDE }, onTuning = onTuning)
+                                onGuide = { screen = UllimScreen.GUIDE }, onTuning = onTuning, onPhoneTuning = onPhoneTuning)
                             UllimScreen.SETTINGS -> {
                                 ScreenTitle(stringResource(R.string.settings_title))
+                                Action(R.string.phone_tuning, onPhoneTuning)
                                 SettingsContent(state.settings, state.runtime.listening, state.strengthLimited,
                                     onSensitivity, onAiToggle, onSettingsReset, onSettingsRetry, onTuning)
                                 Action(R.string.ai_details, onAiSettings)
@@ -163,6 +165,7 @@ private fun HomeScreen(
     onSettings: () -> Unit,
     onGuide: () -> Unit,
     onTuning: () -> Unit,
+    onPhoneTuning: () -> Unit,
 ) {
     val phase = state.runtime.listening
     val idle = phase == ListeningState.Idle || phase is ListeningState.Error
@@ -204,6 +207,7 @@ private fun HomeScreen(
     AiResultContent(state.ai)
     Action(R.string.ai_details, onAiSettings)
     Action(R.string.live_tuning, onTuning)
+    Action(R.string.phone_tuning, onPhoneTuning)
     ComparisonGraph(state.visualization, active = phase is ListeningState.Listening)
     if (!state.microphoneGranted) {
         Body(stringResource(if (state.microphonePermissionPermanentlyDenied) R.string.microphone_permission_blocked else R.string.microphone_permission_needed))
