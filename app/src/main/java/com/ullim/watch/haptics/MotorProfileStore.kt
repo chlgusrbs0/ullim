@@ -44,6 +44,8 @@ object MotorProfileStore {
     private fun formatDeviceKey(readSystem: (String) -> String?, readGlobal: (String) -> String?): String {
         val values = intensityKeys.joinToString("|") { readSystem(it) ?: "-" }
         val globalIntensity = readGlobal(GLOBAL_INTENSITY) ?: "-"
+        // Calibration still measures the identical .2 / 1.0 waveforms. Retain
+        // its original revision key when tuning only the transition thresholds.
         return "${Build.MODEL}|${Build.FINGERPRINT}|${Build.VERSION.INCREMENTAL}|$values|globalIntensity=$globalIntensity|output=100|pulse=adaptive75-85-v1"
     }
 

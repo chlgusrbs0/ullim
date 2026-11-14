@@ -4,6 +4,9 @@ import com.ullim.watch.core.HapticFrame
 import kotlin.math.roundToLong
 
 object PulseFallback {
+    const val SHORT_PULSE_MAX = .60f
+    const val LONG_PULSE_MIN = .75f
+
     private fun onTime(intensity: Float, durationMs: Long): Long =
         if (intensity == 0f) 0 else maxOf(minOf(4L, durationMs), (durationMs * intensity).roundToLong()).coerceAtMost(durationMs)
 
@@ -50,10 +53,10 @@ object PulseFallback {
                     end++
                 }
             }
-            // Below 75% retain the original short pulses. Transfer ON budget
+            // Below 60% retain the original short pulses. Transfer ON budget
             // from later pulses to the first one gradually, reaching the long
-            // pulse at 85%. No extra time, amplitude or future frames needed.
-            val blend = ((lowestLevel - .75f) / .10f).coerceIn(0f, 1f)
+            // pulse at 75%. No extra time, amplitude or future frames needed.
+            val blend = ((lowestLevel - SHORT_PULSE_MAX) / (LONG_PULSE_MIN - SHORT_PULSE_MAX)).coerceIn(0f, 1f)
             val transferred = onTimes.mapIndexed { index, on -> if (index == 0) 0L else (on * blend).roundToLong() }
             for (index in onTimes.indices) {
                 val on = onTimes[index] + if (index == 0) transferred.sum() else -transferred[index]

@@ -94,15 +94,15 @@ class HybridHapticMapperTest {
     }
 
     @Test fun steadyLevelsHaveNoPermanentCategoryGainAndRetainIntensityOrder() {
-        val outputs = listOf(.05f, .2f, .5f, .75f, .85f, 1f).map { level ->
+        val outputs = listOf(.05f, .2f, .5f, .6f, .75f, .85f, 1f).map { level ->
             val mapper = HybridHapticMapper()
             var output = 0f
             repeat(120) { index ->
                 val input = features(index * 20_000_000L, level = level)
                 output = mapper.map(input, context(input.timestampNs, "Alarm")).commandedIntensity
                 val base = mapper.lastBaseline
-                if (base <= .75f) assertTrue(output <= .75f)
-                if (base >= .85f) assertTrue(output >= .85f)
+                if (base <= .6f) assertTrue(output <= .6f)
+                if (base >= .75f) assertTrue(output >= .75f)
             }
             assertEquals(level, output, .00001f)
             output
