@@ -24,7 +24,7 @@ class FrameSpectrum {
 
     fun subtract(frame: AudioFrame, noisePower: DoubleArray, margin: Double = 1.25): AudioFrame = try {
         require(noisePower.size == BINS && noisePower.all { it.isFinite() && it >= 0 })
-        require(margin.isFinite() && margin >= 1)
+        require(margin.isFinite() && margin >= 0)
         load(frame)
         transform(false)
         var totalPower = 0.0

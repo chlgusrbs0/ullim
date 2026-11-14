@@ -98,7 +98,7 @@ class InputLoudnessMappingTest {
     }
 
     @Test fun invalidNormalizationParametersAreRejected() {
-        for (knee in listOf(0f, -1f, Float.NaN, Float.POSITIVE_INFINITY, 1.1f)) {
+        for (knee in listOf(0f, -1f, Float.NaN, Float.POSITIVE_INFINITY, 2.1f)) {
             assertThrows(IllegalArgumentException::class.java) { NoiseGate(knee) }
         }
     }

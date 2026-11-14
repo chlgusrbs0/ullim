@@ -18,6 +18,7 @@
         <service android:name=".ListeningService" android:exported="false" android:foregroundServiceType="microphone" />
         <activity android:name=".DiagnosticsActivity" android:exported="false" android:taskAffinity="${applicationId}.main" />
         <activity android:name=".AiControlsActivity" android:exported="false" android:taskAffinity="${applicationId}.main" />
+        <activity android:name=".TuningActivity" android:exported="false" android:taskAffinity="${applicationId}.main" />
         <activity
             android:name=".MainActivity"
             android:taskAffinity="${applicationId}.main"

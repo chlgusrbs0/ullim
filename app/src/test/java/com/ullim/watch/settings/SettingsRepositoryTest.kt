@@ -35,6 +35,20 @@ class SettingsRepositoryTest {
         withStore(file) { assertEquals(UserSettings(), it.load()) }
     }
 
+    @Test fun detailedTuningSurvivesActualStoreReopenIncludingCoupledHighThresholds() = runBlocking {
+        val file = File(temporary.root, "tuning.preferences_pb")
+        val tuning = TuningSettings.DEFAULT.with(TuningParameter.LONG_END, .99f)
+            .with(TuningParameter.LONG_START, .9f).with(TuningParameter.MIDDLE_OUTPUT, .32f)
+            .with(TuningParameter.REFERENCE_RMS, .12f).with(TuningParameter.GAP_HOLD_MS, 60f)
+        val expected = UserSettings(.75f, false, tuning)
+        withStore(file) { it.save(expected) }
+        withStore(file) {
+            assertEquals(expected, it.load())
+            it.save(expected.copy(tuning = TuningSettings.DEFAULT))
+        }
+        withStore(file) { assertEquals(UserSettings(.75f, false), it.load()) }
+    }
+
     @Test fun corruptedActualPreferenceBytesRecoverToSafeDefaultsAndCanBeSaved() = runBlocking {
         val file = File(temporary.root, "bad.preferences_pb")
         file.writeBytes(byteArrayOf(-1, -1, -1, 0))

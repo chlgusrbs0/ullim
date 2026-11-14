@@ -3,6 +3,7 @@ package com.ullim.watch.runtime
 import com.ullim.watch.audio.MicrophoneCapture
 import com.ullim.watch.core.AiStatus
 import com.ullim.watch.settings.UserSettings
+import com.ullim.watch.settings.TuningSettings
 import com.ullim.watch.haptics.AiTactileStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,6 +13,7 @@ data class LiveLevels(
     val rawSound: Float = sound, val baselineCommanded: Float = commanded,
     val motorFiltered: Boolean = false, val aiAdjusted: Boolean = false,
     val aiPolicy: AiTactileStatus = AiTactileStatus.NO_CONTEXT,
+    val normalizedLevel: Float = 0f, val detected: Boolean = false,
 )
 
 object CaptureRuntime {
@@ -20,6 +22,7 @@ object CaptureRuntime {
     private val mutableLimited = MutableStateFlow(false)
     private val mutableAiEnabled = MutableStateFlow(false)
     private val mutableSensitivity = MutableStateFlow(1f)
+    private val mutableTuning = MutableStateFlow(TuningSettings.DEFAULT)
     private val mutableFailure = MutableStateFlow<CaptureFailure?>(null)
     val state = controller.state
     val startAllowed = controller.startAllowed
@@ -27,6 +30,7 @@ object CaptureRuntime {
     val strengthLimited = mutableLimited.asStateFlow()
     val aiEnabled = mutableAiEnabled.asStateFlow()
     val sensitivity = mutableSensitivity.asStateFlow()
+    val tuning = mutableTuning.asStateFlow()
     val failure = mutableFailure.asStateFlow()
     val visualization = VisualizationHistory()
 
@@ -34,6 +38,7 @@ object CaptureRuntime {
     fun applySettings(values: UserSettings) {
         mutableSensitivity.value = values.sensitivity
         mutableAiEnabled.value = values.aiEnabled
+        mutableTuning.value = values.tuning
     }
     @Synchronized fun canStart(): Boolean = controller.canStart()
     @Synchronized fun stopToken(): Long? = controller.stopToken()
@@ -70,8 +75,9 @@ object CaptureRuntime {
     }
     @Synchronized fun publish(id: Long, sound: Float, commanded: Float, rawSound: Float = sound,
         baselineCommanded: Float = commanded, motorFiltered: Boolean = false, aiAdjusted: Boolean = false,
-        aiPolicy: AiTactileStatus = AiTactileStatus.NO_CONTEXT) {
+        aiPolicy: AiTactileStatus = AiTactileStatus.NO_CONTEXT,
+        normalizedLevel: Float = 0f, detected: Boolean = false) {
         if (controller.isListening(id)) mutableLevels.value = LiveLevels(sound, commanded, rawSound,
-            baselineCommanded, motorFiltered, aiAdjusted, aiPolicy)
+            baselineCommanded, motorFiltered, aiAdjusted, aiPolicy, normalizedLevel, detected)
     }
 }

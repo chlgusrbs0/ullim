@@ -2,8 +2,11 @@ package com.ullim.watch.haptics
 
 import com.ullim.watch.core.AudioFrame
 import com.ullim.watch.dsp.FrameSpectrum
+import com.ullim.watch.settings.TuningSettings
+import com.ullim.watch.settings.TuningParameter
 
-class MotorNoiseSuppressor(private val profile: MotorNoiseProfile?, private val timeline: MotorOutputTimeline) {
+class MotorNoiseSuppressor(private val profile: MotorNoiseProfile?, private val timeline: MotorOutputTimeline,
+    private val readTuning: () -> TuningSettings = { TuningSettings.DEFAULT }) {
     private val spectrum = FrameSpectrum()
     private val noisePower = DoubleArray(FrameSpectrum.BINS)
     private var sessionId = 0L
@@ -20,7 +23,7 @@ class MotorNoiseSuppressor(private val profile: MotorNoiseProfile?, private val 
         val amplitude = timeline.amplitudeAt(frame.timestampNs, frame.durationNs)
         if (amplitude == 0) return frame
         profile.fillNoisePower(amplitude, noisePower)
-        val cleaned = spectrum.subtract(frame, noisePower)
+        val cleaned = spectrum.subtract(frame, noisePower, readTuning()[TuningParameter.MOTOR_SUBTRACTION].toDouble())
         lastRawRms = spectrum.lastRawRms
         lastFiltered = true
         return cleaned

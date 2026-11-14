@@ -84,4 +84,19 @@ class SettingsControllerTest {
         reset.second.complete(Unit)
         controller.state.first { !it.saving && it.error == null }
     }
+
+    @Test fun detailedTuningAppliesBeforeDiskAndResetKeepsAiAndSensitivity() = fixture { controller, store, applied, control ->
+        store.loaded.complete(UserSettings(.75f, false)); controller.state.first { it.ready }
+        withContext(control) { controller.setTuning(TuningParameter.GAP_HOLD_MS, 80f) }
+        val write = store.writes.receive()
+        assertEquals(80f, applied.last().tuning[TuningParameter.GAP_HOLD_MS], 0f)
+        assertTrue(controller.state.value.saving)
+        withContext(control) { controller.resetTuning() }
+        assertEquals(UserSettings(.75f, false), applied.last())
+        write.second.complete(Unit)
+        val reset = store.writes.receive()
+        assertEquals(UserSettings(.75f, false), reset.first)
+        reset.second.complete(Unit)
+        controller.state.first { !it.saving }
+    }
 }
