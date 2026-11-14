@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -19,6 +20,7 @@
         <activity android:name=".DiagnosticsActivity" android:exported="false" android:taskAffinity="${applicationId}.main" />
         <activity android:name=".AiControlsActivity" android:exported="false" android:taskAffinity="${applicationId}.main" />
         <activity android:name=".TuningActivity" android:exported="false" android:taskAffinity="${applicationId}.main" />
+        <activity android:name=".PhoneTuningActivity" android:exported="false" android:taskAffinity="${applicationId}.main" />
         <activity
             android:name=".MainActivity"
             android:taskAffinity="${applicationId}.main"

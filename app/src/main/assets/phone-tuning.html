@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>울림 · 휴대폰 조절</title>
+<style>
+:root{color-scheme:dark;--bg:#0c111b;--card:#171f2e;--line:#334155;--muted:#a8b7cc;--accent:#8ee3c3;--text:#f2f6fc}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,sans-serif}main{max-width:760px;margin:auto;padding:20px 16px 100px}h1{font-size:26px;margin:0 0 4px}h2{font-size:19px;margin:0 0 12px}p{margin:8px 0;color:var(--muted)}section,details{background:var(--card);border:1px solid #263247;border-radius:18px;padding:18px;margin:16px 0}button{font:inherit;border:1px solid var(--line);border-radius:12px;background:#253249;color:var(--text);min-height:44px;padding:9px 15px;cursor:pointer}button.primary{background:var(--accent);color:#102820;border:0;font-weight:700}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{background:#101827;padding:10px;border-radius:10px}.metric b{font-size:22px;display:block}.metric small{color:var(--muted)}.bar{height:5px;border-radius:5px;background:#334155;margin-top:8px;overflow:hidden}.bar i{display:block;background:var(--accent);height:100%}#status{color:var(--accent);font-weight:650}.small{font-size:13px}.chart{width:100%;display:block;touch-action:none;user-select:none}svg text{font:12px system-ui;fill:var(--muted)}.knob{fill:var(--accent);stroke:#132d29;stroke-width:3;cursor:ns-resize;touch-action:none}.knob:focus{stroke:white;stroke-width:4}.control{padding:14px 0;border-top:1px solid #2c374b}.control:first-child{border:0}.control label{display:block;font-weight:650}.control .row{display:flex;align-items:center;gap:12px;margin-top:10px}.control input[type=range]{flex:1;min-width:0;accent-color:var(--accent);height:34px}.control input[type=number]{width:92px;font:inherit;color:var(--text);background:#0c1422;border:1px solid #46536b;border-radius:9px;padding:8px}.control small{display:block;color:var(--muted);margin:5px 0}summary{cursor:pointer;font-size:17px;font-weight:650;min-height:32px}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}#save{position:fixed;bottom:0;left:0;right:0;padding:12px 18px;background:#101827f5;border-top:1px solid #334155;text-align:center;z-index:5}#save.error{color:#ffb3aa}#save.ok{color:var(--accent)}.bad{color:#ffb3aa}#loading{padding:24px}.hidden{display:none}
+</style></head><body><main>
+<h1>울림 · 손끝으로 조절</h1><p>워치는 소리를 느끼고, 휴대폰은 설정만 바꿔요.</p>
+<div id="loading">워치에 연결하는 중…</div>
+<div id="app" class="hidden">
+<section><div id="status"></div><p id="reason" class="small"></p>
+<div class="grid"><div class="metric"><small>마이크 입력 → 모터 보정 후</small><b id="input">—</b><div class="bar"><i id="inputbar"></i></div></div>
+<div class="metric"><small>변환된 소리 → 진동 요청</small><b id="output">—</b><div class="bar"><i id="outputbar"></i></div></div></div>
+<p class="small">입력과 진동 %는 서로 다른 기준이에요. 실제 모터 힘의 측정값은 아니에요.</p>
+<button id="stop">감지 중지</button></section>
+<section><h2>소리 → 진동 곡선</h2><p>민트색 점을 위아래로 움직이세요. 위로 올리면 그 크기의 소리가 더 강하게 느껴져요.</p>
+<svg id="curve" class="chart" viewBox="0 0 360 285" role="group" aria-label="소리 크기에 따른 진동 요청 곡선">
+<g stroke="#334155"><path d="M44 20V232H338M44 126H338M191 20V232" fill="none"/></g>
+<text x="8" y="27">강</text><text x="8" y="235">약</text><text x="44" y="263">작은 소리</text><text x="285" y="263">큰 소리</text><text x="45" y="12">진동 요청</text>
+<path id="line" fill="none" stroke="#8ee3c3" stroke-width="3"/>
+<circle id="live" r="5" fill="#ffd48a"/>
+<circle class="knob" data-key="WEAK_OUTPUT" data-x=".25" r="13" tabindex="0" role="slider" aria-label="작은 소리의 진동"/>
+<circle class="knob" data-key="MIDDLE_OUTPUT" data-x=".5" r="13" tabindex="0" role="slider" aria-label="보통 소리의 진동"/>
+<circle class="knob" data-key="STRONG_OUTPUT" data-x=".8" r="13" tabindex="0" role="slider" aria-label="큰 소리의 진동"/>
+</svg><p class="small">세 점 사이도 연속으로 계산해요. 곡선은 반응 시간·AI 미세 조정 전의 지속음 기준이며, 노란 점은 현재 소리와 실제 요청값이에요.</p></section>
+<section><h2>자주 쓰는 조절</h2><div id="quick"></div>
+<h2 style="margin-top:16px">진동의 길이·끊김</h2><svg id="pulse" class="chart" viewBox="0 0 360 76" aria-label="현재 요청의 예상 진동 켜짐과 꺼짐"><path id="pulsepath" fill="none" stroke="#a8c7ff" stroke-width="3"/><text x="12" y="72">0 ms</text><text x="292" y="72">60 ms</text></svg>
+<p class="small">위쪽은 켜짐, 아래쪽은 꺼짐이에요. 현재 요청이 일정할 때의 예상 파형이며 실제 피부 진동을 측정한 그래프는 아니에요.</p></section>
+<details><summary>모든 상세 설정 · 35개</summary><p class="small">기존 항목을 모두 유지했어요. 범위와 앞뒤 순서에 맞게 적용돼요.</p><div id="advanced"></div></details>
+<section><h2>저장과 복원</h2><p>바꾼 값은 워치에 자동 저장돼요. ‘저장됨’을 확인하면 휴대폰을 닫거나 워치를 재시작해도 유지돼요.</p>
+<div class="actions"><button id="export">현재 값 내려받기</button><button id="reset">상세 설정 전체 기본값</button><button id="retry">저장 재시도</button></div>
+<p class="small">조절 중에는 워치의 ‘휴대폰에서 조절’ 화면을 열어 두세요. 감지 시작은 워치에서 직접 해주세요.</p></section>
+</div></main><div id="save">연결 준비 중</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s), clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const api=new URL('api',location.href), pending=new Map();
+let state=null, params={}, busy=false, dragging=null, built=false, online=false;
+const quickKeys=['REFERENCE_RMS','LOUDNESS_KNEE','MIN_RMS','MIDDLE_OUTPUT','OUTPUT_GAIN','CONTRAST','GAP_HOLD_MS','LONG_START','LONG_END'];
+const val=k=>params[k]?.value??0;
+const percent=v=>Math.round(v*100)+'%';
+function unitValue(p,v){return p.unit==='PERCENT'?v*100:v}
+function rawValue(p,v){return p.unit==='PERCENT'?v/100:v}
+function fmt(v){return Number(v.toFixed(4)).toString()}
+async function request(body){const r=await fetch(api,{method:body?'POST':'GET',cache:'no-store',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(2500)});if(!r.ok)throw Error('워치 응답 '+r.status);return r.json()}
+function notice(text,error=false){$('#save').textContent=text;$('#save').className=error?'error':'ok'}
+function receive(s){state=s;online=true;$('#loading').classList.add('hidden');$('#app').classList.remove('hidden');
+ if(!built){s.parameters.forEach(p=>params[p.name]=p);buildControls();built=true}
+ if(!pending.size&&!busy&&!dragging){s.parameters.forEach(p=>params[p.name]=p);refreshControls()}
+ $('#status').textContent=s.phase;
+ $('#reason').textContent=!s.listening?'워치에서 감지를 시작한 뒤 이 화면으로 돌아오세요.':s.detected?'소리가 감지되어 진동 요청을 계산하고 있어요.':'현재 무음으로 판단하고 있어요. 입력 기준·최소 입력을 확인해 보세요.';
+ $('#input').textContent=percent(s.raw)+' → '+percent(s.filtered);$('#output').textContent=percent(s.level)+' → '+percent(s.command);
+ $('#inputbar').style.width=percent(s.filtered);$('#outputbar').style.width=percent(s.command);$('#stop').disabled=!s.listening;
+ if(pending.size||busy)notice('변경 적용 중…');else if(s.error)notice('현재 값은 적용됐지만 저장하지 못했어요. 저장 재시도를 눌러 주세요.',true);else notice(s.saving?'워치에 저장 중…':'연결됨 · 워치에 저장됨');
+ draw();
+}
+function edit(key,value){const p=params[key];if(!p||!Number.isFinite(value))return;p.value=clamp(value,p.min,p.max);pending.set(key,p.value);draw();flush()}
+async function flush(){if(busy||!pending.size)return;busy=true;const [parameter,value]=pending.entries().next().value;pending.delete(parameter);notice('변경 적용 중…');
+ try{const s=await request({action:'set',parameter,value});busy=false;receive(s)}catch(e){busy=false;pending.set(parameter,value);online=false;notice('연결이 끊겼어요. 워치 조절 화면과 같은 핫스팟을 확인해 주세요.',true);return}if(pending.size)setTimeout(flush,70)}
+function control(p){const root=document.createElement('div');root.className='control';
+ const label=document.createElement('label');label.textContent=p.label;root.append(label);
+ const help=document.createElement('small');help.textContent=p.help;root.append(help);
+ const row=document.createElement('div');row.className='row';
+ const range=document.createElement('input');range.type='range';range.setAttribute('aria-label',p.label);
+ const number=document.createElement('input');number.type='number';number.inputMode='decimal';number.setAttribute('aria-label',p.label+' 숫자');
+ [range,number].forEach(input=>{input.min=fmt(unitValue(p,p.min));input.max=fmt(unitValue(p,p.max));input.step=fmt(unitValue(p,p.step));input.value=fmt(unitValue(p,p.value));input.dataset.param=p.name});
+ range.oninput=()=>{number.value=range.value;edit(p.name,rawValue(p,Number(range.value)))};
+ number.onchange=()=>{const n=number.valueAsNumber;if(Number.isFinite(n)){range.value=number.value;edit(p.name,rawValue(p,n))}};
+ row.append(range,number);const suffix=document.createElement('span');suffix.textContent=p.unit==='PERCENT'?'%':p.unit==='MS'?'ms':'';row.append(suffix);root.append(row);return root}
+function buildControls(){quickKeys.forEach(k=>$('#quick').append(control(params[k])));
+ const groups=new Map();Object.values(params).forEach(p=>{if(!groups.has(p.group)){const d=document.createElement('details'),sum=document.createElement('summary');sum.textContent=p.group;d.append(sum);$('#advanced').append(d);groups.set(p.group,d)}groups.get(p.group).append(control(p))})}
+function refreshControls(){document.querySelectorAll('input[data-param]').forEach(input=>{if(input!==document.activeElement)input.value=fmt(unitValue(params[input.dataset.param],val(input.dataset.param)))})}
+function anchor(x){const points=[[0,0],[.25,val('WEAK_OUTPUT')],[.5,val('MIDDLE_OUTPUT')],[.8,val('STRONG_OUTPUT')],[1,1]];for(let i=1;i<points.length;i++){const [b,y]=points[i],[a,z]=points[i-1];if(x<=b)return z+(y-z)*(x-a)/(b-a)}return 1}
+function shape(v){return clamp(Math.pow(clamp(v,0,1),val('CONTRAST'))*val('OUTPUT_GAIN'),val('OUTPUT_FLOOR'),val('OUTPUT_CEILING'))}
+const px=x=>44+294*x,py=y=>232-212*y;
+function draw(){if(!state)return;let d='';for(let i=0;i<=100;i++){const x=i/100,y=i===0?0:shape(anchor(x));d+=(i?'L':'M')+px(x).toFixed(2)+' '+py(y).toFixed(2)}$('#line').setAttribute('d',d);
+ document.querySelectorAll('.knob').forEach(k=>{k.setAttribute('cx',px(Number(k.dataset.x)));k.setAttribute('cy',py(shape(val(k.dataset.key))));k.setAttribute('aria-valuemin','0');k.setAttribute('aria-valuemax','100');k.setAttribute('aria-valuenow',Math.round(shape(val(k.dataset.key))*100))});
+ $('#live').setAttribute('cx',px(state.level));$('#live').setAttribute('cy',py(state.command));drawPulse()}
+function drawPulse(){const intensity=state.command,on=intensity<=0?0:Math.max(Math.min(20,Math.round(val('MIN_ON_MS'))),Math.round(20*intensity));
+ const blend=clamp((intensity-val('LONG_START'))/(val('LONG_END')-val('LONG_START')),0,1),slots=Math.round(val('GROUP_MS')/20),runs=[];
+ for(let start=0;start<3;start+=slots){const n=Math.min(slots,3-start),transfer=Math.round(on*blend);for(let i=0;i<n;i++){runs.push([i===0?on+transfer*(n-1):on-transfer,true],[20-on,false])}}
+ let x=12,d='M12 50';for(const [duration,active]of runs){if(!duration)continue;d+='V'+(active?18:50);x+=duration/60*336;d+='H'+x.toFixed(1)}$('#pulsepath').setAttribute('d',d)}
+function move(e){if(!dragging)return;const svg=$('#curve'),point=svg.createSVGPoint();point.x=e.clientX;point.y=e.clientY;const local=point.matrixTransform(svg.getScreenCTM().inverse());const desired=clamp((232-local.y)/212,0,1),raw=Math.pow(clamp(desired/val('OUTPUT_GAIN'),0,1),1/val('CONTRAST'));edit(dragging.dataset.key,raw);e.preventDefault()}
+document.querySelectorAll('.knob').forEach(k=>{k.addEventListener('pointerdown',e=>{dragging=k;k.setPointerCapture(e.pointerId);move(e)});k.addEventListener('pointermove',move);const end=()=>{dragging=null;refreshControls()};k.addEventListener('pointerup',end);k.addEventListener('pointercancel',end);k.addEventListener('keydown',e=>{if(e.key==='ArrowUp'||e.key==='ArrowDown'){edit(k.dataset.key,val(k.dataset.key)+(e.key==='ArrowUp'?.02:-.02));e.preventDefault()}})});
+async function action(name){try{receive(await request({action:name}))}catch(e){notice('연결을 확인해 주세요.',true)}}
+$('#stop').onclick=()=>action('stop');$('#reset').onclick=()=>{if(confirm('35개 상세 설정을 기본값으로 돌릴까요? 모터 보정과 AI 켜짐 설정은 유지돼요.')){pending.clear();action('reset')}};$('#retry').onclick=()=>action('retry');
+$('#export').onclick=()=>{const values=Object.fromEntries(Object.values(params).map(p=>[p.name,p.value]));const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({savedAt:new Date().toISOString(),values},null,2)],{type:'application/json'}));a.download='ullim-tuning.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+async function poll(){if(!busy){try{receive(await request());if(pending.size)flush()}catch(e){online=false;notice('워치 연결을 기다려요. 워치 조절 화면과 같은 핫스팟을 확인해 주세요.',true)}}setTimeout(poll,400)}poll();
+</script></body></html>

@@ -27,6 +27,7 @@ class TuningActivity : ComponentActivity() {
                     onChange = { p, v -> preferences.setTuning(p, v) },
                     onReset = { preferences.resetTuning() },
                     onRetry = { preferences.retrySave() },
+                    onPhone = { startActivity(Intent(this, PhoneTuningActivity::class.java)) },
                     onStop = ::stopCapture, onBack = { finish() })
             }
         }
