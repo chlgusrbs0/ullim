@@ -26,6 +26,12 @@ data class HapticTelemetrySnapshot(
     val defaultAmplitudeSegments: Int,
     val maxWaveformGapNs: Long,
     val rawRmsMin: Float = rmsMin, val rawRmsMax: Float = rmsMax,
+    val motorFilteredFrames: Int = 0,
+    val filteredQuietFrames: Int = 0,
+    val aiAdjustedFrames: Int = 0,
+    val lowCommandFrames: Int = 0,
+    val middleCommandFrames: Int = 0,
+    val highCommandFrames: Int = 0,
 )
 
 class HapticTelemetry(private val sessionId: Long, private val windowFrames: Int = 25) {
@@ -58,6 +64,12 @@ class HapticTelemetry(private val sessionId: Long, private val windowFrames: Int
     private var amplitudeMin = Int.MAX_VALUE
     private var amplitudeMax = 0
     private var defaultSegments = 0
+    private var motorFilteredFrames = 0
+    private var filteredQuietFrames = 0
+    private var aiAdjustedFrames = 0
+    private var lowCommandFrames = 0
+    private var middleCommandFrames = 0
+    private var highCommandFrames = 0
 
     init { require(sessionId > 0 && windowFrames in 1..250) }
 
@@ -77,12 +89,25 @@ class HapticTelemetry(private val sessionId: Long, private val windowFrames: Int
 
     @Synchronized fun recordCancel() { cancels++ }
 
-    @Synchronized fun offer(features: AudioFeatures, output: HapticFrame, accepted: Boolean, callbackNs: Long, rawRms: Float = features.rms) {
+    @Synchronized fun offer(features: AudioFeatures, output: HapticFrame, accepted: Boolean, callbackNs: Long,
+        rawRms: Float = features.rms, motorFiltered: Boolean = false, aiAdjusted: Boolean = false) {
         if (features.sessionId != sessionId || output.sessionId != sessionId || features.timestampNs != output.timestampNs) return
         if (frames == 0) firstSampleNs = features.timestampNs
         frames++
         if (!accepted) rejected++
         if (!output.isSilent) audible++
+        if (motorFiltered) {
+            motorFilteredFrames++
+            // Raw energy may be the motor itself: this is a diagnostic count,
+            // not proof that an external sound was removed.
+            if (features.isSilent && rawRms > maxOf(.002f, features.noise * 1.1f)) filteredQuietFrames++
+        }
+        if (aiAdjusted) aiAdjustedFrames++
+        if (!output.isSilent) when {
+            output.commandedIntensity < .35f -> lowCommandFrames++
+            output.commandedIntensity < .65f -> middleCommandFrames++
+            else -> highCommandFrames++
+        }
         rms.add(features.rms)
         this.rawRms.add(rawRms)
         envelope.add(features.envelope)
@@ -101,6 +126,9 @@ class HapticTelemetry(private val sessionId: Long, private val windowFrames: Int
             level.min, level.max, command.min, command.max, minAgeNs, maxAgeNs, callbackGapNs,
             waveforms, cancels, requestedMs, if (amplitudeMax == 0) 0 else amplitudeMin,
             amplitudeMax, defaultSegments, waveformGapNs, rawRmsMin = this.rawRms.min, rawRmsMax = this.rawRms.max,
+            motorFilteredFrames = motorFilteredFrames, filteredQuietFrames = filteredQuietFrames,
+            aiAdjustedFrames = aiAdjustedFrames, lowCommandFrames = lowCommandFrames,
+            middleCommandFrames = middleCommandFrames, highCommandFrames = highCommandFrames,
         ))
         frames = 0
         rejected = 0
@@ -116,6 +144,8 @@ class HapticTelemetry(private val sessionId: Long, private val windowFrames: Int
         amplitudeMin = Int.MAX_VALUE
         amplitudeMax = 0
         defaultSegments = 0
+        motorFilteredFrames = 0; filteredQuietFrames = 0; aiAdjustedFrames = 0
+        lowCommandFrames = 0; middleCommandFrames = 0; highCommandFrames = 0
     }
 
     /** At most one snapshot survives a slow UI/consumer; no historical queue. */

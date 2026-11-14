@@ -187,7 +187,8 @@ open class ListeningService : Service() {
             val command = mapper.map(features, ai.current(token, frame.timestampNs))
             val accepted = scheduler.offer(command)
             trace?.offer(features, command, accepted, callbackNs,
-                rawRms = if (suppressor.lastFiltered) suppressor.lastRawRms else features.rms)
+                rawRms = if (suppressor.lastFiltered) suppressor.lastRawRms else features.rms,
+                motorFiltered = suppressor.lastFiltered, aiAdjusted = mapper.lastAiApplied)
             when (scheduler.lastResult) {
                 RenderResult.FAILED -> throw CaptureException(CaptureError.OUTPUT)
                 RenderResult.UNSUPPORTED -> throw CaptureException(CaptureError.OUTPUT_UNSUPPORTED)
@@ -335,7 +336,7 @@ open class ListeningService : Service() {
             "loaded=${snapshot.modelLoaded} busy=${snapshot.busy} cleanupPending=${snapshot.cleanupPending} " +
             "loadNs=${snapshot.loadDurationNs} inferNs=${snapshot.lastInferenceNs} maxInferNs=${snapshot.maxInferenceNs} " +
             "attempts=${snapshot.inferenceCount} validResults=${snapshot.successfulInferences} " +
-            "faults=${snapshot.faultCount} timeouts=${snapshot.timeoutCount} operationNs=${snapshot.operationElapsedNs} dropped=${snapshot.droppedWindows}")
+            "faults=${snapshot.faultCount} timeouts=${snapshot.timeoutCount} retries=${snapshot.automaticRetries} operationNs=${snapshot.operationElapsedNs} dropped=${snapshot.droppedWindows}")
     }
 
     private fun logHaptics() {

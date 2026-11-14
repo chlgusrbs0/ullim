@@ -6,6 +6,28 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class HapticTelemetryTest {
+    @Test fun separatesAiChangesMotorFilteringAndCommandBandsWithoutAudio() {
+        val trace = HapticTelemetry(7, windowFrames = 4)
+        for ((index, intensity) in listOf(.2f, .5f, .8f, 0f).withIndex()) {
+            val t = index * 20_000_000L
+            trace.offer(AudioFeatures(7, t, intensity, intensity, intensity),
+                HapticFrame(7, t, 20, intensity), true, t,
+                rawRms = .4f, motorFiltered = index >= 2, aiAdjusted = index < 2)
+        }
+        val value = trace.takeLatest()!!
+        assertEquals(2, value.motorFilteredFrames)
+        assertEquals(1, value.filteredQuietFrames)
+        assertEquals(2, value.aiAdjustedFrames)
+        assertEquals(1, value.lowCommandFrames)
+        assertEquals(1, value.middleCommandFrames)
+        assertEquals(1, value.highCommandFrames)
+        repeat(4) { index ->
+            val t = 100_000_000L + index * 20_000_000L
+            trace.offer(AudioFeatures(7, t, 0f, 0f, 0f), HapticFrame(7, t, 20, 0f), true, t)
+        }
+        assertEquals(0, trace.takeLatest()!!.aiAdjustedFrames)
+    }
+
     private fun features(ts: Long, rms: Float, envelope: Float = rms, noise: Float = 0f, level: Float = envelope, session: Long = 7) =
         AudioFeatures(session, ts, rms, rms, envelope, noise = noise, level = level)
 

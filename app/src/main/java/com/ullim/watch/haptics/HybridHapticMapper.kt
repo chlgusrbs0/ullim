@@ -5,6 +5,7 @@ import com.ullim.watch.core.Classification
 import com.ullim.watch.core.HapticFrame
 import com.ullim.watch.core.HapticMapper
 import kotlin.math.pow
+import kotlin.math.abs
 
 /** AI never changes the baseline mapper's history or creates a sound-name pattern. */
 class HybridHapticMapper(private val baseline: HapticMapper = EnvelopeHapticMapper()) : HapticMapper {
@@ -14,8 +15,11 @@ class HybridHapticMapper(private val baseline: HapticMapper = EnvelopeHapticMapp
     private var eventStartNs: Long? = null
     private var profile: Profile? = null
     private var mix = 0f
+    var lastAiApplied = false
+        private set
 
     override fun map(features: AudioFeatures, context: Classification?): HapticFrame {
+        lastAiApplied = false
         val base = baseline.map(features)
         if (sessionId != features.sessionId || lastTimestampNs?.let { features.timestampNs != it + 20_000_000L } == true) {
             clearPolicy()
@@ -48,6 +52,7 @@ class HybridHapticMapper(private val baseline: HapticMapper = EnvelopeHapticMapp
             Profile.CONTRAST -> x * x / (x * x + (1f - x) * (1f - x))
         } * .85f
         val intensity = base.commandedIntensity + (shaped - base.commandedIntensity) * mix
+        lastAiApplied = abs(intensity - base.commandedIntensity) > .000001f
         return base.copy(commandedIntensity = intensity.coerceIn(0f, .85f))
     }
 
@@ -84,6 +89,7 @@ class HybridHapticMapper(private val baseline: HapticMapper = EnvelopeHapticMapp
         sessionId = 0
         lastTimestampNs = null
         clearPolicy()
+        lastAiApplied = false
     }
 
     private fun clearPolicy() { eventStartNs = null; profile = null; mix = 0f }

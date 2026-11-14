@@ -29,6 +29,7 @@ data class AiSnapshot(
     val faultCount: Long = 0,
     val timeoutCount: Long = 0,
     val resultExpired: Boolean = false,
+    val automaticRetries: Int = 0,
 )
 
 /** The executor must be asynchronous. Production owns one worker/lane for the whole process. */
@@ -59,6 +60,8 @@ class AiWorker(
     private var failedClose: SoundClassifier? = null
     private var operation: Job? = null
     private var pumpRunning = false
+    private var automaticRetries = 0
+    private var retryAfterNs: Long? = null
 
     fun start(sessionId: Long, enabled: Boolean): Boolean = synchronized(lock) {
         if (sessionId <= session) return false
@@ -68,7 +71,9 @@ class AiWorker(
         requestedEnabled = enabled
         generation++
         requestedAtNs = clockNs()
+        automaticRetries = 0
         fault = if (failedClose != null) AiFault.CLEANUP else if (modeChanged) null else fault
+        retryAfterNs = if (fault == AiFault.INFERENCE_TIMEOUT) requestedAtNs + 5_000_000_000L else null
         phase = if (fault != null) AiPhase.FAILED else if (enabled) AiPhase.LOADING else AiPhase.DISABLED
         clearContext()
         lastOfferedNs = -1
@@ -79,11 +84,13 @@ class AiWorker(
     }
 
     fun setEnabled(sessionId: Long, enabled: Boolean) = synchronized(lock) {
-        // A fault does not change requestedEnabled: repeated observations cannot auto-retry.
+        // Repeated UI observations must not reset the bounded timeout recovery.
         if (sessionId != session || requestedEnabled == enabled) return
         requestedEnabled = enabled
         generation++
         requestedAtNs = clockNs()
+        automaticRetries = 0
+        retryAfterNs = null
         fault = if (failedClose != null) AiFault.CLEANUP else null
         phase = if (fault != null) AiPhase.FAILED else if (active && enabled) AiPhase.LOADING else AiPhase.DISABLED
         clearContext()
@@ -95,6 +102,7 @@ class AiWorker(
     fun stop(sessionId: Long) = synchronized(lock) {
         if (!active || sessionId != session) return
         active = false
+        retryAfterNs = null
         generation++
         if (failedClose != null) fault = AiFault.CLEANUP
         phase = if (fault != null) AiPhase.FAILED else AiPhase.DISABLED
@@ -121,6 +129,20 @@ class AiWorker(
     /** Called from a service heartbeat even while the model is blocked or no windows arrive. */
     fun tick() = synchronized(lock) {
         val now = clockNs()
+        // Retry one transient inference timeout per capture session, only after
+        // the old native call AND close have returned. Never create a second lane.
+        if (active && requestedEnabled && fault == AiFault.INFERENCE_TIMEOUT && automaticRetries < 1 &&
+            retryAfterNs?.let { now >= it } == true && operation == null && model == null && failedClose == null) {
+            automaticRetries++
+            retryAfterNs = null
+            generation++
+            requestedAtNs = now
+            fault = null
+            phase = AiPhase.LOADING
+            clearContext()
+            lastOfferedNs = -1
+            kick()
+        }
         val result = mutableState.value.classification
         if (result != null && !result.isFresh(session, now)) {
             latest.clear()
@@ -162,6 +184,7 @@ class AiWorker(
         val nativePresent = model != null || operation != null || failedClose != null
         val oldOperation = operation?.let { it.generation != generation || it.kind == Kind.CLOSE } == true
         mutableState.value = mutableState.value.copy(sessionId = session, phase = phase, fault = fault,
+            automaticRetries = automaticRetries,
             modelLoaded = model != null || operation?.kind == Kind.CLOSE || failedClose != null,
             busy = operation != null,
             operationElapsedNs = operation?.let { (clockNs() - it.startedNs).coerceAtLeast(0) } ?: 0,
@@ -171,6 +194,8 @@ class AiWorker(
         if (generation != expectedGeneration) return
         fault = reason
         phase = AiPhase.FAILED
+        retryAfterNs = if (reason == AiFault.INFERENCE_TIMEOUT && automaticRetries < 1)
+            clockNs() + 5_000_000_000L else null
         mutableState.value = mutableState.value.copy(faultCount = mutableState.value.faultCount + 1,
             timeoutCount = mutableState.value.timeoutCount + if (reason in listOf(AiFault.LOAD_TIMEOUT, AiFault.INFERENCE_TIMEOUT, AiFault.PREVIOUS_BUSY)) 1 else 0)
         generation++

@@ -151,7 +151,7 @@ class AiWorkerTest {
         }
     }
 
-    @Test fun timeoutLatchesWithoutAutomaticRetryOrReplacementWorker() {
+    @Test fun timeoutWaitsForCleanupAndExplicitToggleStillWorks() {
         val entered = CountDownLatch(1)
         val release = CountDownLatch(1)
         val blocked = Engine { entered.countDown(); check(release.await(2, TimeUnit.SECONDS)) }
@@ -176,6 +176,44 @@ class AiWorkerTest {
                 worker.setEnabled(1, false); worker.setEnabled(1, true)
                 await { loads.get() == 2 && worker.state.value.modelLoaded }
                 assertEquals(AiPhase.LISTENING, worker.state.value.phase)
+            } finally { release.countDown() }
+        }
+    }
+
+    @Test fun transientTimeoutRecoveryWaitsForNativeCleanupAndRetriesOnlyOnce() {
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val slowAgain = AtomicBoolean()
+        val testClock = java.util.concurrent.atomic.AtomicReference<AtomicLong>()
+        val old = Engine { entered.countDown(); check(release.await(2, TimeUnit.SECONDS)) }
+        val fresh = Engine { if (slowAgain.get()) testClock.get().addAndGet(1_100_000_000L) }
+        val loads = AtomicInteger()
+        fixture({ if (loads.incrementAndGet() == 1) old else fresh }) { worker, clock ->
+            testClock.set(clock)
+            try {
+                worker.start(1, true); await { worker.state.value.modelLoaded }
+                worker.offer(frame()); assertTrue(entered.await(1, TimeUnit.SECONDS))
+                clock.set(4_100_000_000); worker.tick()
+                assertEquals(AiFault.INFERENCE_TIMEOUT, worker.state.value.fault)
+                clock.set(10_000_000_000); worker.tick()
+                assertEquals(1, loads.get()) // Old native call still owns the lane.
+                release.countDown()
+                await { old.closed.get() == 1 && !worker.state.value.busy }
+                worker.tick()
+                await { loads.get() == 2 && worker.state.value.modelLoaded && !worker.state.value.busy }
+                assertEquals(1, worker.state.value.automaticRetries)
+                assertTrue(worker.offer(frame(clock.get())))
+                await { fresh.calls.size == 1 && !worker.state.value.busy }
+                assertEquals(AiPhase.LISTENING, worker.state.value.phase)
+                slowAgain.set(true)
+                clock.set(10_500_000_000)
+                assertTrue(worker.offer(frame(clock.get())))
+                await { worker.state.value.phase == AiPhase.FAILED && fresh.closed.get() == 1 }
+                clock.set(30_000_000_000); worker.tick()
+                assertEquals(2, loads.get())
+                assertEquals(1, worker.state.value.automaticRetries)
+                worker.stop(1); worker.tick()
+                assertEquals(2, loads.get())
             } finally { release.countDown() }
         }
     }
