@@ -52,7 +52,7 @@ class SettingsController(
     @MainThread fun setAiEnabled(enabled: Boolean): Boolean = update(state.value.values.copy(aiEnabled = enabled))
     @MainThread fun setTuning(parameter: TuningParameter, value: Float): Boolean =
         update(state.value.values.copy(tuning = state.value.values.tuning.with(parameter, value)))
-    @MainThread fun resetTuning(): Boolean = update(state.value.values.copy(tuning = TuningSettings.DEFAULT), force = true)
+    @MainThread fun resetTuning(): Boolean = update(state.value.values.copy(tuning = MvpDefaults.tuning), force = true)
     @MainThread fun retrySave(): Boolean = update(state.value.values, force = true)
     @MainThread fun reset(): Boolean = update(UserSettings(), force = true)
 

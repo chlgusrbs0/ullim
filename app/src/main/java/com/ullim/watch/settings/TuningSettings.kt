@@ -81,8 +81,9 @@ data class TuningSettings private constructor(private val overrides: Map<TuningP
         return TuningSettings(next.toMap())
     }
     companion object {
+        // Signal-processing baseline. Shipped app defaults are MvpDefaults.tuning.
         val DEFAULT=TuningSettings()
-        fun decode(read: (TuningParameter)->Float?): TuningSettings {
+        fun decode(fallback: TuningSettings = DEFAULT, read: (TuningParameter)->Float?): TuningSettings {
             val values=TuningParameter.entries.mapNotNull { p -> read(p)?.takeIf { it.isFinite() && it in p.minimum..p.maximum }
                 ?.let { p to if(p==TuningParameter.GROUP_MS) (it/20).roundToInt()*20f else it } }.toMap()
             var result=TuningSettings(values)
@@ -92,7 +93,7 @@ data class TuningSettings private constructor(private val overrides: Map<TuningP
                 TuningParameter.CLOSE_OFFSET to TuningParameter.OPEN_OFFSET,
                 TuningParameter.CLOSE_RATIO to TuningParameter.OPEN_RATIO,
                 TuningParameter.LONG_START to TuningParameter.LONG_END)
-            if(pairs.any { (a,b)-> result[a]+(if(a==TuningParameter.LONG_START) .04999f else 0f)>result[b] }) return DEFAULT
+            if(pairs.any { (a,b)-> result[a]+(if(a==TuningParameter.LONG_START) .04999f else 0f)>result[b] }) return fallback
             result=TuningSettings(values.filter { (p,v)->kotlin.math.abs(v-p.default)>=.0000001f })
             return result
         }

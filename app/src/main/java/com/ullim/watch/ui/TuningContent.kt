@@ -90,7 +90,7 @@ private fun ParameterEditor(p: TuningParameter, tuning: TuningSettings, enabled:
     var error by remember(p.name, value) { mutableStateOf(false) }
     Text(p.display(value), style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
     TuningText(p.help)
-    TuningText("범위 ${p.display(p.minimum)} ~ ${p.display(p.maximum)}\n기본 ${p.display(p.default)}")
+    TuningText("범위 ${p.display(p.minimum)} ~ ${p.display(p.maximum)}\n기본 ${p.display(MvpDefaults.tuning[p])}")
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         OutlinedButton({ onChange(p, value - p.step) }, Modifier.weight(1f).heightIn(min = 48.dp), enabled = enabled) { Text("−") }
         OutlinedButton({ onChange(p, value + p.step) }, Modifier.weight(1f).heightIn(min = 48.dp), enabled = enabled) { Text("+") }
@@ -118,7 +118,7 @@ private fun ParameterEditor(p: TuningParameter, tuning: TuningSettings, enabled:
     }, enabled)
     if (error) TuningText("숫자를 입력해 주세요.")
     TuningText("범위와 다른 항목의 순서에 맞게 적용돼요. 실제 적용값은 위에 표시돼요.")
-    TuningButton("이 항목 기본값", { onChange(p, p.default) }, enabled)
+    TuningButton("이 항목 기본값", { onChange(p, MvpDefaults.tuning[p]) }, enabled)
 }
 
 private fun editableValue(p: TuningParameter, value: Float): String =

@@ -59,7 +59,7 @@ class SettingsControllerTest {
     }
 
     @Test fun failedSaveIsHonestKeepsLiveChoiceAndExplicitRetryCanPersistIt() = fixture { controller, store, applied, control ->
-        store.loaded.complete(UserSettings()); controller.state.first { it.ready }
+        store.loaded.complete(UserSettings(.75f)); controller.state.first { it.ready }
         withContext(control) { controller.setSensitivity(1.25f) }
         store.writes.receive().second.completeExceptionally(IOException("disk full"))
         controller.state.first { it.error == SettingsError.WRITE }

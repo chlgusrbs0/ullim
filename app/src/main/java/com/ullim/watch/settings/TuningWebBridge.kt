@@ -15,7 +15,7 @@ class TuningWebBridge(private val settings: SettingsController, private val stop
         TuningParameter.entries.forEach { p -> parameters.put(JSONObject().apply {
             put("name", p.name); put("label", p.label); put("help", p.help); put("group", p.group.label)
             put("min", p.minimum.toDouble()); put("max", p.maximum.toDouble()); put("step", p.step.toDouble())
-            put("value", state.values.tuning[p].toDouble()); put("default", p.default.toDouble()); put("unit", p.unit.name)
+            put("value", state.values.tuning[p].toDouble()); put("default", MvpDefaults.tuning[p].toDouble()); put("unit", p.unit.name)
         }) }
         val phase = CaptureRuntime.state.value.listening
         return JSONObject().apply {

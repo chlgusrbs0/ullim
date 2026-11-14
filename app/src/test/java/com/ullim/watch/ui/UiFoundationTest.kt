@@ -65,7 +65,7 @@ class UiFoundationTest {
     @Test fun fourScreenNavigationAndBackWorkOnTheSmallRoundViewport() {
         shot("home")
         compose.onNodeWithText("설정").performScrollTo().assertHeightIsAtLeast(48.dp).performClick()
-        compose.onNodeWithText("민감도 100%").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("민감도 125%").performScrollTo().assertIsDisplayed()
         shot("settings")
         compose.onNodeWithText("뒤로").performScrollTo().performClick()
         compose.onNodeWithText("사용 안내").performScrollTo().performClick()

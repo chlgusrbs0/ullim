@@ -7,8 +7,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import java.io.File
 
-data class UserSettings(val sensitivity: Float = 1f, val aiEnabled: Boolean = true,
-    val tuning: TuningSettings = TuningSettings.DEFAULT) {
+data class UserSettings(val sensitivity: Float = MvpDefaults.SENSITIVITY, val aiEnabled: Boolean = MvpDefaults.AI_ENABLED,
+    val tuning: TuningSettings = MvpDefaults.tuning) {
     init { require(sensitivity.isFinite() && sensitivity in .75f..1.25f) }
 }
 
@@ -42,9 +42,12 @@ class SettingsRepository(private val store: DataStore<Preferences>) : SettingsSt
             val schema = values["schema"]
             if (schema != null && schema != 1) return UserSettings()
             val sensitivity = (values["sensitivity"] as? Float)
-                ?.takeIf { it.isFinite() && it in .75f..1.25f } ?: 1f
-            return UserSettings(sensitivity, values["ai_enabled"] as? Boolean ?: true,
-                TuningSettings.decode { values[it.key] as? Float })
+                ?.takeIf { it.isFinite() && it in .75f..1.25f } ?: MvpDefaults.SENSITIVITY
+            return UserSettings(sensitivity, values["ai_enabled"] as? Boolean ?: MvpDefaults.AI_ENABLED,
+                TuningSettings.decode(fallback = MvpDefaults.tuning) { parameter ->
+                    (values[parameter.key] as? Float)?.takeIf { it.isFinite() && it in parameter.minimum..parameter.maximum }
+                        ?: MvpDefaults.tuning[parameter]
+                })
         }
     }
 }
