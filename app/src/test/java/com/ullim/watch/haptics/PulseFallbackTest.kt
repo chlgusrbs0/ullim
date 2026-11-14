@@ -16,12 +16,12 @@ class PulseFallbackTest {
         assertEquals(60L, wave.timings.sum())
     }
 
-    @Test fun transitionTransfersOnTimeGraduallyRatherThanSwitchingAtEightyPercent() {
+    @Test fun earlierTransitionKeepsSoftPulsesAndHasIntermediateLengths() {
         fun wave(level: Float) = PulseFallback.encodeBatch(frames(level, level, level))
-        assertArrayEquals(longArrayOf(0, 15, 5, 15, 5, 15, 5), wave(.75f).timings)
-        assertArrayEquals(longArrayOf(0, 32, 4, 8, 4, 8, 4), wave(.8f).timings)
-        assertArrayEquals(longArrayOf(0, 51, 9), wave(.85f).timings)
-        val longest = (75..85).map { value ->
+        assertArrayEquals(longArrayOf(0, 12, 8, 12, 8, 12, 8), wave(.6f).timings)
+        assertArrayEquals(longArrayOf(0, 28, 6, 7, 6, 7, 6), wave(.675f).timings)
+        assertArrayEquals(longArrayOf(0, 45, 15), wave(.75f).timings)
+        val longest = (60..75).map { value ->
             val encoded = wave(value / 100f)
             assertEquals(60L, encoded.timings.sum())
             val oldOn = PulseFallback.encode(value / 100f, 20).timings[1] * 3

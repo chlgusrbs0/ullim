@@ -60,9 +60,9 @@ class HybridHapticMapper(private val baseline: HapticMapper = EnvelopeHapticMapp
             val smoothed = (oldOutput + (x - oldOutput) * .35f).coerceIn(x - .03f, x + .03f)
             // AI cannot move a sound into a different pulse-output band.
             when {
-                x <= .75f -> smoothed.coerceIn(0f, .75f)
-                x >= .85f -> smoothed.coerceIn(.85f, 1f)
-                else -> smoothed.coerceIn(.75f, .85f)
+                x <= PulseFallback.SHORT_PULSE_MAX -> smoothed.coerceIn(0f, PulseFallback.SHORT_PULSE_MAX)
+                x >= PulseFallback.LONG_PULSE_MIN -> smoothed.coerceIn(PulseFallback.LONG_PULSE_MIN, 1f)
+                else -> smoothed.coerceIn(PulseFallback.SHORT_PULSE_MAX, PulseFallback.LONG_PULSE_MIN)
             }
         }
         previousOutput = y
