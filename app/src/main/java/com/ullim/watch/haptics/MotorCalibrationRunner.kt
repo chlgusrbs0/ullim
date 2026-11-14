@@ -12,6 +12,7 @@ import com.ullim.watch.audio.CaptureError
 import com.ullim.watch.audio.CaptureStatus
 import com.ullim.watch.audio.MicrophoneCapture
 import com.ullim.watch.audio.PcmInput
+import com.ullim.watch.core.HapticFrame
 import com.ullim.watch.runtime.CaptureFailure
 import com.ullim.watch.runtime.CaptureRuntime
 
@@ -113,9 +114,9 @@ class MotorCalibrationRunner(
         val startedNs = clockNs()
         accumulator?.recordPhase(index, startedNs)
         val waveform = if (pulseFallback) {
-            val part = PulseFallback.encode(if (index == 0) .2f else 1f, 20)
-            DiagnosticWaveform(LongArray(part.timings.size * 3) { part.timings[it % part.timings.size] },
-                IntArray(part.amplitudes.size * 3) { part.amplitudes[it % part.amplitudes.size] })
+            PulseFallback.encodeBatch(List(3) { frame ->
+                HapticFrame(id, startedNs + frame * 20_000_000L, 20, if (index == 0) .2f else 1f)
+            })
         } else DiagnosticWaveform(longArrayOf(0, 60), intArrayOf(0, if (device.capabilities.amplitudeControl) amplitude else -1))
         fun pulse(call: Int) {
             if (token != id || capture == null || stopping || call >= 10) return
