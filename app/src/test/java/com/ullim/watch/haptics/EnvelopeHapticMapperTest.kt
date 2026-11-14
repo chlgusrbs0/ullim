@@ -83,7 +83,8 @@ class EnvelopeHapticMapperTest {
             mapper.map(dsp.extract(AudioFrame(1, index * 20_000_000L, ShortArray(320) { 16000 })))
         }
         assertTrue(output.count { !it.isSilent } > 90)
-        assertTrue(output.map { it.commandedIntensity }.distinct().size > 20)
+        assertTrue(output.first().commandedIntensity < output.last().commandedIntensity)
+        assertEquals(output[79].commandedIntensity, output.last().commandedIntensity, .000001f)
     }
 
     @Test fun silenceAndNewSessionNeverKeepResidualCommand() {

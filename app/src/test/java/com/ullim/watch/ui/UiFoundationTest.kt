@@ -3,12 +3,14 @@ package com.ullim.watch.ui
 import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.os.Looper
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.ullim.watch.DiagnosticsActivity
 import com.ullim.watch.MainActivity
+import com.ullim.watch.settings.SettingsRuntime
 import java.io.File
 import org.junit.Assert.*
 import org.junit.Before
@@ -33,6 +35,10 @@ class UiFoundationTest {
             .putBoolean("onboarding_complete", true).commit()
         compose.activityRule.scenario.recreate()
         compose.waitForIdle()
+        val settings = SettingsRuntime.get(compose.activity)
+        compose.waitUntil(5_000) { shadowOf(Looper.getMainLooper()).idle(); settings.state.value.ready }
+        compose.runOnIdle { settings.reset() }
+        compose.waitUntil(5_000) { shadowOf(Looper.getMainLooper()).idle(); !settings.state.value.saving }
     }
 
     private fun shot(name: String) {

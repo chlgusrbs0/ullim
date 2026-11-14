@@ -28,6 +28,10 @@ class PersistentSettingsUiTest {
         compose.activity.getSharedPreferences("ullim_first_run", 0).edit().putBoolean("onboarding_complete", true).commit()
         compose.activityRule.scenario.recreate()
         compose.waitForIdle()
+        val settings = SettingsRuntime.get(compose.activity)
+        compose.waitUntil(5_000) { shadowOf(Looper.getMainLooper()).idle(); settings.state.value.ready }
+        compose.runOnIdle { settings.reset() }
+        compose.waitUntil(5_000) { shadowOf(Looper.getMainLooper()).idle(); !settings.state.value.saving }
     }
 
     @Test fun settingsChangeLiveValuesSurviveActivityRecreationAndResetToExplicitDefaults() {
@@ -40,17 +44,17 @@ class PersistentSettingsUiTest {
         compose.onNodeWithText("민감도 높이기").performScrollTo().performClick()
         assertEquals(1.25f, CaptureRuntime.sensitivity.value)
         compose.onNodeWithText("민감도 높이기").assertIsNotEnabled()
-        compose.onNode(isToggleable()).performScrollTo().assertIsOff().performClick()
-        assertTrue(CaptureRuntime.aiEnabled.value)
+        compose.onNode(isToggleable()).performScrollTo().assertIsOn().performClick()
+        assertFalse(CaptureRuntime.aiEnabled.value)
         compose.waitUntil(5_000) { shadowOf(Looper.getMainLooper()).idle(); !settings.state.value.saving }
         assertNull(settings.state.value.error)
         compose.activityRule.scenario.recreate()
         compose.waitForIdle()
         compose.onNodeWithText("민감도 125%").performScrollTo().assertIsDisplayed()
-        compose.onNode(isToggleable()).performScrollTo().assertIsOn().assertIsEnabled()
+        compose.onNode(isToggleable()).performScrollTo().assertIsOff().assertIsEnabled()
         compose.onNodeWithText("기본 설정 복원").performScrollTo().performClick()
         assertEquals(1f, CaptureRuntime.sensitivity.value)
-        assertFalse(CaptureRuntime.aiEnabled.value)
+        assertTrue(CaptureRuntime.aiEnabled.value)
         compose.waitUntil(5_000) { shadowOf(Looper.getMainLooper()).idle(); !settings.state.value.saving }
         compose.onNodeWithText("설정 저장됨").performScrollTo().assertIsDisplayed()
     }

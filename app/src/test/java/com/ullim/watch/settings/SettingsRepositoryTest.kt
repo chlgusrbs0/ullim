@@ -9,6 +9,11 @@ import org.junit.rules.TemporaryFolder
 import java.io.File
 
 class SettingsRepositoryTest {
+    @Test fun newInstallEnablesAiAndStoredOffChoiceIsRespected() {
+        assertTrue(SettingsRepository.decode(emptyPreferences()).aiEnabled)
+        assertFalse(SettingsRepository.decode(preferencesOf(booleanPreferencesKey("ai_enabled") to false)).aiEnabled)
+    }
+
     @get:Rule val temporary = TemporaryFolder()
     private suspend fun <T> withStore(file: File, body: suspend (SettingsRepository) -> T): T {
         val job = SupervisorJob()

@@ -9,6 +9,24 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AudioFanOutTest {
+    @Test fun correctionRunsOnceAndBothDspAndAiReceiveTheCorrectedSamples() {
+        var corrections = 0
+        val frames = mutableListOf<AudioFrame>()
+        val fanout = AudioFanOut(preprocess = { frame ->
+            corrections++
+            AudioFrame(frame.sessionId, frame.timestampNs, ShortArray(frame.sampleCount) { 7 })
+        }, onDspFrame = frames::add)
+        fanout.start(1)
+        fanout.accept(AudioFrame(1, 0, ShortArray(16000) { 99 }))
+        assertEquals(50, corrections)
+        assertEquals(50, frames.size)
+        assertTrue(frames.all { frame -> frame.copySamples().all { it == 7.toShort() } })
+        val ai = fanout.takeLatestAi()!!
+        assertEquals(0L, ai.timestampNs)
+        assertEquals(15600, ai.sampleCount)
+        assertTrue(ai.copySamples().all { it == 7.toShort() })
+    }
+
     @Test fun partialReadsAssembleWithoutDroppingSamples() {
         val frames = mutableListOf<AudioFrame>()
         val fanout = AudioFanOut(frames::add)

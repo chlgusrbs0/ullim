@@ -7,7 +7,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import java.io.File
 
-data class UserSettings(val sensitivity: Float = 1f, val aiEnabled: Boolean = false) {
+data class UserSettings(val sensitivity: Float = 1f, val aiEnabled: Boolean = true) {
     init { require(sensitivity.isFinite() && sensitivity in .75f..1.25f) }
 }
 
@@ -41,7 +41,7 @@ class SettingsRepository(private val store: DataStore<Preferences>) : SettingsSt
             if (schema != null && schema != 1) return UserSettings()
             val sensitivity = (values["sensitivity"] as? Float)
                 ?.takeIf { it.isFinite() && it in .75f..1.25f } ?: 1f
-            return UserSettings(sensitivity, values["ai_enabled"] as? Boolean ?: false)
+            return UserSettings(sensitivity, values["ai_enabled"] as? Boolean ?: true)
         }
     }
 }

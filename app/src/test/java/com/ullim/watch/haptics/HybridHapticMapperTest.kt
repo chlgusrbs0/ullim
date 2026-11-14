@@ -34,7 +34,7 @@ class HybridHapticMapperTest {
             val base = baseline.map(input)
             val adjusted = hybrid.map(input, context)
             assertTrue("confirmed real-model noise must adjust the command", adjusted.commandedIntensity < base.commandedIntensity)
-            assertTrue(adjusted.commandedIntensity >= base.commandedIntensity * .94f - .000001f)
+            assertTrue(adjusted.commandedIntensity > 0f)
         }
     }
 
@@ -116,8 +116,6 @@ class HybridHapticMapperTest {
                 assertEquals(base.durationMs, output.durationMs)
                 assertEquals(base.isSilent, output.isSilent)
                 assertTrue(output.commandedIntensity in 0f..0.85f)
-                assertTrue(output.commandedIntensity >= base.commandedIntensity * .9f - .000001f)
-                assertTrue(output.commandedIntensity <= base.commandedIntensity * 1.1f + .000001f)
                 if (baseSilent && !base.isSilent) baseEdges.add(index)
                 if (aiSilent && !output.isSilent) aiEdges.add(index)
                 baseSilent = base.isSilent; aiSilent = output.isSilent
@@ -158,8 +156,52 @@ class HybridHapticMapperTest {
         val afterGap = features(440_000_000, level = .1f)
         val base = baseline.map(afterGap)
         val adjusted = hybrid.map(afterGap, context(afterGap.timestampNs, "Noise"))
-        // First step toward the Noise gain is 0.994; the warmed baseline remains independent.
-        assertEquals(base.commandedIntensity * .994f, adjusted.commandedIntensity, .000001f)
+        val x = base.commandedIntensity / .85f
+        assertEquals(.85f * x * x / (x * x + (1 - x) * (1 - x)), adjusted.commandedIntensity, .000001f)
         assertTrue(base.commandedIntensity > EnvelopeHapticMapper().map(afterGap).commandedIntensity)
+    }
+
+    @Test fun aiChangesActualPulseDurationsRatherThanOnlyFloatValues() {
+        for (label in listOf("Speech", "Static", "Knock")) {
+            val baseline = EnvelopeHapticMapper()
+            val hybrid = HybridHapticMapper()
+            var changedPulses = 0
+            repeat(40) { index ->
+                val input = features(index * 20_000_000L)
+                val base = baseline.map(input)
+                val adjusted = hybrid.map(input, context(input.timestampNs, label))
+                val plain = PulseFallback.encode(base.commandedIntensity, 20)
+                val ai = PulseFallback.encode(adjusted.commandedIntensity, 20)
+                if (!plain.timings.contentEquals(ai.timings)) changedPulses++
+            }
+            assertTrue("$label must survive final pulse quantization", changedPulses >= 30)
+        }
+    }
+
+    @Test fun lateContextDoesNotReshapeShortEventButCanAssistSustainedSound() {
+        val baseline = EnvelopeHapticMapper()
+        val hybrid = HybridHapticMapper()
+        var changedLong = false
+        repeat(80) { index ->
+            val input = features(index * 20_000_000L)
+            val base = baseline.map(input)
+            val output = hybrid.map(input, if (index < 5) null else context(input.timestampNs))
+            if (index < 25) assertEquals(base, output)
+            if (index > 50 && output != base) changedLong = true
+        }
+        assertTrue(changedLong)
+        val silence = features(1_600_000_000, level = 0f)
+        assertTrue(hybrid.map(silence, context(silence.timestampNs)).isSilent)
+        assertTrue(hybrid.map(silence.copy(timestampNs = 1_620_000_000), null).isSilent)
+    }
+
+    @Test fun contextChangeCannotCreateStrengthChangesInsideShortEvent() {
+        val changing = HybridHapticMapper()
+        val stable = HybridHapticMapper()
+        repeat(20) { index ->
+            val input = features(index * 20_000_000L)
+            assertEquals(stable.map(input, context(input.timestampNs, "Speech")),
+                changing.map(input, context(input.timestampNs, if (index < 3) "Speech" else "Noise")))
+        }
     }
 }

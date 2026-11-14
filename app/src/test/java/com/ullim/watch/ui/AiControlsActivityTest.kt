@@ -64,9 +64,8 @@ class AiControlsActivityTest {
     @Test fun realAiScreenToggleRecreationAndBackNeverStartIdleMicrophoneOrNativeModel() {
         val settings = SettingsRuntime.get(compose.activity)
         compose.waitUntil(5_000) { shadowOf(Looper.getMainLooper()).idle(); settings.state.value.ready }
-        compose.onNodeWithText("AI 보조 꺼짐").performScrollTo().assertIsDisplayed()
-        compose.onNode(isToggleable()).performScrollTo().assertIsOff().performClick()
         compose.onNodeWithText("AI 보조 켜짐 · 감지 시작을 기다려요").performScrollTo().assertIsDisplayed()
+        compose.onNode(isToggleable()).performScrollTo().assertIsOn()
         assertTrue(CaptureRuntime.aiEnabled.value)
         assertEquals(ListeningState.Idle, CaptureRuntime.state.value.listening)
         val worker = AiRuntime.worker(application)
@@ -74,9 +73,11 @@ class AiControlsActivityTest {
         assertFalse(worker.state.value.busy)
         assertEquals(0L, worker.state.value.inferenceCount)
         assertNull(shadowOf(application).nextStartedService)
+        compose.onNode(isToggleable()).performScrollTo().performClick()
+        assertFalse(CaptureRuntime.aiEnabled.value)
         compose.activityRule.scenario.recreate()
         compose.waitForIdle()
-        compose.onNode(isToggleable()).performScrollTo().assertIsOn().performClick()
+        compose.onNode(isToggleable()).performScrollTo().assertIsOff()
         compose.onNodeWithText("AI 보조 꺼짐").performScrollTo().assertIsDisplayed()
         assertFalse(CaptureRuntime.aiEnabled.value)
         val activity = compose.activity

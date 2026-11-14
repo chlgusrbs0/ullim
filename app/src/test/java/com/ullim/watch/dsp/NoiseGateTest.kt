@@ -7,13 +7,26 @@ import org.junit.Test
 class NoiseGateTest {
     private fun feature(level: Float, index: Int = 0, session: Long = 1) = AudioFeatures(session, index * 20_000_000L, level, level, level)
 
-    @Test fun silenceAndSustainedBackgroundEventuallyStayQuiet() {
+    @Test fun sustainedSoundKeepsItsLevelForTwoMinutesThenSilenceCloses() {
         val gate = NoiseGate()
         assertEquals(0f, gate.process(feature(0f)).level, 0f)
-        var last = feature(0.03f)
-        repeat(3000) { last = gate.process(feature(0.03f, it)) }
-        assertEquals(0f, last.level, 0f)
-        assertTrue(last.noise > 0.025f)
+        val first = gate.process(feature(.03f, 1))
+        repeat(6000) { assertEquals(first.level, gate.process(feature(.03f, it + 2)).level, .000001f) }
+        assertEquals(0f, gate.process(feature(0f, 6002)).level, 0f)
+    }
+
+    @Test fun motorContaminationCannotTeachTheNoiseFloorEvenBelowOpeningThreshold() {
+        val gate = NoiseGate()
+        repeat(1000) { gate.process(feature(.006f, it), learnNoise = false) }
+        assertEquals(.003f, gate.process(feature(0f, 1000), learnNoise = false).noise, 0f)
+        assertTrue(gate.process(feature(.02f, 1001)).level > 0f)
+    }
+
+    @Test fun quietSoundAfterLoudSoundRetainsTheSameStrength() {
+        val gate = NoiseGate()
+        val quiet = gate.process(feature(.03f))
+        repeat(1000) { gate.process(feature(.7f, it + 1)) }
+        assertEquals(quiet.level, gate.process(feature(.03f, 1001)).level, .000001f)
     }
 
     @Test fun transientAboveLearnedBackgroundRemainsVisible() {

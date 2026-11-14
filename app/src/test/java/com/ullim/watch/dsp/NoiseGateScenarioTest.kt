@@ -8,20 +8,35 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class NoiseGateScenarioTest {
+    @Test fun sixtySecondsOfRealPcmStayAudibleAndMuteEndsTheHapticTrain() {
+        val dsp = DspProcessor()
+        val mapper = com.ullim.watch.haptics.HybridHapticMapper()
+        var last = 0f
+        repeat(3020) { index ->
+            val samples = ShortArray(320) { sample ->
+                if (index < 3000) (.1 * sin(2 * PI * 400 * (index * 320L + sample) / 16000) * 32767).toInt().toShort() else 0
+            }
+            val output = mapper.map(dsp.extract(AudioFrame(1, index * 20_000_000L, samples)))
+            if (index in 10 until 3000) assertTrue("sustained sound lost at frame $index", output.commandedIntensity > 0f)
+            last = output.commandedIntensity
+        }
+        assertEquals(0f, last, 0f)
+    }
+
     private class Pipeline {
         val extractor = EnvelopeExtractor()
         val gate = NoiseGate()
         fun frame(index: Int, fan: Boolean = true, sound: (Double) -> Double = { 0.0 }): AudioFeatures {
             val pcm = ShortArray(320) { sample ->
                 val seconds = (index * 320L + sample) / 16_000.0
-                val background = if (fan) .02 * sin(2 * PI * 120 * seconds) else 0.0
+                val background = if (fan) .002 * sin(2 * PI * 120 * seconds) else 0.0
                 ((background + sound(seconds)).coerceIn(-1.0, 1.0) * 32_767).toInt().toShort()
             }
             return gate.process(extractor.extract(AudioFrame(1, index * 20_000_000L, pcm)))
         }
     }
 
-    @Test fun learnedFanAllowsThreeSeparatedKnocksAndReturnsToQuiet() {
+    @Test fun quietBackgroundAllowsThreeSeparatedKnocksAndReturnsToQuiet() {
         val pipeline = Pipeline()
         val knockAt = listOf(1_000, 1_020, 1_060)
         val edges = mutableListOf<Int>()

@@ -41,7 +41,7 @@ class SettingsControllerTest {
     }
 
     @Test fun currentChoiceAppliesBeforeBlockedDiskAndConflationKeepsNewestOffAndSensitivity() = fixture { controller, store, applied, control ->
-        store.loaded.complete(UserSettings()); controller.state.first { it.ready }
+        store.loaded.complete(UserSettings(aiEnabled = false)); controller.state.first { it.ready }
         withContext(control) { controller.setAiEnabled(true) }
         val first = store.writes.receive()
         assertTrue(first.first.aiEnabled)
