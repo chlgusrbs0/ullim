@@ -171,7 +171,7 @@ open class ListeningService : Service() {
             return
         }
         val suppressor = MotorNoiseSuppressor(motorProfile, motorTimeline)
-        val dsp = LiveDsp(preprocess = suppressor::process) { CaptureRuntime.sensitivity.value }
+        val dsp = LiveDsp(canLearnNoise = { !suppressor.lastFiltered }) { CaptureRuntime.sensitivity.value }
         val mapper = HybridHapticMapper()
         val ai = AiRuntime.worker(this)
         aiWorker = ai
@@ -181,7 +181,7 @@ open class ListeningService : Service() {
         val outputDevice = if (trace != null) TracingEnvelopeDevice(trackedDevice, trace) else trackedDevice
         val scheduler = HapticScheduler(AdaptiveHapticRenderer(outputDevice, pulseFallback = motorProfile.pulseFallback))
         var lastUiNs = -100_000_000L
-        val fanout = AudioFanOut { frame ->
+        val fanout = AudioFanOut(preprocess = suppressor::process) { frame ->
             val callbackNs = if (trace != null) System.nanoTime() else 0L
             val features = dsp.extract(frame)
             val command = mapper.map(features, ai.current(token, frame.timestampNs))

@@ -16,7 +16,9 @@ class DspProcessor : AudioFeatureExtractor {
             field = value
         }
 
-    override fun extract(frame: AudioFrame): AudioFeatures {
+    override fun extract(frame: AudioFrame): AudioFeatures = extract(frame, learnNoise = true)
+
+    fun extract(frame: AudioFrame, learnNoise: Boolean): AudioFeatures {
         val previousNs = lastTimestampNs
         if (frame.sampleCount != AudioFrame.DSP_SAMPLES || frame.sessionId < sessionId ||
             (frame.sessionId == sessionId && previousNs != null && frame.timestampNs <= previousNs)
@@ -24,7 +26,7 @@ class DspProcessor : AudioFeatureExtractor {
         if (frame.sessionId != sessionId || (previousNs != null && frame.timestampNs != previousNs + 20_000_000L)) reset()
         sessionId = frame.sessionId
         lastTimestampNs = frame.timestampNs
-        return onset.process(gate.process(envelope.extract(frame), sensitivity))
+        return onset.process(gate.process(envelope.extract(frame), sensitivity, learnNoise))
     }
 
     override fun reset() {

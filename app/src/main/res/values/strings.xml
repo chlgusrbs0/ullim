@@ -105,7 +105,7 @@
     <string name="ai_delayed">AI 응답이 지연되고 있어요</string>
     <string name="ai_failed">AI 보조를 사용할 수 없어요. AI를 끈 뒤 다시 켜면 재시도해요.</string>
     <string name="ai_baseline_continues">기본 소리 변환은 계속 작동해요</string>
-    <string name="ai_optional_notice">AI는 선택 사항이에요. 꺼도 소리를 진동으로 바꿀 수 있어요. 원본 음성은 저장하거나 전송하지 않아요.</string>
+    <string name="ai_optional_notice">AI가 주변 소리를 분석해 강약 표현을 조절해요. 첫 진동은 분석을 기다리지 않아요. 원본 음성은 저장하거나 전송하지 않아요.</string>
     <string name="ai_cleanup_pending">이전 AI 작업을 정리하고 있어요. AI 보조 없이 사용할 수 있어요.</string>
     <string name="ai_restart_needed">AI 보조를 다시 쓰려면 감지를 중지하고 앱을 완전히 종료한 뒤 다시 열어주세요.</string>
     <string name="ai_turn_on">AI 보조 켜기</string>
@@ -115,7 +115,7 @@
     <string name="settings_title">설정</string>
     <string name="sensitivity_value">민감도 %1$d%%</string>
     <string name="sensitivity_state">현재 민감도 %1$d%%</string>
-    <string name="sensitivity_defaults" formatted="false">기본 민감도 100% · 조절 범위 75~125%\nAI 기본값은 꺼짐이에요</string>
+    <string name="sensitivity_defaults" formatted="false">기본 민감도 100% · 조절 범위 75~125%\nAI 기본값은 켜짐이에요</string>
     <string name="sensitivity_down">민감도 낮추기</string>
     <string name="sensitivity_up">민감도 높이기</string>
     <string name="settings_loading">설정을 불러오고 있어요</string>

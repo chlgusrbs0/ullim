@@ -86,9 +86,9 @@ class WearAccessibilityTest {
         checkTextLayout("민감도 높이기", mustWrap = true)
         checkTextLayout("민감도 125%")
         checkTextLayout("AI 보조")
-        compose.onNode(isToggleable()).performScrollTo().assertIsOff().assertHeightIsAtLeast(48.dp)
+        compose.onNode(isToggleable()).performScrollTo().assertIsOn().assertHeightIsAtLeast(48.dp)
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch)).performClick()
-        compose.onNode(isToggleable()).assertIsOn()
+        compose.onNode(isToggleable()).assertIsOff()
         compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithText("소리 감지 시작").performScrollTo().assertIsDisplayed()
         assertEquals(0, starts)
