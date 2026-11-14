@@ -11,6 +11,7 @@ import com.ullim.watch.DiagnosticsActivity
 import com.ullim.watch.MainActivity
 import java.io.File
 import org.junit.Assert.*
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,6 +28,13 @@ import org.robolectric.annotation.LooperMode
 class UiFoundationTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
 
+    @Before fun useTheCompletedNoticeStateForNavigation() {
+        compose.activity.getSharedPreferences("ullim_first_run", 0).edit()
+            .putBoolean("onboarding_complete", true).commit()
+        compose.activityRule.scenario.recreate()
+        compose.waitForIdle()
+    }
+
     private fun shot(name: String) {
         compose.waitForIdle()
         val view = compose.activity.window.decorView
@@ -39,6 +47,7 @@ class UiFoundationTest {
     }
 
     @Test fun theExistingHardwareDiagnosticEntryRemainsReachableWithoutStartingAudio() {
+        compose.onNodeWithText("설정").performScrollTo().performClick()
         compose.onNodeWithText("진동 진단").performScrollTo().assertHeightIsAtLeast(48.dp).performClick()
         compose.runOnIdle {
             val app = ApplicationProvider.getApplicationContext<Application>()
@@ -50,7 +59,7 @@ class UiFoundationTest {
     @Test fun fourScreenNavigationAndBackWorkOnTheSmallRoundViewport() {
         shot("home")
         compose.onNodeWithText("설정").performScrollTo().assertHeightIsAtLeast(48.dp).performClick()
-        compose.onNodeWithText("민감도와 AI 설정은 후속 업데이트에서 제공돼요").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("민감도 100%").performScrollTo().assertIsDisplayed()
         shot("settings")
         compose.onNodeWithText("뒤로").performScrollTo().performClick()
         compose.onNodeWithText("사용 안내").performScrollTo().performClick()

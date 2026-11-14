@@ -1,0 +1,64 @@
+11-13 21:38:28.870 19048 19048 I UllimHaptics: pattern=null phase=STOPPED commands=0 maxDispatchLateMs=0
+11-13 21:38:28.880 19048 19048 I UllimHaptics: pattern=MIN_AMPLITUDE phase=RUNNING commands=1 maxDispatchLateMs=0
+11-13 21:38:28.886   520   520 E SecVibrator-HAL-AIDL-EXT: V_5_0: supportsAmplitudeControl
+11-13 21:38:28.889   520   520 E SecVibrator-HAL-AIDL-EXT: V_5_0: supportsAmplitudeControl
+11-13 21:38:28.891   520   520 E SecVibrator-HAL-AIDL-EXT: V_5_0: setAmplitude 10000
+11-13 21:38:28.891   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: >> writeNode node:/timed_output/vibrator/intensity val:10000
+11-13 21:38:28.891   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: << writeNode node OK : 6
+11-13 21:38:28.894   520   520 E SecVibrator-HAL-AIDL-CORE: V_2_0: Vibrator on for timeoutMs: 600
+11-13 21:38:28.894   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: do_on for timeoutMs: 600
+11-13 21:38:28.894   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: >> writeNode node:/timed_output/vibrator/enable val:600
+11-13 21:38:28.896   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: << writeNode node OK : 4
+11-13 21:38:29.473 19048 19048 I UllimHaptics: pattern=MIN_AMPLITUDE phase=COMPLETE commands=1 maxDispatchLateMs=0
+11-13 21:38:29.502   520   520 E SecVibrator-HAL-AIDL-CORE: V_2_0: Vibrator off
+11-13 21:38:29.502   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: do_off
+11-13 21:38:29.502   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: >> writeNode node:/timed_output/vibrator/enable val:0
+11-13 21:38:29.503   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: << writeNode node OK : 2
+11-13 21:38:30.070 19048 19048 I UllimHaptics: pattern=MIN_AMPLITUDE phase=STOPPED commands=1 maxDispatchLateMs=0
+11-13 21:38:30.072 19048 19048 I UllimHaptics: pattern=MAX_AMPLITUDE phase=RUNNING commands=1 maxDispatchLateMs=0
+11-13 21:38:30.077   520   520 E SecVibrator-HAL-AIDL-EXT: V_5_0: supportsAmplitudeControl
+11-13 21:38:30.079   520   520 E SecVibrator-HAL-AIDL-EXT: V_5_0: supportsAmplitudeControl
+11-13 21:38:30.082   520   520 E SecVibrator-HAL-AIDL-EXT: V_5_0: setAmplitude 10000
+11-13 21:38:30.082   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: >> writeNode node:/timed_output/vibrator/intensity val:10000
+11-13 21:38:30.083   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: << writeNode node OK : 6
+11-13 21:38:30.084   520   520 E SecVibrator-HAL-AIDL-CORE: V_2_0: Vibrator on for timeoutMs: 600
+11-13 21:38:30.084   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: do_on for timeoutMs: 600
+11-13 21:38:30.084   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: >> writeNode node:/timed_output/vibrator/enable val:600
+11-13 21:38:30.087   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: << writeNode node OK : 4
+11-13 21:38:30.676 19048 19048 I UllimHaptics: pattern=MAX_AMPLITUDE phase=COMPLETE commands=1 maxDispatchLateMs=0
+11-13 21:38:30.693   520   520 E SecVibrator-HAL-AIDL-CORE: V_2_0: Vibrator off
+11-13 21:38:30.693   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: do_off
+11-13 21:38:30.693   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: >> writeNode node:/timed_output/vibrator/enable val:0
+11-13 21:38:30.694   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: << writeNode node OK : 2
+11-13 21:38:31.564 19048 19048 I UllimHaptics: pattern=MAX_AMPLITUDE phase=STOPPED commands=1 maxDispatchLateMs=0
+11-13 21:38:31.566 19048 19048 I UllimHaptics: pattern=MIN_AMPLITUDE phase=RUNNING commands=1 maxDispatchLateMs=0
+11-13 21:38:31.570   520   520 E SecVibrator-HAL-AIDL-EXT: V_5_0: supportsAmplitudeControl
+11-13 21:38:31.573   520   520 E SecVibrator-HAL-AIDL-EXT: V_5_0: supportsAmplitudeControl
+11-13 21:38:31.575   520   520 E SecVibrator-HAL-AIDL-EXT: V_5_0: setAmplitude 10000
+11-13 21:38:31.576   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: >> writeNode node:/timed_output/vibrator/intensity val:10000
+11-13 21:38:31.577   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: << writeNode node OK : 6
+11-13 21:38:31.578   520   520 E SecVibrator-HAL-AIDL-CORE: V_2_0: Vibrator on for timeoutMs: 600
+11-13 21:38:31.578   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: do_on for timeoutMs: 600
+11-13 21:38:31.578   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: >> writeNode node:/timed_output/vibrator/enable val:600
+11-13 21:38:31.582   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: << writeNode node OK : 4
+11-13 21:38:32.166 19048 19048 I UllimHaptics: pattern=MIN_AMPLITUDE phase=COMPLETE commands=1 maxDispatchLateMs=0
+11-13 21:38:32.185   520   520 E SecVibrator-HAL-AIDL-CORE: V_2_0: Vibrator off
+11-13 21:38:32.185   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: do_off
+11-13 21:38:32.186   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: >> writeNode node:/timed_output/vibrator/enable val:0
+11-13 21:38:32.186   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: << writeNode node OK : 2
+11-13 21:38:32.696 19048 19048 I UllimHaptics: pattern=MIN_AMPLITUDE phase=STOPPED commands=1 maxDispatchLateMs=0
+11-13 21:38:32.699 19048 19048 I UllimHaptics: pattern=MAX_AMPLITUDE phase=RUNNING commands=1 maxDispatchLateMs=0
+11-13 21:38:32.703   520   520 E SecVibrator-HAL-AIDL-EXT: V_5_0: supportsAmplitudeControl
+11-13 21:38:32.705   520   520 E SecVibrator-HAL-AIDL-EXT: V_5_0: supportsAmplitudeControl
+11-13 21:38:32.707   520   520 E SecVibrator-HAL-AIDL-EXT: V_5_0: setAmplitude 10000
+11-13 21:38:32.707   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: >> writeNode node:/timed_output/vibrator/intensity val:10000
+11-13 21:38:32.707   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: << writeNode node OK : 6
+11-13 21:38:32.708   520   520 E SecVibrator-HAL-AIDL-CORE: V_2_0: Vibrator on for timeoutMs: 600
+11-13 21:38:32.708   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: do_on for timeoutMs: 600
+11-13 21:38:32.708   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: >> writeNode node:/timed_output/vibrator/enable val:600
+11-13 21:38:32.712   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: << writeNode node OK : 4
+11-13 21:38:33.302 19048 19048 I UllimHaptics: pattern=MAX_AMPLITUDE phase=COMPLETE commands=1 maxDispatchLateMs=0
+11-13 21:38:33.316   520   520 E SecVibrator-HAL-AIDL-CORE: V_2_0: Vibrator off
+11-13 21:38:33.316   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: do_off
+11-13 21:38:33.317   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: >> writeNode node:/timed_output/vibrator/enable val:0
+11-13 21:38:33.317   520   520 E SecVibrator-HAL-AIDL-CORE: HW_API: << writeNode node OK : 2

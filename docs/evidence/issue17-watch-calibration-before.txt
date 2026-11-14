@@ -1,0 +1,7 @@
+--------- beginning of main
+11-14 01:27:49.850 I/UllimCalibration(17460): start pulse=true amplitudeControl=true
+11-14 01:27:52.897 I/UllimCalibration(17460): assessment=UNSTABLE_PHASE_0 quietFrames=18 phaseFrames=[18, 17] quietPower=6.539247179817828E-6 medianPower=[0.009238325356272982, 0.10605536940565793] maxPower=[0.019781063462141923, 0.23230318035639372]
+11-14 01:27:52.971 I/UllimCalibration(17460): terminal=Stopped end=FAILED saved=false
+11-14 01:27:54.137 I/UllimCalibration(17460): start pulse=true amplitudeControl=true
+11-14 01:27:57.096 I/UllimCalibration(17460): assessment=UNSTABLE_PHASE_1 quietFrames=17 phaseFrames=[17, 17] quietPower=1.4318881029098783E-5 medianPower=[0.007976870803395299, 0.09206232697761157] maxPower=[0.012740911130094902, 0.225281203360646]
+11-14 01:27:57.160 I/UllimCalibration(17460): terminal=Stopped end=FAILED saved=false

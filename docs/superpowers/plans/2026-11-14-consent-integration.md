@@ -1,0 +1,17 @@
+# First-run consent integration (#29)
+
+> Execute inline with executing-plans; one fresh-context read-only review before integration. User explicitly transferred all owners and authorized continued issue/PR implementation, eligible merges and autonomous verification.
+
+Goal: integrate PR65's first-run notice/microphone-only consent into the working combined app without losing DataStore/AI display/error recovery/calibration/session behavior. Base8a9457a; reference original4bbb89f/#29, current MainActivity/UllimApp/ListeningUiState and docs/architecture.md. Full issue comments/PR read and takeover6867077570 rechecked sole latest owner. #6/#25 remain not main complete; implementation first remains authorized, final Draft gates remain.
+
+Architecture: retain original ullim_first_run SharedPreferences keys for completion/request history. MainActivity renders first-run state and launches microphone-only permission from its explicit consent action, never from a permission result. Home requires the microphone permission, offering a retry/settings action. Notification permission remains separate at an explicit later Start. Both allow/later/Back finish the notice without starting capture; an existing permission offers continuation. Existing motor calibration load/explicit diagnostic redirect, foreground error rollback, stop guards and AI/settings/visualization flows are preserved. Add no microphone owner or capture loop.
+
+UI keeps the current 48dp+ targets/pane/heading/scroll/theme and realistic hearing/AI/privacy/background limits. Scope is MainActivity/UI/state/strings/tests/docs and the manifest task identity placeholder; no renderer, DSP, classifier, profile schema, system settings or model changes. Normal package/task affinity stays identical; opt-in test package task affinity must be its own applicationId to avoid sharing tasks with the original app.
+
+- [x] Semantic RED Activity tests for fresh notice, allow/skip persistence, permission result without service start, denied/permanent-denied settings return, existing permission continuation and missing-calibration redirect. Keep original stored key compatibility.
+- [x] Port relevant original notice/UI/strings and integrate MainActivity's separate permission launchers and transitions. Preserve current error/cleanup/calibration behavior and reject notification-result bypass while notice is open.
+- [x] Explicitly mark pre-existing MainActivity test fixtures as notice-completed so they still exercise their original service/settings behavior; do not weaken their assertions. Full normal/probe tests/build/lint/release and manifest task isolation checks.
+- [x] One fresh independent read-only review; required findings get one RED→GREEN/full fix pass, no re-review. Record all rulings/minor deferrals. No Critical/Important; two coverage minors deferred in evidence.
+- [x] Publish integration into PR73 and describe exact relationship in PR65. Keep original source/DoD separate and Draft/open; Watch7 permission/first-run/native consent behavior remains unverified unless actually exercised. Do not modify the watch while its unrelated system UI is active; original app remains stopped/mic OFF/profile retained.
+
+Review focus: late permission callback versus explicit Start, restored pendingStart/first-run state, permission revocation/return without hidden restart, retained motor-calibration setup, user-visible recovery and scroll/large-font semantics. No raw audio/Actions/project-license changes.

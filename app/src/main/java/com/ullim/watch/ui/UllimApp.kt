@@ -19,8 +19,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -31,60 +36,95 @@ import androidx.wear.compose.material3.OutlinedButton
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
 import com.ullim.watch.R
+import com.ullim.watch.core.ListeningState
 import com.ullim.watch.ui.theme.UllimTheme
 
-private enum class UllimScreen { HOME, SETTINGS, GUIDE, ERROR }
+private enum class UllimScreen { ONBOARDING, HOME, SETTINGS, GUIDE, ERROR }
 
 @Composable
-fun UllimApp(onDiagnostics: () -> Unit = {}) {
-    var screen by rememberSaveable { mutableStateOf(UllimScreen.HOME) }
+fun UllimApp(
+    state: ListeningUiState = ListeningUiState(),
+    onStart: () -> Unit = {},
+    onStop: () -> Unit = {},
+    onAiSettings: () -> Unit = {},
+    onDiagnostics: () -> Unit = {},
+    onAppSettings: () -> Unit = {},
+    onSensitivity: (Float) -> Unit = {},
+    onAiToggle: () -> Unit = {},
+    onSettingsReset: () -> Unit = {},
+    onSettingsRetry: () -> Unit = {},
+    onCompleteOnboarding: () -> Unit = {},
+    onRequestMicrophone: () -> Unit = {},
+) {
+    var screen by rememberSaveable { mutableStateOf(if (state.showOnboarding) UllimScreen.ONBOARDING else UllimScreen.HOME) }
     val scrollState = rememberScrollState()
-
+    LaunchedEffect(state.showOnboarding) {
+        if (state.showOnboarding) screen = UllimScreen.ONBOARDING
+        else if (screen == UllimScreen.ONBOARDING) screen = UllimScreen.HOME
+    }
+    val pageTitle = stringResource(when (screen) {
+        UllimScreen.ONBOARDING -> R.string.onboarding_title
+        UllimScreen.HOME -> R.string.app_name
+        UllimScreen.SETTINGS -> R.string.settings_title
+        UllimScreen.GUIDE -> R.string.guide_title
+        UllimScreen.ERROR -> R.string.error_guide_title
+    })
     BackHandler(enabled = screen != UllimScreen.HOME) {
-        screen = when (screen) {
-            UllimScreen.SETTINGS, UllimScreen.GUIDE -> UllimScreen.HOME
-            UllimScreen.ERROR -> UllimScreen.GUIDE
-            UllimScreen.HOME -> UllimScreen.HOME
-        }
+        if (screen == UllimScreen.ONBOARDING) onCompleteOnboarding()
+        screen = if (screen == UllimScreen.ERROR) UllimScreen.GUIDE else UllimScreen.HOME
     }
-
-    LaunchedEffect(screen) {
-        scrollState.scrollTo(0)
-    }
-
+    LaunchedEffect(screen) { scrollState.scrollTo(0) }
     UllimTheme {
         AppScaffold {
             ScreenScaffold(scrollState = scrollState) { contentPadding ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(contentPadding),
-                    contentAlignment = Alignment.Center,
-                ) {
+                Box(Modifier.fillMaxSize().padding(contentPadding), contentAlignment = Alignment.Center) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth(0.82f)
-                            .verticalScroll(scrollState)
-                            .padding(vertical = 16.dp),
+                        Modifier.fillMaxWidth(0.82f).verticalScroll(scrollState).padding(vertical = 16.dp)
+                            .semantics { paneTitle = pageTitle; isTraversalGroup = true },
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         when (screen) {
-                            UllimScreen.HOME -> HomeScreen(
+                            UllimScreen.ONBOARDING -> {
+                                ScreenTitle(stringResource(R.string.onboarding_title))
+                                Body(stringResource(R.string.onboarding_purpose))
+                                Body(stringResource(R.string.onboarding_microphone))
+                                Body(stringResource(R.string.onboarding_privacy))
+                                Body(stringResource(R.string.onboarding_background))
+                                Body(stringResource(R.string.onboarding_limits))
+                                Action(if (state.microphoneGranted) R.string.onboarding_continue else R.string.onboarding_allow_microphone, {
+                                    screen = UllimScreen.HOME
+                                    onCompleteOnboarding()
+                                    if (!state.microphoneGranted) onRequestMicrophone()
+                                })
+                                Action(R.string.onboarding_later, {
+                                    screen = UllimScreen.HOME
+                                    onCompleteOnboarding()
+                                })
+                            }
+                            UllimScreen.HOME -> HomeScreen(state, onStart, onStop, onAppSettings, onDiagnostics, onAiSettings, onRequestMicrophone,
                                 onSettings = { screen = UllimScreen.SETTINGS },
-                                onGuide = { screen = UllimScreen.GUIDE },
-                                onDiagnostics = onDiagnostics,
-                            )
-                            UllimScreen.SETTINGS -> SettingsScreen(
-                                onBack = { screen = UllimScreen.HOME },
-                            )
-                            UllimScreen.GUIDE -> GuideScreen(
-                                onErrorGuide = { screen = UllimScreen.ERROR },
-                                onBack = { screen = UllimScreen.HOME },
-                            )
-                            UllimScreen.ERROR -> ErrorGuideScreen(
-                                onBack = { screen = UllimScreen.GUIDE },
-                            )
+                                onGuide = { screen = UllimScreen.GUIDE })
+                            UllimScreen.SETTINGS -> {
+                                ScreenTitle(stringResource(R.string.settings_title))
+                                SettingsContent(state.settings, state.runtime.listening, state.strengthLimited,
+                                    onSensitivity, onAiToggle, onSettingsReset, onSettingsRetry)
+                                Action(R.string.ai_details, onAiSettings)
+                                Action(R.string.diagnostics, onDiagnostics, enabled = state.startAllowed)
+                                Action(R.string.back_action, { screen = UllimScreen.HOME })
+                            }
+                            UllimScreen.GUIDE -> {
+                                ScreenTitle(stringResource(R.string.guide_title))
+                                Body(stringResource(R.string.guide_body))
+                                Action(R.string.error_guide_action, { screen = UllimScreen.ERROR })
+                                Action(R.string.back_action, { screen = UllimScreen.HOME })
+                            }
+                            UllimScreen.ERROR -> {
+                                ScreenTitle(stringResource(R.string.error_guide_title))
+                                Body(stringResource(R.string.error_guide_body))
+                                Action(R.string.permission_settings, onAppSettings)
+                                Action(R.string.back_action, { screen = UllimScreen.GUIDE })
+                            }
                         }
                     }
                 }
@@ -95,126 +135,88 @@ fun UllimApp(onDiagnostics: () -> Unit = {}) {
 
 @Composable
 private fun ScreenTitle(text: String) {
-    Text(
-        text = text,
-        modifier = Modifier.semantics { heading() },
-        style = MaterialTheme.typography.titleLarge,
-        textAlign = TextAlign.Center,
-    )
+    Text(text, Modifier.semantics { heading() }, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
 }
 
 @Composable
-private fun HomeScreen(onSettings: () -> Unit, onGuide: () -> Unit, onDiagnostics: () -> Unit = {}) {
+private fun Body(text: String) {
+    Text(text, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+}
+
+@Composable
+private fun Action(label: Int, onClick: () -> Unit, enabled: Boolean = true) {
+    OutlinedButton(onClick, Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = enabled) {
+        Text(stringResource(label), textAlign = TextAlign.Center)
+    }
+}
+
+@Composable
+private fun HomeScreen(
+    state: ListeningUiState,
+    onStart: () -> Unit,
+    onStop: () -> Unit,
+    onAppSettings: () -> Unit,
+    onDiagnostics: () -> Unit,
+    onAiSettings: () -> Unit,
+    onRequestMicrophone: () -> Unit,
+    onSettings: () -> Unit,
+    onGuide: () -> Unit,
+) {
+    val phase = state.runtime.listening
+    val idle = phase == ListeningState.Idle || phase is ListeningState.Error
+    val failure = state.failure.takeIf { phase is ListeningState.Error }
+    val phaseDescription = when (phase) {
+        ListeningState.Idle -> stringResource(R.string.ready_to_listen)
+        is ListeningState.Starting -> stringResource(R.string.starting_listening)
+        is ListeningState.Listening -> stringResource(R.string.active_listening)
+        is ListeningState.Stopping -> stringResource(R.string.stopping_listening)
+        is ListeningState.Error -> phase.reason
+    }
     ScreenTitle(stringResource(R.string.app_name))
     Text(
-        text = stringResource(R.string.tagline),
+        phaseDescription,
+        Modifier.semantics { liveRegion = LiveRegionMode.Polite },
         style = MaterialTheme.typography.bodyMedium,
         textAlign = TextAlign.Center,
     )
-    Text(
-        text = stringResource(R.string.foundation_status),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = TextAlign.Center,
-    )
+    failure?.let { Body(stringResource(R.string.error_code, it.code)) }
     Button(
-        onClick = onSettings,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        onClick = if (idle) onStart else onStop,
+        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).semantics { stateDescription = phaseDescription },
+        enabled = if (idle) state.startAllowed && state.microphoneGranted else phase is ListeningState.Listening,
     ) {
-        Text(stringResource(R.string.settings_title))
+        Text(stringResource(when (phase) {
+            ListeningState.Idle, is ListeningState.Error -> R.string.start_listening
+            is ListeningState.Starting -> R.string.starting_action
+            is ListeningState.Listening -> R.string.stop
+            is ListeningState.Stopping -> R.string.stopping_action
+        }), textAlign = TextAlign.Center)
     }
-    OutlinedButton(
-        onClick = onGuide,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-    ) {
-        Text(stringResource(R.string.guide_title))
+    if (phase is ListeningState.Starting) Action(R.string.cancel_start, onStop)
+    if (failure?.openDiagnostics == true) Action(R.string.check_haptic_support, onDiagnostics, enabled = state.startAllowed)
+    if (failure?.restartRequired == true) Action(R.string.open_app_settings, onAppSettings)
+    if (phase is ListeningState.Listening) {
+        Body(stringResource(R.string.levels, (state.levels.sound * 100).toInt(), (state.levels.commanded * 100).toInt()))
+        if (state.strengthLimited) Body(stringResource(R.string.amplitude_unsupported))
     }
-    OutlinedButton(onClick = onDiagnostics, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-        Text(stringResource(R.string.diagnostics))
+    ComparisonGraph(state.visualization, active = phase is ListeningState.Listening)
+    AiResultContent(state.ai)
+    if (state.ai.status == AiDisplayStatus.FAILED) Action(R.string.ai_details, onAiSettings)
+    if (!state.microphoneGranted) {
+        Body(stringResource(if (state.microphonePermissionPermanentlyDenied) R.string.microphone_permission_blocked else R.string.microphone_permission_needed))
+        if (!state.microphonePermissionPermanentlyDenied) Action(R.string.microphone_permission_retry, onRequestMicrophone)
     }
-}
-
-@Composable
-private fun SettingsScreen(onBack: () -> Unit) {
-    ScreenTitle(stringResource(R.string.settings_title))
-    Text(
-        text = stringResource(R.string.settings_placeholder),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = TextAlign.Center,
-    )
-    OutlinedButton(
-        onClick = onBack,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-    ) {
-        Text(stringResource(R.string.back_action))
+    if (!state.notificationsGranted) Body(stringResource(R.string.notifications_limited))
+    if (!state.microphoneGranted || !state.notificationsGranted || (failure?.openSettings == true && !failure.restartRequired)) {
+        Action(R.string.permission_settings, onAppSettings)
     }
-}
-
-@Composable
-private fun GuideScreen(onErrorGuide: () -> Unit, onBack: () -> Unit) {
-    ScreenTitle(stringResource(R.string.guide_title))
-    Text(
-        text = stringResource(R.string.guide_body),
-        style = MaterialTheme.typography.bodyMedium,
-        textAlign = TextAlign.Center,
-    )
-    OutlinedButton(
-        onClick = onErrorGuide,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-    ) {
-        Text(stringResource(R.string.error_guide_action))
-    }
-    OutlinedButton(
-        onClick = onBack,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-    ) {
-        Text(stringResource(R.string.back_action))
-    }
-}
-
-@Composable
-private fun ErrorGuideScreen(onBack: () -> Unit) {
-    ScreenTitle(stringResource(R.string.error_guide_title))
-    Text(
-        text = stringResource(R.string.error_guide_body),
-        style = MaterialTheme.typography.bodyMedium,
-        textAlign = TextAlign.Center,
-    )
-    Button(
-        onClick = onBack,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-    ) {
-        Text(stringResource(R.string.back_action))
-    }
+    Action(R.string.settings_title, onSettings)
+    Action(R.string.guide_title, onGuide)
+    Text(stringResource(R.string.local_audio_notice), style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
 }
 
 @Preview(device = "id:wearos_small_round", showSystemUi = true, name = "울림 앱")
 @Composable
 private fun UllimAppPreview() {
-    UllimApp()
-}
-
-@Preview(device = "id:wearos_small_round", showSystemUi = true, name = "울림 홈")
-@Composable
-private fun HomeScreenPreview() {
-    UllimTheme { HomeScreen(onSettings = {}, onGuide = {}) }
-}
-
-@Preview(device = "id:wearos_small_round", showSystemUi = true, name = "설정")
-@Composable
-private fun SettingsScreenPreview() {
-    UllimTheme { SettingsScreen(onBack = {}) }
-}
-
-@Preview(device = "id:wearos_small_round", showSystemUi = true, name = "사용 안내")
-@Composable
-private fun GuideScreenPreview() {
-    UllimTheme { GuideScreen(onErrorGuide = {}, onBack = {}) }
-}
-
-@Preview(device = "id:wearos_small_round", showSystemUi = true, name = "문제 해결")
-@Composable
-private fun ErrorGuideScreenPreview() {
-    UllimTheme { ErrorGuideScreen(onBack = {}) }
+    UllimApp(ListeningUiState(microphoneGranted = true, notificationsGranted = true))
 }

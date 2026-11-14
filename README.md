@@ -4,7 +4,7 @@
 
 울림은 **갤럭시 워치7 단독**으로 주변 소리의 **크기·지속시간·리듬**을 분석하여 손목 진동의 시간적 변화로 전달하는 청각 접근성 프로토타입입니다. 특정 소리를 감지해 고정 횟수로 울리는 알림 앱이 아니라, **실제 소리 변화에 따라 촉각 표현도 달라지는 것**이 핵심입니다.
 
-> **상태: 앱 기초 구현 단계.** 단일 Wear OS 앱의 기본 화면을 워치7에 설치·실행했습니다([실기기 기록](docs/evidence/issue2-watch7.md)). 이 기초 앱에는 소리 감지·DSP·진동·AI 기능이 없으며 성능은 미검증입니다. 후속 기능 검증은 연계된 GitHub 이슈와 PR 결과에 따릅니다.
+> **상태: 개발 중.** 워치7 설치·실행과 사용자 시작→마이크·DSP·진동→중지를 실제 확인했습니다. 실시간 연속 진동의 끊김·강약 체감 문제가 발견돼 [실기기 비교 검증](docs/watch-haptic-validation.md)을 진행 중입니다. 실제 AI 모델 구동, 물리 지연 및 강약·리듬 합격 기준은 미검증입니다. 기능 검증은 연계된 GitHub 이슈와 PR 결과에 따릅니다.
 
 ## 제품 목표
 
@@ -60,7 +60,11 @@ JDK 17, Android SDK Platform 36 및 Build Tools 35.0.0을 준비합니다. Andro
 ./gradlew :app:assembleDebug
 ```
 
-Windows에서는 `./gradlew.bat`를 사용합니다. APK 경로는 `app/build/outputs/apk/debug/app-debug.apk`입니다. 현재 기초 화면에는 마이크·인터넷 권한이나 녹음·진동 동작이 없습니다. 아직 단위 테스트 소스가 없어 `testDebugUnitTest`의 `NO-SOURCE` 결과를 기능 테스트 통과로 해석하면 안 됩니다.
+Windows에서는 `./gradlew.bat`를 사용합니다. APK 경로는 `app/build/outputs/apk/debug/app-debug.apk`입니다. 단위 테스트는 합성 PCM·가짜 하드웨어로 실행하며 워치7의 물리 검증을 대신하지 않습니다.
+
+워치에서 **소리 감지 시작**을 누르고 마이크/알림 권한을 허용합니다. 감지 중에는 워치 안에서 PCM을 처리해 DSP 기반 진동을 요청하고 입력 소리/요청한 진동의 크기를 표시합니다. 앱의 중지 버튼 또는 작동 알림의 중지 액션으로 멈춥니다. 알림 권한을 거부하면 알림 표시가 제한될 수 있습니다. 인터넷·스마트폰은 필요하지 않으며 원본 음성을 파일로 저장하지 않습니다. 진동 진단은 감지를 중지한 상태에서만 엽니다.
+
+**AI 보조** 화면에서 AI를 켜거나 끌 수 있습니다(초기 OFF). AI를 켜는 것만으로 마이크를 시작하지 않으며, 사용자가 감지를 시작한 세션에서만 번들 YAMNet을 별도 작업자로 구동합니다. AI가 지연/실패/만료되어도 기본 DSP 경로는 AI 결과를 기다리지 않습니다. 실패 뒤 자동 재시도하지 않고 AI OFF→ON으로 재시도합니다. 진행 중인 네이티브 작업은 안전하게 끝난 뒤 모델을 닫으므로 정리가 남았으면 표시합니다. 민감도(기본 100%, 범위 75~125%)와 AI 선택(기본 OFF)은 로컬 DataStore에 저장합니다. 감지 중 변경은 즉시 적용하며 저장 중/실패는 화면에 표시합니다. 자세한 동작과 검증 경계는 [설정 안내](docs/persistent-settings.md)를 참고하세요. 모델·조절 정책과 검증 경계는 [모델 안내](docs/models.md), 실제 워치 측정 절차는 [AI 성능 검증](docs/ai-runtime-validation.md)을 따릅니다. 실제 모델/AI ON·OFF·물리 지연·촉각 품질은 아직 워치7에서 검증하지 않았습니다.
 
 워치7에서 설치·실행하려면 실제 기기와 디버깅 가능한 연결이 필요합니다. 연결·설치 명령과 실기기 증거 기준은 [개발·검증 안내](docs/development.md)를 참고하세요.
 
@@ -76,3 +80,11 @@ Windows에서는 `./gradlew.bat`를 사용합니다. APK 경로는 `app/build/ou
 - [AGENTS.md](AGENTS.md) — 작업 선점·중복 방지·PR 자동 종료 규칙
 - [docs/architecture.md](docs/architecture.md) — 기능 범위, 데이터 흐름 및 모듈 경계
 - [docs/development.md](docs/development.md) — 로컬 검증/실기기 증거 및 완료 판단
+- [docs/session-lifecycle.md](docs/session-lifecycle.md) — 세션 상태·마이크 소유권·중지 및 오류 복구 경계
+- [docs/main-listening-ui.md](docs/main-listening-ui.md) — 실제 감지 상태를 표시하는 메인 화면과 로컬 화면 검증 경계
+- [docs/sound-haptic-visualization.md](docs/sound-haptic-visualization.md) — 공통 소리 시간축의 입력·진동 명령 그래프와 물리 측정 구분
+- [docs/ai-result-display.md](docs/ai-result-display.md) — AI 명칭·모델 점수와 불확실/만료/실패 표시의 검증 경계
+- [docs/persistent-settings.md](docs/persistent-settings.md) — 민감도·AI 로컬 저장, 즉시 적용 및 저장 실패 처리
+- [docs/error-recovery.md](docs/error-recovery.md) — 오류 코드, 수동 회복 행동과 자원 정리 경계
+- [docs/wear-accessibility.md](docs/wear-accessibility.md) — 큰 글씨·화면 읽기 의미·대비·터치 및 실제 워치 검증 체크리스트
+- [docs/watch-haptic-validation.md](docs/watch-haptic-validation.md) — 워치7 실제 관찰, 연속 출력 통제 비교와 물리 지연 측정 절차

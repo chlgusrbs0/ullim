@@ -1,0 +1,38 @@
+Live-path diagnostic candidate, 2026-11-13 KST
+
+User reports small/large sounds feel like the same short repeated vibration.
+The existing ZZK1/G-H and A-F failures remain unresolved; no physical fix claim.
+
+Integrated #5 cleanup/fallback/permission/status-order correction into #18 as
+f65774a3288ac3d32a79bbf2e5d1bfa307d6868b. Preserved later typed failures from #30.
+Conflict resolution retained those regressions and the newer #5 lifecycle tests.
+Full178 tests/build/lint succeeded1m, failures0/errors0/skips0.
+
+New debug instrumentation: immutable numeric ranges/counters for25-frame windows,
+latest-only snapshot, no PCM/class labels/connection identifiers. Transparent
+waveform wrapper records API attempts; main heartbeat writes UllimTrace.
+No logging I/O on capture/DSP threads. DSP/mapper/scheduler policy unchanged.
+Waveform metrics do not count envelope requests. Unsupported on target device.
+Explicit positive amplitudes and default(-1) segment counts are distinct.
+No partial final window flush; slow consumers can lose intermediate windows.
+
+Six added tests were RED before implementation (missing classes), then GREEN.
+Final naming-clarified full suite184 tests, failures0/errors0/skips0, build/lint41s.
+Independent read-only review: no Critical; one Important timing-boundary issue.
+The first implementation sampled time after synchronous output, so it described
+processing completion rather than callback entry. Corrected the service callsite
+to sample BEFORE DSP/map/OS call and pass the saved value into aggregation.
+Numeric calculation tests cover literal timing values; callsite ordering is
+source-inspected, not claimed as a new failing Android integration test.
+
+Post-review full testDebugUnitTest/assembleDebug/lintDebug succeeded37s:
+56 tasks,16 executed,40 up-to-date;184 tests/failures0/errors0/skips0.
+Lint0 errors,12 existing warnings,1 hint.
+Candidate APK53007245bytes, SHA256
+c4356882e9b5d8c60ac7a95abd31c8bd04b8d6b3fe869b8b3657085327415c90
+
+The earlier aa3ae7... version was installed only to prepare the trial; no capture
+trial was performed on it. Replace it with this corrected candidate before
+interpreting callback-entry metrics. Native guided small/large comparison pending.
+UI35 exact APK952d2a0... remains backed up outside git for restoration if needed.
+No raw audio, Actions, hidden-API bypass or physical latency/discrimination pass.

@@ -1,0 +1,4 @@
+--------- beginning of main
+11-14 02:35:31.796 I/UllimCalibration(21029): start pulse=true amplitudeControl=true globalIntensityKnown=true
+11-14 02:35:34.901 I/UllimCalibration(21029): assessment=COMPLETE quietFrames=18 phaseFrames=[18, 18] quietPower=1.0012069186713133E-5 medianPower=[0.011967189001734381, 0.08142186102049886] maxPower=[0.019779901311267167, 0.2498816235514822] stabilitySamples=[5, 5] stabilityMedianPower=[0.009509448038685758, 0.13350234604634661] stabilityMaxPower=[0.013666540034076505, 0.15263494421475723]
+11-14 02:35:34.964 I/UllimCalibration(21029): terminal=Stopped end=COMPLETE saved=true

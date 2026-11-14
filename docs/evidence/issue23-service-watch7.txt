@@ -1,0 +1,5 @@
+11-14 07:09:23.942 5548 I UllimSessionProbe: calibration start pulse=true amplitudeControl=true globalIntensityKnown=true
+11-14 07:09:27.390 5548 I UllimSessionProbe: calibration assessment=UNSTABLE_PHASE_0 quietFrames=18 phaseFrames=[17, 17] quietPower=5.1016203037256185E-6 medianPower=[0.006829977297456944, 0.09022500771679923] maxPower=[0.022002316577709295, 0.22766591211548062] stabilitySamples=[5, 5] stabilityMedianPower=[0.006316195801870588, 0.07809265756319901] stabilityMaxPower=[0.016566700800710057, 0.17797138757111194]
+11-14 07:09:27.462 5548 I UllimSessionProbe: calibration terminal=Stopped end=FAILED saved=false
+11-14 07:09:27.499 5548 I UllimSessionProbe: requested=FAIL code=CALIBRATION_FAILED cycles=0 cleanupVerified=false
+11-14 07:09:27.530 5548 I UllimSessionProbe: result=FAIL code=CALIBRATION_FAILED cycles=0 totalInferences=0 cleanupVerified=true elapsedMs=3664 rawAudioStored=false

@@ -12,7 +12,8 @@ interface PcmInput {
     fun release()
 }
 
-enum class CaptureError { PERMISSION, INITIALIZATION, READ, CONSUMER, CLEANUP }
+enum class CaptureError { PERMISSION, INITIALIZATION, READ, CONSUMER, CLEANUP, SILENCED, OUTPUT, OUTPUT_UNSUPPORTED }
+class CaptureException(val reason: CaptureError) : RuntimeException(reason.name)
 
 sealed interface CaptureStatus {
     data object Starting : CaptureStatus
@@ -92,9 +93,13 @@ class MicrophoneCapture(
                     emptyReads = 0
                     val frame = AudioFrame(run.sessionId, firstSampleNs + sampleOffset * 62_500L, buffer.copyOf(count))
                     sampleOffset += count
-                    try { onFrame(frame) } catch (_: RuntimeException) { failure = CaptureError.CONSUMER; break }
+                    try { onFrame(frame) }
+                    catch (error: CaptureException) { failure = error.reason; break }
+                    catch (_: RuntimeException) { failure = CaptureError.CONSUMER; break }
                 }
             }
+        } catch (error: CaptureException) {
+            if (!run.stopped) failure = error.reason
         } catch (_: SecurityException) {
             failure = CaptureError.PERMISSION
         } catch (_: Exception) {
