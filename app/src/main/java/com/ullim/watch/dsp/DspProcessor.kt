@@ -4,9 +4,9 @@ import com.ullim.watch.core.AudioFeatureExtractor
 import com.ullim.watch.core.AudioFeatures
 import com.ullim.watch.core.AudioFrame
 
-class DspProcessor : AudioFeatureExtractor {
+class DspProcessor(loudnessKnee: Float = NoiseGate.DEFAULT_LOUDNESS_KNEE) : AudioFeatureExtractor {
     private val envelope = EnvelopeExtractor()
-    private val gate = NoiseGate()
+    private val gate = NoiseGate(loudnessKnee)
     private val onset = OnsetDetector()
     private var sessionId = 0L
     private var lastTimestampNs: Long? = null
