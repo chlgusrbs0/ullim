@@ -4,6 +4,7 @@ import com.ullim.watch.core.HapticFrame
 import com.ullim.watch.core.HapticRenderer
 import com.ullim.watch.core.RenderResult
 import kotlin.math.roundToInt
+import com.ullim.watch.settings.TuningSettings
 
 interface WaveformDevice {
     val capabilities: HapticCapabilities
@@ -16,7 +17,8 @@ interface SessionRenderer : HapticRenderer {
     fun renderBatch(frames: List<HapticFrame>): RenderResult
 }
 
-class WaveformRenderer(private val device: WaveformDevice, private val forcePulseFallback: Boolean = false) : SessionRenderer {
+class WaveformRenderer(private val device: WaveformDevice, private val forcePulseFallback: Boolean = false,
+    private val readTuning: () -> TuningSettings = { TuningSettings.DEFAULT }) : SessionRenderer {
     private var sessionId = 0L
     private var highestSessionId = 0L
     private var lastTimestampNs: Long? = null
@@ -43,7 +45,7 @@ class WaveformRenderer(private val device: WaveformDevice, private val forcePuls
                 device.cancel()
                 RenderResult.SILENT
             } else if (strengthLimited) {
-                val pulse = PulseFallback.encodeBatch(batch)
+                val pulse = PulseFallback.encodeBatch(batch, readTuning())
                 device.play(pulse.timings, pulse.amplitudes)
                 RenderResult.SENT
             } else {

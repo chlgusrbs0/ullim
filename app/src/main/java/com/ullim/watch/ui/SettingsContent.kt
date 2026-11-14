@@ -27,7 +27,9 @@ internal fun SettingsContent(
     onAiToggle: () -> Unit,
     onReset: () -> Unit,
     onRetry: () -> Unit,
+    onTuning: () -> Unit = {},
 ) {
+    SettingAction(R.string.live_tuning, settings.ready, onClick = onTuning)
     val value = settings.values.sensitivity
     SettingsText(stringResource(R.string.sensitivity_value, (value * 100).roundToInt()))
     SettingsText(stringResource(R.string.sensitivity_defaults))

@@ -2,6 +2,7 @@ package com.ullim.watch.haptics
 
 import com.ullim.watch.core.HapticFrame
 import com.ullim.watch.core.RenderResult
+import com.ullim.watch.settings.TuningSettings
 
 data class EnvelopePoint(val intensity: Float, val durationMs: Long)
 class EnvelopePlan private constructor(val points: List<EnvelopePoint>) {
@@ -27,8 +28,9 @@ class AdaptiveHapticRenderer(
     private val device: EnvelopeDevice,
     private val preferEnvelope: Boolean = false,
     private val pulseFallback: Boolean = false,
+    private val readTuning: () -> TuningSettings = { TuningSettings.DEFAULT },
 ) : SessionRenderer {
-    private val waveform = WaveformRenderer(device, forcePulseFallback = pulseFallback)
+    private val waveform = WaveformRenderer(device, forcePulseFallback = pulseFallback, readTuning = readTuning)
     private var envelopeEnabled = false
     private var sessionId = 0L
     private var lastTimestampNs: Long? = null

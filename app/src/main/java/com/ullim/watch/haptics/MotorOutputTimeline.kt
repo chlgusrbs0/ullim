@@ -1,7 +1,8 @@
 package com.ullim.watch.haptics
 
 /** History is needed because microphone samples arrive after newer output requests. */
-class MotorOutputTimeline(private val tailNs: Long = 120_000_000, private val maxWindows: Int = 256) {
+class MotorOutputTimeline(private val tailNs: Long = 120_000_000, private val maxWindows: Int = 256,
+    private val readTailMs: (() -> Float)? = null) {
     private data class Window(val start: Long, var end: Long, val amplitude: Int)
     private val windows = ArrayDeque<Window>()
     init { require(tailNs in 0..500_000_000 && maxWindows in 1..1024) }
@@ -25,8 +26,9 @@ class MotorOutputTimeline(private val tailNs: Long = 120_000_000, private val ma
     @Synchronized fun clear() { windows.clear() }
 
     @Synchronized fun amplitudeAt(sampleNs: Long, durationNs: Long): Int {
+        val currentTailNs = readTailMs?.let { (it() * 1_000_000).toLong().coerceIn(0, 500_000_000) } ?: tailNs
         var amplitude = 0
-        for (window in windows) if (sampleNs < window.end + tailNs && sampleNs + durationNs > window.start) {
+        for (window in windows) if (sampleNs < window.end + currentTailNs && sampleNs + durationNs > window.start) {
             amplitude = maxOf(amplitude, window.amplitude)
         }
         return amplitude

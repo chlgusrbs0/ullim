@@ -36,6 +36,8 @@ import com.ullim.watch.dsp.LiveDsp
 import com.ullim.watch.haptics.AdaptiveHapticRenderer
 import com.ullim.watch.haptics.AndroidEnvelopeDevice
 import com.ullim.watch.haptics.HybridHapticMapper
+import com.ullim.watch.haptics.EnvelopeHapticMapper
+import com.ullim.watch.settings.TuningParameter
 import com.ullim.watch.haptics.HapticScheduler
 import com.ullim.watch.haptics.HapticTelemetry
 import com.ullim.watch.haptics.TracingEnvelopeDevice
@@ -138,7 +140,7 @@ open class ListeningService : Service() {
             stopSelf(startId)
             return
         }
-        val motorTimeline = MotorOutputTimeline()
+        val motorTimeline = MotorOutputTimeline(readTailMs = { CaptureRuntime.tuning.value[TuningParameter.MOTOR_TAIL_MS] })
         val motorKey = MotorProfileStore.deviceKey(this)
         val motorProfile = MotorProfileStore.load(this, motorKey)
         if (motorProfile == null) {
@@ -170,16 +172,17 @@ open class ListeningService : Service() {
             stopSelf(startId)
             return
         }
-        val suppressor = MotorNoiseSuppressor(motorProfile, motorTimeline)
-        val dsp = LiveDsp(canLearnNoise = { !suppressor.lastFiltered }) { CaptureRuntime.sensitivity.value }
-        val mapper = HybridHapticMapper()
+        val readTuning = { CaptureRuntime.tuning.value }
+        val suppressor = MotorNoiseSuppressor(motorProfile, motorTimeline, readTuning)
+        val dsp = LiveDsp(canLearnNoise = { !suppressor.lastFiltered }, readTuning = readTuning) { CaptureRuntime.sensitivity.value }
+        val mapper = HybridHapticMapper(EnvelopeHapticMapper(readTuning), readTuning)
         val ai = AiRuntime.worker(this)
         aiWorker = ai
         val trace = if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) HapticTelemetry(token) else null
         hapticTelemetry = trace
         val trackedDevice = MotorTrackingDevice(device, motorTimeline)
         val outputDevice = if (trace != null) TracingEnvelopeDevice(trackedDevice, trace) else trackedDevice
-        val scheduler = HapticScheduler(AdaptiveHapticRenderer(outputDevice, pulseFallback = motorProfile.pulseFallback))
+        val scheduler = HapticScheduler(AdaptiveHapticRenderer(outputDevice, pulseFallback = motorProfile.pulseFallback, readTuning = readTuning))
         var lastUiNs = -100_000_000L
         val fanout = AudioFanOut(preprocess = suppressor::process) { frame ->
             val callbackNs = if (trace != null) System.nanoTime() else 0L
@@ -199,7 +202,8 @@ open class ListeningService : Service() {
                 CaptureRuntime.publish(token, features.rms, command.commandedIntensity,
                     rawSound = if (suppressor.lastFiltered) suppressor.lastRawRms else features.rms,
                     baselineCommanded = mapper.lastBaseline, motorFiltered = suppressor.lastFiltered,
-                    aiAdjusted = mapper.lastAiApplied, aiPolicy = mapper.lastStatus)
+                    aiAdjusted = mapper.lastAiApplied, aiPolicy = mapper.lastStatus,
+                    normalizedLevel = features.level, detected = !features.isSilent)
                 lastUiNs = frame.timestampNs
             }
         }

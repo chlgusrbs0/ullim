@@ -55,6 +55,7 @@ fun UllimApp(
     onSettingsRetry: () -> Unit = {},
     onCompleteOnboarding: () -> Unit = {},
     onRequestMicrophone: () -> Unit = {},
+    onTuning: () -> Unit = {},
 ) {
     var screen by rememberSaveable { mutableStateOf(if (state.showOnboarding) UllimScreen.ONBOARDING else UllimScreen.HOME) }
     val scrollState = rememberScrollState()
@@ -104,11 +105,11 @@ fun UllimApp(
                             }
                             UllimScreen.HOME -> HomeScreen(state, onStart, onStop, onAppSettings, onDiagnostics, onAiSettings, onRequestMicrophone,
                                 onSettings = { screen = UllimScreen.SETTINGS },
-                                onGuide = { screen = UllimScreen.GUIDE })
+                                onGuide = { screen = UllimScreen.GUIDE }, onTuning = onTuning)
                             UllimScreen.SETTINGS -> {
                                 ScreenTitle(stringResource(R.string.settings_title))
                                 SettingsContent(state.settings, state.runtime.listening, state.strengthLimited,
-                                    onSensitivity, onAiToggle, onSettingsReset, onSettingsRetry)
+                                    onSensitivity, onAiToggle, onSettingsReset, onSettingsRetry, onTuning)
                                 Action(R.string.ai_details, onAiSettings)
                                 Action(R.string.diagnostics, onDiagnostics, enabled = state.startAllowed)
                                 Action(R.string.back_action, { screen = UllimScreen.HOME })
@@ -161,6 +162,7 @@ private fun HomeScreen(
     onRequestMicrophone: () -> Unit,
     onSettings: () -> Unit,
     onGuide: () -> Unit,
+    onTuning: () -> Unit,
 ) {
     val phase = state.runtime.listening
     val idle = phase == ListeningState.Idle || phase is ListeningState.Error
@@ -201,6 +203,7 @@ private fun HomeScreen(
     }
     AiResultContent(state.ai)
     Action(R.string.ai_details, onAiSettings)
+    Action(R.string.live_tuning, onTuning)
     ComparisonGraph(state.visualization, active = phase is ListeningState.Listening)
     if (!state.microphoneGranted) {
         Body(stringResource(if (state.microphonePermissionPermanentlyDenied) R.string.microphone_permission_blocked else R.string.microphone_permission_needed))

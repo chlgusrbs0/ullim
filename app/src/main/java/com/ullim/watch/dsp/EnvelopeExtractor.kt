@@ -8,16 +8,22 @@ import kotlin.math.exp
 import kotlin.math.sqrt
 
 class EnvelopeExtractor(attackMs: Float = 20f, releaseMs: Float = 120f) : AudioFeatureExtractor {
-    private val attack: Float
-    private val release: Float
+    private var attack = 0f
+    private var release = 0f
+    private var configuredAttack = Float.NaN
+    private var configuredRelease = Float.NaN
     private var envelope = 0f
     private var sessionId = 0L
 
     init {
+        configure(attackMs, releaseMs)
+    }
+
+    fun configure(attackMs: Float, releaseMs: Float) {
         require(attackMs.isFinite() && attackMs > 0f)
         require(releaseMs.isFinite() && releaseMs > 0f)
-        attack = 1f - exp(-20f / attackMs)
-        release = 1f - exp(-20f / releaseMs)
+        if (attackMs != configuredAttack) { attack = 1f - exp(-20f / attackMs); configuredAttack = attackMs }
+        if (releaseMs != configuredRelease) { release = 1f - exp(-20f / releaseMs); configuredRelease = releaseMs }
     }
 
     override fun extract(frame: AudioFrame): AudioFeatures {
