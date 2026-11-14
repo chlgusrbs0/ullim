@@ -15,7 +15,7 @@ Classification uses the window end in the capture monotonic clock domain and exp
 
 ## Verification boundary
 
-Local contract tests use an injected engine to verify normalization, invalid input/output rejection, labels, timestamps and closure. They do **not** execute the native Android interpreter. #19 remains incomplete until a Watch7 actually loads this bundled model and performs inference offline. The service connection is implemented in #22; real standard-audio scores, load/inference duration, memory and temperature are not yet measured. Device execution remains tracked in #19/#22/#36. No accuracy or improvement claim is made.
+Local contract tests use an injected engine to verify normalization, invalid input/output rejection, labels, timestamps, input erasure and closure. They do **not** execute the native Android interpreter. The separate Watch7 test executes the actual bundled interpreter on generated signals alongside independent DSP; [#19 evidence](evidence/issue19-validation.md) records exact assets, outputs, cadence and observations. This is component evidence, not final microphone/service/toggle or physical haptic acceptance. The current service connection is implemented in #22; whole-app AI ON/OFF and physical usefulness remain tracked in #22/#36/#37. No accuracy or improvement claim is made from model execution alone.
 
 ## Result stability (#20)
 
@@ -23,7 +23,7 @@ Local contract tests use an injected engine to verify normalization, invalid inp
 
 Out-of-order, future, expired and other-session results cannot replace current context. A new session or a gap reaching the previous result's expiry clears history. Repeated reads do not count as additional windows or extend expiry. Display and policy consumers must check `isFresh` at use time, even if no new inference arrives. Worker failure/disabled/loading are separate execution states, not classifications. #22 connects worker status to runtime and an AI control screen; #27 adds the [shared result presentation](ai-result-display.md) on home and AI controls.
 
-`SoundLabels` translates a limited set of exact ontology labels, retaining the original string for untranslated classes. It does not interpret a musical “French horn” as a vehicle warning. The full 521-class original map remains bundled. Real speech/horn/knock/noise class correctness and false positives have not yet been evaluated with standard audio or on Watch7.
+`SoundLabels` translates a limited set of exact ontology labels, retaining the original string for untranslated classes. It does not interpret a musical “French horn” as a vehicle warning. The full 521-class original map remains bundled. [#20 device evidence](evidence/issue20-validation.md) verifies controlled-score confirmation/uncertainty/expiry and actual model outputs on generated signals. These fixtures do not establish accuracy or false-positive rates on real speech/horns/knocks/environmental recordings.
 
 ## Conservative hybrid policy (#21)
 

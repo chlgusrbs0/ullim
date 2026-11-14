@@ -75,4 +75,24 @@ class YamnetClassifierTest {
         assertEquals(0, engine.calls)
         assertEquals(1, engine.closes)
     }
+
+    @Test fun inferenceInputIsErasedAfterSuccessAndEngineFailure() {
+        var sharedInput: FloatArray? = null
+        var fail = false
+        val classifier = YamnetClassifier(labels, object : YamnetEngine {
+            override fun infer(samples: FloatArray): FloatArray {
+                sharedInput = samples
+                assertEquals(-1f, samples[0], 0f)
+                if (fail) error("injected model failure")
+                return FloatArray(521)
+            }
+            override fun close() {}
+        })
+        classifier.classify(frame())
+        assertTrue(sharedInput!!.all { it == 0f })
+        fail = true
+        assertThrows(IllegalStateException::class.java) { classifier.classify(frame()) }
+        assertTrue(sharedInput!!.all { it == 0f })
+        classifier.close()
+    }
 }

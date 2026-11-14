@@ -5,5 +5,16 @@
             android:exported="true" android:taskAffinity="com.ullim.watch.sessionprobe" />
         <activity android:name=".probe.NativeMotorSettingsProbeActivity"
             android:exported="true" android:taskAffinity="com.ullim.watch.motorsettingsprobe" />
+        <activity android:name=".probe.NativeClassificationProbeActivity"
+            android:exported="true" android:taskAffinity="com.ullim.watch.classificationprobe" />
+        <activity android:name=".probe.NativeYamnetProbeActivity"
+            android:exported="true" android:taskAffinity="com.ullim.watch.yamnetprobe" />
+        <activity android:name=".probe.NativeDspProbeActivity"
+            android:exported="true" android:taskAffinity="com.ullim.watch.dspprobe" />
+        <activity android:name=".probe.NativeFanOutProbeActivity"
+            android:exported="true" android:taskAffinity="com.ullim.watch.fanoutprobe" />
+        <activity android:name=".probe.NativeCaptureProbeActivity"
+            android:exported="true" android:launchMode="singleTask"
+            android:taskAffinity="com.ullim.watch.captureprobe" />
     </application>
 </manifest>

@@ -15,13 +15,15 @@ class TemporalFeaturesTest {
             if (features.onset > 0f) index else null
         }
         assertEquals(knocks, detected)
+        println("Knock input/detected frames=$detected; intervalsMs=300,500")
     }
 
     @Test fun constantSoundCannotGenerateEndlessOnsets() {
         val dsp = DspProcessor()
         val features = (0..250).map { dsp.extract(frame(16000, it)) }
         assertEquals(1, features.count { it.onset > 0f })
-        assertTrue(features.take(100).count { it.level > 0f } > 50)
+        assertEquals("continuous five-second input was truncated", 251, features.count { it.level > 0f })
+        println("Constant input: frames=${features.size}, nonSilent=${features.count { it.level > 0f }}, onsets=${features.count { it.onset > 0f }}")
     }
 
     @Test fun speechLikeModulationProducesContinuousChangingLevelsAndReleasesToZero() {
