@@ -4,19 +4,18 @@ import com.ullim.watch.core.AudioFeatures
 import com.ullim.watch.core.Classification
 import com.ullim.watch.core.HapticFrame
 import com.ullim.watch.core.HapticMapper
-import kotlin.math.pow
 import kotlin.math.abs
 
-enum class AiTactileStatus { NO_CONTEXT, UNSUPPORTED, UNCERTAIN, WAITING_EVENT, SILENT, DETAIL, CONTRAST }
+enum class AiTactileStatus { NO_CONTEXT, UNCERTAIN, WAITING_EVENT, SILENT, TRACKING, STABILIZING }
 
-/** AI never changes the baseline mapper's history or creates a sound-name pattern. */
+/** Labels establish continuity only; no sound category selects a strength curve. */
 class HybridHapticMapper(private val baseline: HapticMapper = EnvelopeHapticMapper()) : HapticMapper {
-    private enum class Profile { DETAIL, CONTRAST }
     private var sessionId = 0L
     private var lastTimestampNs: Long? = null
     private var eventStartNs: Long? = null
-    private var profile: Profile? = null
-    private var mix = 0f
+    private var activeLabel: String? = null
+    private var previousBase: Float? = null
+    private var previousOutput: Float? = null
     var lastAiApplied = false
         private set
     var lastBaseline = 0f
@@ -41,60 +40,46 @@ class HybridHapticMapper(private val baseline: HapticMapper = EnvelopeHapticMapp
         }
         val newEvent = eventStartNs == null
         if (newEvent) eventStartNs = features.timestampNs
-        val target = target(context, features)
-        if (target == null) {
-            profile = null
-            mix = 0f
+        val label = reliableLabel(context, features) ?: run { clearFilter(); return base }
+        if (activeLabel == null && !newEvent && features.timestampNs - eventStartNs!! < 500_000_000L) {
+            lastStatus = AiTactileStatus.WAITING_EVENT
             return base
         }
-        // Keep one curve within a short event. A late first result can assist a
-        // sustained sound after 500 ms, fading in rather than creating an onset.
-        if (profile == null && (newEvent || features.timestampNs - eventStartNs!! >= 500_000_000L)) {
-            profile = target
-            mix = if (newEvent) 1f else 0f
-        }
-        val selected = profile ?: run { lastStatus = AiTactileStatus.WAITING_EVENT; return base }
-        lastStatus = if (selected == Profile.DETAIL) AiTactileStatus.DETAIL else AiTactileStatus.CONTRAST
-        mix += (1f - mix) * .1f
-        val x = base.commandedIntensity.coerceIn(0f, 1f)
-        val shaped = when (selected) {
-            Profile.DETAIL -> x.pow(.65f)
-            Profile.CONTRAST -> x * x / (x * x + (1f - x) * (1f - x))
-        }
-        val intensity = base.commandedIntensity + (shaped - base.commandedIntensity) * mix
-        lastAiApplied = abs(intensity - base.commandedIntensity) > .000001f
-        return base.copy(commandedIntensity = intensity.coerceIn(0f, 1f))
-    }
-
-    private fun target(context: Classification?, features: AudioFeatures): Profile? {
-        if (context == null || !context.isFresh(features.sessionId, features.timestampNs)) return null
-        val scores = context.scores
-        var winnerIndex = -1
-        for (index in scores.indices) {
-            if (winnerIndex == -1 || scores[index].confidence > scores[winnerIndex].confidence) {
-                winnerIndex = index
+        val x = base.commandedIntensity
+        val oldBase = previousBase
+        val oldOutput = previousOutput
+        val sameContext = activeLabel == label
+        activeLabel = label
+        previousBase = x
+        lastStatus = AiTactileStatus.TRACKING
+        // First response, source changes, onsets and substantial level changes
+        // pass straight through. Invalid/OFF context returns exact baseline.
+        val y = if (!sameContext || oldBase == null || oldOutput == null ||
+            features.onset > .2f || abs(x - oldBase) > .08f || abs(x - oldOutput) > .08f
+        ) x else {
+            val smoothed = (oldOutput + (x - oldOutput) * .35f).coerceIn(x - .03f, x + .03f)
+            // AI cannot move a sound into a different pulse-output band.
+            when {
+                x <= .75f -> smoothed.coerceIn(0f, .75f)
+                x >= .85f -> smoothed.coerceIn(.85f, 1f)
+                else -> smoothed.coerceIn(.75f, .85f)
             }
         }
-        if (winnerIndex == -1) return null
-        val winner = scores[winnerIndex]
-        val targetProfile = profile(winner.label) ?: run { lastStatus = AiTactileStatus.UNSUPPORTED; return null }
-        // Correlated ontology labels can describe the same policy. Do not sum their scores.
-        var competitor = 0f
-        for (score in scores) {
-            if (profile(score.label) != targetProfile) competitor = maxOf(competitor, score.confidence)
-        }
-        if (winner.confidence < .65f || winner.confidence - competitor < .15f) {
+        previousOutput = y
+        lastAiApplied = abs(y - x) > .000001f
+        if (lastAiApplied) lastStatus = AiTactileStatus.STABILIZING
+        return base.copy(commandedIntensity = y)
+    }
+
+    private fun reliableLabel(context: Classification?, features: AudioFeatures): String? {
+        if (context == null || !context.isFresh(features.sessionId, features.timestampNs)) return null
+        val scores = context.scores.sortedByDescending { it.confidence }
+        val winner = scores.firstOrNull() ?: return null
+        if (winner.confidence < .65f || winner.confidence - (scores.getOrNull(1)?.confidence ?: 0f) < .08f) {
             lastStatus = AiTactileStatus.UNCERTAIN
             return null
         }
-        return targetProfile
-    }
-
-    private fun profile(label: String): Profile? = when (label) {
-        "Speech", "Conversation" -> Profile.DETAIL
-        "Noise", "Static", "White noise", "Pink noise", "Wind noise (microphone)",
-        "Knock", "Tap", "Clapping" -> Profile.CONTRAST
-        else -> null
+        return winner.label
     }
 
     override fun reset() {
@@ -107,5 +92,6 @@ class HybridHapticMapper(private val baseline: HapticMapper = EnvelopeHapticMapp
         lastStatus = AiTactileStatus.NO_CONTEXT
     }
 
-    private fun clearPolicy() { eventStartNs = null; profile = null; mix = 0f }
+    private fun clearFilter() { activeLabel = null; previousBase = null; previousOutput = null }
+    private fun clearPolicy() { eventStartNs = null; clearFilter() }
 }

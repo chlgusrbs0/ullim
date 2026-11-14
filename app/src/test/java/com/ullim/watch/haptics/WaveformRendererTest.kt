@@ -6,15 +6,17 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class WaveformRendererTest {
-    @Test fun liveFallbackSubmitsLongerPulseWithoutChangingBatchLength() {
+    @Test fun liveFallbackKeepsMiddlePulsesAndSubmitsLongHighPulse() {
         val device = Device(HapticCapabilities(true, true, null))
         val renderer = WaveformRenderer(device, forcePulseFallback = true)
         renderer.begin(1)
         assertEquals(RenderResult.SENT, renderer.renderBatch(List(3) { index ->
             HapticFrame(1, index * 20_000_000L, 20, .5f)
         }))
-        assertArrayEquals(longArrayOf(0, 30, 30), device.played.single().timings)
-        assertEquals(RenderResult.SILENT, renderer.render(HapticFrame(1, 60_000_000, 20, 0f)))
+        assertArrayEquals(longArrayOf(0, 10, 10, 10, 10, 10, 10), device.played.single().timings)
+        renderer.renderBatch(List(3) { index -> HapticFrame(1, 60_000_000L + index * 20_000_000L, 20, .9f) })
+        assertArrayEquals(longArrayOf(0, 54, 6), device.played.last().timings)
+        assertEquals(RenderResult.SILENT, renderer.render(HapticFrame(1, 120_000_000, 20, 0f)))
         assertTrue(device.cancellations >= 2)
     }
 

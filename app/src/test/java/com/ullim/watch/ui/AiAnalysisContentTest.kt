@@ -33,15 +33,15 @@ class AiAnalysisContentTest {
                         result = AiResultKind.UNCERTAIN,
                         candidates = listOf(AiCandidateDisplay("걷는 소리·발소리", 50)),
                         completedInferences = 8), showOriginal = true)
-                    SignalPathContent(LiveLevels(sound = .02f, commanded = 1f,
+                    SignalPathContent(LiveLevels(sound = .02f, commanded = .78f,
                         rawSound = .1f, baselineCommanded = .8f, motorFiltered = true,
-                        aiAdjusted = true, aiPolicy = AiTactileStatus.CONTRAST), true)
+                        aiAdjusted = true, aiPolicy = AiTactileStatus.STABILIZING), true)
                 }
             }
         }
         for (text in listOf("후보: 걷는 소리·발소리 · 모델 점수 50%",
-            "마이크 입력 10% → 모터 보정 후 2%", "기본 진동 80% → AI 후 요청 100%",
-            "모터 소음 보정 중", "AI 적용: 강약 대비 조절")) {
+            "마이크 입력 10% → 모터 보정 후 2%", "기본 진동 80% → AI 후 요청 78%",
+            "모터 소음 보정 중", "AI 적용: 같은 문맥의 미세 흔들림 완화")) {
             compose.onNodeWithText(text).performScrollTo().assertIsDisplayed()
         }
     }
