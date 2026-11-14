@@ -44,7 +44,7 @@ object MotorProfileStore {
     private fun formatDeviceKey(readSystem: (String) -> String?, readGlobal: (String) -> String?): String {
         val values = intensityKeys.joinToString("|") { readSystem(it) ?: "-" }
         val globalIntensity = readGlobal(GLOBAL_INTENSITY) ?: "-"
-        return "${Build.MODEL}|${Build.FINGERPRINT}|${Build.VERSION.INCREMENTAL}|$values|globalIntensity=$globalIntensity|output=100|pulse=grouped60-v1"
+        return "${Build.MODEL}|${Build.FINGERPRINT}|${Build.VERSION.INCREMENTAL}|$values|globalIntensity=$globalIntensity|output=100|pulse=adaptive75-85-v1"
     }
 
     @Synchronized fun load(context: Context, firmwareKey: String): MotorNoiseProfile? = try {

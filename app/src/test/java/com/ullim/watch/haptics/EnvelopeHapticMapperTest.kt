@@ -9,7 +9,7 @@ import kotlin.math.PI
 import kotlin.math.sin
 
 class EnvelopeHapticMapperTest {
-    @Test fun middleLevelUsesMoreOutputAndMaximumCanReachFullRange() {
+    @Test fun middleLevelStaysInMiddleBandAndMaximumCanReachFullRange() {
         fun settled(level: Float): Float {
             val mapper = EnvelopeHapticMapper()
             var result = 0f
@@ -18,7 +18,7 @@ class EnvelopeHapticMapperTest {
             }
             return result
         }
-        assertEquals(.8f, settled(.5f), .00001f)
+        assertEquals(.5f, settled(.5f), .00001f)
         assertEquals(1f, settled(1f), .00001f)
         assertTrue(listOf(.1f, .2f, .3f, .4f, .5f, .75f, 1f).map(::settled).zipWithNext().all { (a,b) -> a < b })
     }

@@ -17,10 +17,9 @@ class EnvelopeHapticMapper : HapticMapper {
         if (features.isSilent || features.rms <= maxOf(0.002f, features.noise * 1.1f)) previous = 0f
         else {
             val level = (features.level + features.onset * 0.1f * (1f - features.level)).coerceIn(0f, 1f)
-            // Give ordinary audible levels more of the available output range,
-            // with a gentler upper slope to retain differences near the maximum.
-            val target = if (level <= .5f) level * 1.6f else .8f + (level - .5f) * .4f
-            previous += (target - previous) * if (target > previous) 0.7f else 0.45f
+            // Keep a common loudness scale: a middle level must not already use
+            // the high-output band. Onset adds a small, sound-derived accent.
+            previous += (level - previous) * if (level > previous) 0.7f else 0.45f
         }
         return HapticFrame(features.sessionId, features.timestampNs, 20, previous.coerceIn(0f, 1f))
     }

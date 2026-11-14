@@ -9,12 +9,27 @@ class PulseFallbackTest {
         HapticFrame(1, index * 20_000_000L, 20, level)
     }
 
-    @Test fun similarLiveFramesUseOneLongerPulseWithTheSameTotalOnTime() {
+    @Test fun middleLiveFramesRetainTheOriginalShortPulsePattern() {
         val wave = PulseFallback.encodeBatch(frames(.45f, .5f, .55f))
-        assertArrayEquals(longArrayOf(0, 30, 30), wave.timings)
-        assertArrayEquals(intArrayOf(0, -1, 0), wave.amplitudes)
-        // The previous three pulses were 9, 10 and 11ms. No extra ON budget.
+        assertArrayEquals(longArrayOf(0, 9, 11, 10, 10, 11, 9), wave.timings)
+        assertArrayEquals(intArrayOf(0, -1, 0, -1, 0, -1, 0), wave.amplitudes)
         assertEquals(60L, wave.timings.sum())
+    }
+
+    @Test fun transitionTransfersOnTimeGraduallyRatherThanSwitchingAtEightyPercent() {
+        fun wave(level: Float) = PulseFallback.encodeBatch(frames(level, level, level))
+        assertArrayEquals(longArrayOf(0, 15, 5, 15, 5, 15, 5), wave(.75f).timings)
+        assertArrayEquals(longArrayOf(0, 32, 4, 8, 4, 8, 4), wave(.8f).timings)
+        assertArrayEquals(longArrayOf(0, 51, 9), wave(.85f).timings)
+        val longest = (75..85).map { value ->
+            val encoded = wave(value / 100f)
+            assertEquals(60L, encoded.timings.sum())
+            val oldOn = PulseFallback.encode(value / 100f, 20).timings[1] * 3
+            assertEquals(oldOn, encoded.timings.indices.sumOf { if (encoded.amplitudes[it] == -1) encoded.timings[it] else 0 })
+            encoded.timings.indices.filter { encoded.amplitudes[it] == -1 }.maxOf { encoded.timings[it] }
+        }
+        assertTrue(longest.zipWithNext().all { (a,b) -> b >= a })
+        assertTrue("transition needs intermediate lengths, not two modes", longest.distinct().size >= 8)
     }
 
     @Test fun aRealSilentFrameAndDistinctStrengthChangesKeepTheirTimeSlots() {
@@ -30,8 +45,8 @@ class PulseFallbackTest {
             wave.timings.indices.sumOf { if (wave.amplitudes[it] == -1) wave.timings[it] else 0 }
         }
         assertEquals(listOf(12L, 30L, 60L), onTimes)
-        val longer = PulseFallback.encodeBatch(frames(.5f, .5f, .5f, .5f, .5f, .5f))
-        assertArrayEquals(longArrayOf(0, 30, 30, 30, 30), longer.timings)
+        val longer = PulseFallback.encodeBatch(frames(.9f, .9f, .9f, .9f, .9f, .9f))
+        assertArrayEquals(longArrayOf(0, 54, 6, 54, 6), longer.timings)
     }
 
     @Test fun fullRequestHasNoArtificialOffTime() {

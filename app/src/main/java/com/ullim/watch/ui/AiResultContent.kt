@@ -75,12 +75,11 @@ internal fun SignalPathContent(levels: LiveLevels, aiEnabled: Boolean) {
     AiText(stringResource(if (levels.motorFiltered) R.string.motor_filter_active else R.string.motor_filter_idle))
     val policy = if (!aiEnabled) R.string.ai_policy_off else when (levels.aiPolicy) {
         AiTactileStatus.NO_CONTEXT -> R.string.ai_policy_waiting
-        AiTactileStatus.UNSUPPORTED -> R.string.ai_policy_unsupported
         AiTactileStatus.UNCERTAIN -> R.string.ai_policy_uncertain
         AiTactileStatus.WAITING_EVENT -> R.string.ai_policy_event
         AiTactileStatus.SILENT -> R.string.ai_policy_silent
-        AiTactileStatus.DETAIL -> R.string.ai_policy_detail
-        AiTactileStatus.CONTRAST -> R.string.ai_policy_contrast
+        AiTactileStatus.TRACKING -> R.string.ai_policy_tracking
+        AiTactileStatus.STABILIZING -> R.string.ai_policy_stabilizing
     }
     AiText(stringResource(policy))
     AiText(stringResource(R.string.signal_path_notice))

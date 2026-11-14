@@ -140,9 +140,9 @@
     <string name="ai_policy_uncertain">AI 적용: 점수·구분이 부족해 기본 변환</string>
     <string name="ai_policy_event">AI 적용: 짧은 소리의 원래 강약 유지 중</string>
     <string name="ai_policy_silent">AI 적용: 무음 · 진동 없음</string>
-    <string name="ai_policy_detail">AI 적용: 작은 소리의 변화 보강</string>
-    <string name="ai_policy_contrast">AI 적용: 강약 대비 조절</string>
-    <string name="ai_role_notice">AI는 종류를 분석해 강약 표현을 조절해요. 종류별 소리 분리·제거는 하지 않아요. 모터 소음은 별도로 보정해요.</string>
+    <string name="ai_policy_tracking">AI 적용: 문맥 확인 · 원래 강약 유지</string>
+    <string name="ai_policy_stabilizing">AI 적용: 같은 문맥의 미세 흔들림 완화</string>
+    <string name="ai_role_notice">진동의 강약은 소리 크기를 따라가요. AI는 같은 소리 문맥이 이어질 때 미세한 흔들림을 완화해요. 종류별 증폭·소리 분리는 하지 않아요. 모터 소음은 별도로 보정해요.</string>
     <string name="output_capability_pending">출력 제한은 감지 시작 뒤 기기 지원 여부를 확인해요</string>
     <string name="output_control_available">진동 강도 제어 API 사용 중 · 실제 전달 성능은 아직 검증 중이에요</string>
     <string name="guide_title">사용 안내</string>

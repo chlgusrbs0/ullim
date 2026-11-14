@@ -28,12 +28,13 @@ object PulseFallback {
         var start = 0
         while (start < frames.size) {
             val first = frames[start]
-            var onMs = onTime(first.commandedIntensity, first.durationMs)
+            val onTimes = mutableListOf(onTime(first.commandedIntensity, first.durationMs))
             var durationMs = first.durationMs
             var end = start + 1
-            if (onMs > 0 && first.durationMs == 20L) {
-                var minimum = onMs
-                var maximum = onMs
+            var lowestLevel = first.commandedIntensity
+            if (onTimes.first() > 0 && first.durationMs == 20L) {
+                var minimum = onTimes.first()
+                var maximum = onTimes.first()
                 while (end < frames.size && durationMs < 60L) {
                     val next = frames[end]
                     if (next.durationMs != 20L) break
@@ -44,12 +45,21 @@ object PulseFallback {
                     // or flatten a distinct strength change into one long pulse.
                     if (nextOn == 0L || nextMax - nextMin > 2L) break
                     minimum = nextMin; maximum = nextMax
-                    onMs += nextOn; durationMs += next.durationMs
+                    onTimes.add(nextOn); durationMs += next.durationMs
+                    lowestLevel = minOf(lowestLevel, next.commandedIntensity)
                     end++
                 }
             }
-            append(onMs, -1)
-            append(durationMs - onMs, 0)
+            // Below 75% retain the original short pulses. Transfer ON budget
+            // from later pulses to the first one gradually, reaching the long
+            // pulse at 85%. No extra time, amplitude or future frames needed.
+            val blend = ((lowestLevel - .75f) / .10f).coerceIn(0f, 1f)
+            val transferred = onTimes.mapIndexed { index, on -> if (index == 0) 0L else (on * blend).roundToLong() }
+            for (index in onTimes.indices) {
+                val on = onTimes[index] + if (index == 0) transferred.sum() else -transferred[index]
+                append(on, -1)
+                append(frames[start + index].durationMs - onTimes[index], 0)
+            }
             start = end
         }
         return DiagnosticWaveform(timings.toLongArray(), amplitudes.toIntArray())
