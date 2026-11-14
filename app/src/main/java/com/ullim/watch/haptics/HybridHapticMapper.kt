@@ -7,6 +7,8 @@ import com.ullim.watch.core.HapticMapper
 import kotlin.math.pow
 import kotlin.math.abs
 
+enum class AiTactileStatus { NO_CONTEXT, UNSUPPORTED, UNCERTAIN, WAITING_EVENT, SILENT, DETAIL, CONTRAST }
+
 /** AI never changes the baseline mapper's history or creates a sound-name pattern. */
 class HybridHapticMapper(private val baseline: HapticMapper = EnvelopeHapticMapper()) : HapticMapper {
     private enum class Profile { DETAIL, CONTRAST }
@@ -17,16 +19,23 @@ class HybridHapticMapper(private val baseline: HapticMapper = EnvelopeHapticMapp
     private var mix = 0f
     var lastAiApplied = false
         private set
+    var lastBaseline = 0f
+        private set
+    var lastStatus = AiTactileStatus.NO_CONTEXT
+        private set
 
     override fun map(features: AudioFeatures, context: Classification?): HapticFrame {
         lastAiApplied = false
+        lastStatus = AiTactileStatus.NO_CONTEXT
         val base = baseline.map(features)
+        lastBaseline = base.commandedIntensity
         if (sessionId != features.sessionId || lastTimestampNs?.let { features.timestampNs != it + 20_000_000L } == true) {
             clearPolicy()
         }
         sessionId = features.sessionId
         lastTimestampNs = features.timestampNs
         if (base.isSilent) {
+            lastStatus = AiTactileStatus.SILENT
             clearPolicy()
             return base
         }
@@ -44,16 +53,17 @@ class HybridHapticMapper(private val baseline: HapticMapper = EnvelopeHapticMapp
             profile = target
             mix = if (newEvent) 1f else 0f
         }
-        val selected = profile ?: return base
+        val selected = profile ?: run { lastStatus = AiTactileStatus.WAITING_EVENT; return base }
+        lastStatus = if (selected == Profile.DETAIL) AiTactileStatus.DETAIL else AiTactileStatus.CONTRAST
         mix += (1f - mix) * .1f
-        val x = (base.commandedIntensity / .85f).coerceIn(0f, 1f)
+        val x = base.commandedIntensity.coerceIn(0f, 1f)
         val shaped = when (selected) {
             Profile.DETAIL -> x.pow(.65f)
             Profile.CONTRAST -> x * x / (x * x + (1f - x) * (1f - x))
-        } * .85f
+        }
         val intensity = base.commandedIntensity + (shaped - base.commandedIntensity) * mix
         lastAiApplied = abs(intensity - base.commandedIntensity) > .000001f
-        return base.copy(commandedIntensity = intensity.coerceIn(0f, .85f))
+        return base.copy(commandedIntensity = intensity.coerceIn(0f, 1f))
     }
 
     private fun target(context: Classification?, features: AudioFeatures): Profile? {
@@ -67,13 +77,16 @@ class HybridHapticMapper(private val baseline: HapticMapper = EnvelopeHapticMapp
         }
         if (winnerIndex == -1) return null
         val winner = scores[winnerIndex]
-        val targetProfile = profile(winner.label) ?: return null
+        val targetProfile = profile(winner.label) ?: run { lastStatus = AiTactileStatus.UNSUPPORTED; return null }
         // Correlated ontology labels can describe the same policy. Do not sum their scores.
         var competitor = 0f
         for (score in scores) {
             if (profile(score.label) != targetProfile) competitor = maxOf(competitor, score.confidence)
         }
-        if (winner.confidence < .65f || winner.confidence - competitor < .15f) return null
+        if (winner.confidence < .65f || winner.confidence - competitor < .15f) {
+            lastStatus = AiTactileStatus.UNCERTAIN
+            return null
+        }
         return targetProfile
     }
 
@@ -90,6 +103,8 @@ class HybridHapticMapper(private val baseline: HapticMapper = EnvelopeHapticMapp
         lastTimestampNs = null
         clearPolicy()
         lastAiApplied = false
+        lastBaseline = 0f
+        lastStatus = AiTactileStatus.NO_CONTEXT
     }
 
     private fun clearPolicy() { eventStartNs = null; profile = null; mix = 0f }

@@ -196,7 +196,10 @@ open class ListeningService : Service() {
             }
             CaptureRuntime.visualization.offer(features, command)
             if (frame.timestampNs - lastUiNs >= 100_000_000L) {
-                CaptureRuntime.publish(token, features.rms, command.commandedIntensity)
+                CaptureRuntime.publish(token, features.rms, command.commandedIntensity,
+                    rawSound = if (suppressor.lastFiltered) suppressor.lastRawRms else features.rms,
+                    baselineCommanded = mapper.lastBaseline, motorFiltered = suppressor.lastFiltered,
+                    aiAdjusted = mapper.lastAiApplied, aiPolicy = mapper.lastStatus)
                 lastUiNs = frame.timestampNs
             }
         }

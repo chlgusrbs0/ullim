@@ -199,9 +199,9 @@ private fun HomeScreen(
         Body(stringResource(R.string.levels, (state.levels.sound * 100).toInt(), (state.levels.commanded * 100).toInt()))
         if (state.strengthLimited) Body(stringResource(R.string.amplitude_unsupported))
     }
-    ComparisonGraph(state.visualization, active = phase is ListeningState.Listening)
     AiResultContent(state.ai)
-    if (state.ai.status == AiDisplayStatus.FAILED) Action(R.string.ai_details, onAiSettings)
+    Action(R.string.ai_details, onAiSettings)
+    ComparisonGraph(state.visualization, active = phase is ListeningState.Listening)
     if (!state.microphoneGranted) {
         Body(stringResource(if (state.microphonePermissionPermanentlyDenied) R.string.microphone_permission_blocked else R.string.microphone_permission_needed))
         if (!state.microphonePermissionPermanentlyDenied) Action(R.string.microphone_permission_retry, onRequestMicrophone)

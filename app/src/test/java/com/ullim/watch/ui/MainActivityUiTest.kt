@@ -245,7 +245,7 @@ class MainActivityUiTest {
         requestStart(); confirmRecording(limited = true)
         compose.onNodeWithText("설정").performScrollTo().performClick()
         compose.onNodeWithText("진동 진단").assertIsNotEnabled()
-        compose.onNodeWithText("AI 상태와 결과").performScrollTo().performClick()
+        compose.onNodeWithText("AI 분석 보기").performScrollTo().performClick()
         assertEquals(AiControlsActivity::class.java.name, shadowOf(compose.activity).nextStartedActivity.component!!.className)
         assertEquals(ListeningState.Listening(token), CaptureRuntime.state.value.listening)
     }

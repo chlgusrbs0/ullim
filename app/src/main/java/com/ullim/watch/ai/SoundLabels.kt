@@ -23,6 +23,11 @@ object SoundLabels {
         "Music" to "음악",
         "Wind" to "바람",
         "Rain" to "비",
+        "Walk, footsteps" to "걷는 소리·발소리",
+        "Run" to "달리기",
+        "Static" to "지속 잡음",
+        "White noise" to "백색 잡음",
+        "Pink noise" to "핑크 잡음",
     )
     fun display(label: String): String = korean[label] ?: label
 }

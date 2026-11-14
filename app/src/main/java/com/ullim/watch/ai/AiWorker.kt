@@ -30,6 +30,7 @@ data class AiSnapshot(
     val timeoutCount: Long = 0,
     val resultExpired: Boolean = false,
     val automaticRetries: Int = 0,
+    val rawClassification: Classification? = null,
 )
 
 /** The executor must be asynchronous. Production owns one worker/lane for the whole process. */
@@ -144,6 +145,9 @@ class AiWorker(
             kick()
         }
         val result = mutableState.value.classification
+        if (mutableState.value.rawClassification?.isFresh(session, now) == false) {
+            mutableState.value = mutableState.value.copy(rawClassification = null)
+        }
         if (result != null && !result.isFresh(session, now)) {
             latest.clear()
             mutableState.value = mutableState.value.copy(classification = null, resultExpired = true)
@@ -177,7 +181,7 @@ class AiWorker(
         pending = null
         latest.clear()
         smoother.reset()
-        mutableState.value = mutableState.value.copy(classification = null, resultExpired = false)
+        mutableState.value = mutableState.value.copy(classification = null, rawClassification = null, resultExpired = false)
     }
     private fun dropWindow() { mutableState.value = mutableState.value.copy(droppedWindows = mutableState.value.droppedWindows + 1) }
     private fun publish() {
@@ -290,7 +294,8 @@ class AiWorker(
                     else -> {
                         val processed = smoother.accept(output, job.session, now)
                         if (processed != null) latest.publish(processed)
-                        mutableState.value = mutableState.value.copy(classification = processed, resultExpired = false)
+                        mutableState.value = mutableState.value.copy(classification = processed,
+                            rawClassification = output, resultExpired = false)
                         phase = AiPhase.LISTENING
                     }
                 }

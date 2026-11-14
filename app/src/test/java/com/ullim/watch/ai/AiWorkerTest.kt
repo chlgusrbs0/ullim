@@ -85,9 +85,11 @@ class AiWorkerTest {
             await { worker.state.value.modelLoaded && !worker.state.value.busy }
             assertTrue(worker.offer(frame()))
             await { worker.state.value.classification != null && !worker.state.value.busy }
+            assertEquals("Speech", worker.state.value.rawClassification!!.scores.first().label)
             clock.set(4_500_000_000)
             worker.tick()
             assertNull(worker.state.value.classification)
+            assertNull(worker.state.value.rawClassification)
             assertTrue(worker.state.value.resultExpired)
             clock.set(5_000_000_000)
             assertTrue(worker.offer(frame(5_000_000_000)))

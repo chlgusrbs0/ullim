@@ -33,7 +33,7 @@ class HybridHapticMapperTest {
             val input = features(1_500_000_000L + index * 20_000_000L)
             val base = baseline.map(input)
             val adjusted = hybrid.map(input, context)
-            assertTrue("confirmed real-model noise must adjust the command", adjusted.commandedIntensity < base.commandedIntensity)
+            assertTrue("confirmed real-model noise must adjust the command", abs(adjusted.commandedIntensity - base.commandedIntensity) > .000001f)
             assertTrue(adjusted.commandedIntensity > 0f)
         }
     }
@@ -115,7 +115,7 @@ class HybridHapticMapperTest {
                 assertEquals(base.timestampNs, output.timestampNs)
                 assertEquals(base.durationMs, output.durationMs)
                 assertEquals(base.isSilent, output.isSilent)
-                assertTrue(output.commandedIntensity in 0f..0.85f)
+                assertTrue(output.commandedIntensity in 0f..1f)
                 if (baseSilent && !base.isSilent) baseEdges.add(index)
                 if (aiSilent && !output.isSilent) aiEdges.add(index)
                 baseSilent = base.isSilent; aiSilent = output.isSilent
@@ -156,8 +156,8 @@ class HybridHapticMapperTest {
         val afterGap = features(440_000_000, level = .1f)
         val base = baseline.map(afterGap)
         val adjusted = hybrid.map(afterGap, context(afterGap.timestampNs, "Noise"))
-        val x = base.commandedIntensity / .85f
-        assertEquals(.85f * x * x / (x * x + (1 - x) * (1 - x)), adjusted.commandedIntensity, .000001f)
+        val x = base.commandedIntensity
+        assertEquals(x * x / (x * x + (1 - x) * (1 - x)), adjusted.commandedIntensity, .000001f)
         assertTrue(base.commandedIntensity > EnvelopeHapticMapper().map(afterGap).commandedIntensity)
     }
 
@@ -167,7 +167,7 @@ class HybridHapticMapperTest {
             val hybrid = HybridHapticMapper()
             var changedPulses = 0
             repeat(40) { index ->
-                val input = features(index * 20_000_000L)
+                val input = features(index * 20_000_000L, level = .2f)
                 val base = baseline.map(input)
                 val adjusted = hybrid.map(input, context(input.timestampNs, label))
                 val plain = PulseFallback.encode(base.commandedIntensity, 20)

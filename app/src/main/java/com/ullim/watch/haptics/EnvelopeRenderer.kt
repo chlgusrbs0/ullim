@@ -12,7 +12,7 @@ class EnvelopePlan private constructor(val points: List<EnvelopePoint>) {
             if (riseMs !in limits.minPointMs..limits.maxPointMs) return null
             return EnvelopePlan(listOf(
                 EnvelopePoint(0f, 0),
-                EnvelopePoint(frame.commandedIntensity.coerceAtMost(0.85f), riseMs),
+                EnvelopePoint(frame.commandedIntensity, riseMs),
                 EnvelopePoint(0f, limits.minPointMs),
             ))
         }

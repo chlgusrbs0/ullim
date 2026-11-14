@@ -14,6 +14,8 @@ import com.ullim.watch.R
 import com.ullim.watch.ai.AiSnapshot
 import com.ullim.watch.core.RuntimeState
 import kotlinx.coroutines.flow.StateFlow
+import com.ullim.watch.runtime.LiveLevels
+import com.ullim.watch.haptics.AiTactileStatus
 
 @Composable
 internal fun collectAiDisplay(
@@ -59,6 +61,29 @@ internal fun AiResultContent(state: AiDisplayState, showOriginal: Boolean = fals
     if (state.baselineContinues) AiText(stringResource(R.string.ai_baseline_continues))
     if (state.cleanupPending) AiText(stringResource(R.string.ai_cleanup_pending))
     if (state.restartRequired && state.status != AiDisplayStatus.FAILED) AiText(stringResource(R.string.ai_restart_needed))
+    if (showOriginal) {
+        AiText(stringResource(R.string.ai_execution_counts, state.completedInferences, state.automaticRetries))
+        state.candidates.forEach { AiText(stringResource(R.string.ai_candidate, it.label, it.scorePercent)) }
+        if (state.candidates.isNotEmpty()) AiText(stringResource(R.string.ai_candidate_notice))
+    }
+}
+
+@Composable
+internal fun SignalPathContent(levels: LiveLevels, aiEnabled: Boolean) {
+    AiText(stringResource(R.string.signal_path_input, (levels.rawSound * 100).toInt(), (levels.sound * 100).toInt()))
+    AiText(stringResource(R.string.signal_path_output, (levels.baselineCommanded * 100).toInt(), (levels.commanded * 100).toInt()))
+    AiText(stringResource(if (levels.motorFiltered) R.string.motor_filter_active else R.string.motor_filter_idle))
+    val policy = if (!aiEnabled) R.string.ai_policy_off else when (levels.aiPolicy) {
+        AiTactileStatus.NO_CONTEXT -> R.string.ai_policy_waiting
+        AiTactileStatus.UNSUPPORTED -> R.string.ai_policy_unsupported
+        AiTactileStatus.UNCERTAIN -> R.string.ai_policy_uncertain
+        AiTactileStatus.WAITING_EVENT -> R.string.ai_policy_event
+        AiTactileStatus.SILENT -> R.string.ai_policy_silent
+        AiTactileStatus.DETAIL -> R.string.ai_policy_detail
+        AiTactileStatus.CONTRAST -> R.string.ai_policy_contrast
+    }
+    AiText(stringResource(policy))
+    AiText(stringResource(R.string.signal_path_notice))
 }
 
 @Composable

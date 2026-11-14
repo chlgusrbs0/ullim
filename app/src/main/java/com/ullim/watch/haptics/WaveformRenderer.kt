@@ -52,7 +52,7 @@ class WaveformRenderer(private val device: WaveformDevice, private val forcePuls
                         amplitudes.addAll(pulse.amplitudes.toList())
                     } else {
                         timings.add(frame.durationMs)
-                        amplitudes.add(if (frame.isSilent) 0 else (frame.commandedIntensity.coerceAtMost(0.85f) * 255).roundToInt().coerceIn(1, 217))
+                        amplitudes.add(if (frame.isSilent) 0 else (frame.commandedIntensity * 255).roundToInt().coerceIn(1, 255))
                     }
                 }
                 device.play(timings.toLongArray(), amplitudes.toIntArray())

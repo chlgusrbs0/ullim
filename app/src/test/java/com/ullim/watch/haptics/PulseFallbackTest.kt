@@ -4,6 +4,12 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PulseFallbackTest {
+    @Test fun fullRequestHasNoArtificialOffTime() {
+        val waveform = PulseFallback.encode(1f, 20)
+        assertEquals(20L, waveform.timings.indices.sumOf { if (waveform.amplitudes[it] == -1) waveform.timings[it] else 0 })
+        assertEquals(20L, waveform.timings.sum())
+    }
+
     @Test fun strongerRequestedLevelUsesMoreOnTimeWithoutAmplitudeClaims() {
         val onTimes = listOf(0.1f, 0.5f, 0.85f).map { level ->
             val wave = PulseFallback.encode(level, 20)
