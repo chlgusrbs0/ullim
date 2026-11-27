@@ -1,79 +1,138 @@
-# 울림 (Ullim)
+<div align="center">
+  <img src="docs/assets/ullim-icon.svg" alt="울림 앱 아이콘" width="112">
 
-**소리를 듣는 또 하나의 방법.**
+  <h1>울림 (ULLIM)</h1>
+  <p><strong>소리를 듣는 또 하나의 방법.</strong></p>
+  <p>주변의 소리를 손목의 촉각으로 전달하는 스마트워치 기반 청각 접근성 프로젝트</p>
 
-울림은 갤럭시 워치7의 주변 소리를 손목 진동의 강약·길이·간격으로 전달하는 청각 접근성 해커톤 MVP입니다. 사용자가 감지를 시작하면 화면을 계속 보지 않고 일상적으로 착용할 수 있습니다. 마이크 처리, AI 추론, 진동 출력과 설정 저장은 워치에서 실행합니다.
+  <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&amp;logoColor=white">
+  <img alt="Wear OS" src="https://img.shields.io/badge/Wear%20OS-3DDC84?logo=android&amp;logoColor=white">
+  <img alt="LiteRT" src="https://img.shields.io/badge/LiteRT-4285F4">
+  <a href="LICENSE"><img alt="MIT 라이선스" src="https://img.shields.io/badge/License-MIT-blue"></a>
 
-> **2026-11-14 상태:** 핵심 기능과 사용자가 조정한 최종 기본값을 main에 통합하고 Watch7에 설치했습니다. 런타임 기준은 [PR #86](https://github.com/chlgusrbs0/ullim/pull/86), 커밋 `6424683`입니다. 정식 촉각 구별률·물리 지연·AI 효과 비교는 후속 평가로 남아 있습니다. 현재 이슈와 과거 PR의 관계는 [프로젝트 현황](docs/project-status.md)에 정리했습니다.
+  <p>단국대학교 EASYTHON 2026 · AI를 활용한 사회문제 해결</p>
+  <p><a href="#프로젝트-소개">프로젝트 소개</a> · <a href="#주요-기능">주요 기능</a> · <a href="#시스템-아키텍처">아키텍처</a> · <a href="#빌드-및-설치">설치</a> · <a href="#팀원">팀원</a></p>
+</div>
 
-## 사용하는 방법
+## 프로젝트 소개
 
-1. 워치에서 **울림 → 소리 감지 시작**을 누릅니다. 처음 사용하면 안내와 마이크·알림 권한을 확인합니다.
-2. 모터 보정이 필요하다는 안내가 나오면 워치를 착용하고 조용히 **모터 간섭 보정 · 3초**를 진행합니다. 이미 유효한 보정이 저장된 기기는 그대로 사용합니다.
-3. 감지가 시작되면 소리의 변화에 따라 진동이 달라집니다. 워치 화면을 계속 켜둘 필요는 없습니다.
-4. 종료할 때 앱 또는 작동 알림의 **중지**를 누릅니다. 앱을 다시 열거나 AI를 켜는 것만으로 마이크가 시작되지는 않습니다.
+주변 소리를 듣기 어렵거나 화면을 계속 확인하기 어려운 상황에서도 소리의 변화를 손목에서 느낄 수 있다면 어떨까요?
 
-핵심 감지에는 휴대폰·노트북·서버·인터넷 연결이 필요하지 않습니다. 기기에서 앱을 설치하기 위한 개발 연결과 선택적 설정 도구는 별도입니다.
+울림은 갤럭시 워치7의 마이크 입력을 진동의 강약·지속시간·간격으로 변환하는 해커톤 MVP입니다. 소리의 종류마다 고정된 알림을 울리는 대신 실제 음향의 변화에 대응하며, AI는 연속적인 음향 문맥에 대한 제한적인 보정에 사용됩니다. 스마트워치 자체에서 감지·추론·출력이 이루어지므로 기본 동작에 휴대폰·서버·인터넷이 필요하지 않습니다.
 
-## 소리와 AI가 진동에 반영되는 방식
+> 해커톤 MVP 기준: 2026년 11월 14일, [PR #86](https://github.com/chlgusrbs0/ullim/pull/86)의 런타임 커밋 `6424683`. 실제 대상 사용자의 효과 및 안전성은 정식 검증되지 않았습니다. 의료기기나 안전 경보의 대체 수단이 아닙니다.
 
-```text
-Watch7 마이크 → 모터 간섭 보정 → 20ms DSP → 강약 곡선 → 진동 출력
-                              └→ YAMNet/LiteRT → 비동기 문맥 보정 ─┘
+## 주요 기능
+
+| 기능 | 설명 |
+| --- | --- |
+| 소리의 촉각화 | 음량·엔벌로프·시작 변화를 분석해 진동 요청의 강약·길이·간격으로 변환합니다. |
+| 워치 단독 실행 | 사용자가 감지를 시작하고 화면을 끈 뒤에도 동작하는 서비스를 구성했습니다. |
+| 온디바이스 AI | 번들 YAMNet으로 환경음을 분류하고 신뢰 가능한 같은 문맥의 작은 출력 변화를 보정합니다. |
+| 입력·출력 시각화 | 워치에서 소리의 특징과 진동 **명령값**을 비교하고 AI 후보·모델 점수·적용 상태를 확인합니다. |
+| 세부 조절 | 워치 또는 선택적인 동일 Wi-Fi 브라우저에서 감지·출력 설정을 조절하고 저장합니다. |
+| 모터 간섭 보정 | 워치 자체 진동이 마이크에 다시 유입되는 현상을 줄이기 위한 착용 보정을 제공합니다. |
+
+## 기술 스택
+
+| 기술 | 적용 목적 |
+| --- | --- |
+| Kotlin · Wear OS | 워치 단독 실행, 마이크·진동 제어 및 생명주기 관리 |
+| Wear Compose Material 3 | 원형 화면에 적합한 사용자 인터페이스 |
+| AudioRecord · DSP | 20ms 프레임 단위 RMS·엔벌로프·온셋 처리 |
+| YAMNet · LiteRT 1.4.2 | 521개 환경음 범주를 분류하는 사전학습 모델의 기기 내 실행 |
+| Kotlin Coroutines | 기본 신호 처리와 AI 추론의 실행 경계 분리 |
+| Preferences DataStore | 사용자 설정의 로컬 저장·복원 |
+
+## 시스템 아키텍처
+
+```mermaid
+flowchart TD
+    A["워치 마이크 · PCM"] --> B["모터 간섭 보정"]
+    B --> D["DSP · 20ms 프레임"]
+    B --> Y["YAMNet · LiteRT"]
+    Y -. "비동기 문맥" .-> H["하이브리드 촉각 매핑"]
+    D --> H
+    H --> S["진동 스케줄러 · 렌더러"]
+    S --> W["워치 진동 모터"]
+    D --> V["워치 입력·명령 그래프"]
+    H --> V
 ```
 
-- **소리 신호 처리:** 크기, 엔벌로프와 시작 변화를 계산해 실제 소리의 강약·지속·리듬을 진동 요청으로 변환합니다.
-- **AI:** 번들 YAMNet이 말소리·경보 등 소리 종류를 분류합니다. 신뢰할 수 있는 같은 문맥이 이어질 때 작은 진동 흔들림을 완화합니다. 최종 기본값에서 조정 폭은 기본 요청 대비 최대 **3%포인트**입니다. 첫 반응·큰 변화·소리 종료는 AI 추론을 기다리지 않습니다.
-- **모터 간섭 보정:** 워치 진동이 마이크로 다시 들어와 진동을 이어가는 현상을 줄입니다. 조용한 착용 보정에서 얻은 수치 프로필을 사용합니다.
-- **Watch7 출력:** 현재 기기에서 확인한 한계에 맞춰 켜짐·꺼짐 시간으로 강약을 표현하는 펄스 출력을 사용합니다. 화면의 진동 %는 요청값이며 물리 모터 진폭·가속도의 측정값이 아닙니다.
+AI는 기본 DSP 처리를 차단하지 않습니다. 첫 반응, 큰 변화, 소리 종료는 AI 추론을 기다리지 않으며 AI가 늦거나 실패해도 DSP 경로는 유지됩니다. 최종 기본값에서 AI의 작은 출력 조정은 기본 요청 대비 최대 3%포인트입니다.
 
-AI 지연·실패·불확실한 결과가 있어도 기본 DSP 경로는 유지합니다. **AI 분석 보기**에서는 분류 후보·모델 점수·실제 적용 상태·추론 횟수와 보정 전후 수치를 확인할 수 있습니다. 모델 점수는 음량이나 정답 확률을 뜻하지 않습니다.
+원본 PCM과 음성 파일은 저장하거나 외부로 전송하지 않습니다. 선택적인 브라우저 조절 통로는 설정과 상태 수치만 주고받습니다. 그래프는 실제 모터 가속도나 물리 진폭의 측정값이 아닙니다.
 
-현재 기능은 음원 분리, 음성 내용 인식, 특정 사람 추적이나 본인 발소리의 선택적 제거를 제공하지 않습니다. 소리 종류에 따라 대화는 약하게·경적은 강하게 고정하지 않습니다.
+[최종 구현 구조 및 초기 설계 기록](docs/architecture.md) · [모델과 추론 정책](docs/models.md)
 
-## 최종 설정과 선택적 조절 화면
+## 기술적 문제 해결
 
-사용자가 조정을 마친 **35개 수치 + 민감도125% + AI ON**을 최종 앱 기본값으로 고정했습니다. 신규 설치와 기본값 복원에 같은 프리셋을 사용하며, 기존에 저장한 유효한 선택이 있으면 그 값을 우선합니다. 전체 값은 [MvpDefaults](app/src/main/java/com/ullim/watch/settings/MvpDefaults.kt)와 [캡처 스냅샷](app/src/test/resources/final-mvp-settings.properties)에 있습니다.
+### 자기 진동과 마이크 간섭
 
-워치의 **실시간 상세 조절**에서 값을 바꿀 수 있습니다. 큰 화면이 필요하면 감지 시작 후 **휴대폰에서 조절**을 열고, 같은 Wi-Fi의 브라우저에서 표시된 현재 주소로 접속합니다. 강약 곡선 드래그, 슬라이더, 숫자 입력과 전체35개 항목을 제공합니다. 이 통로는 설정·상태 수치만 주고받으며 원본 오디오를 전송하지 않습니다. 조절 중에는 워치 연결 화면을 열어둡니다.
+진동 모터의 출력이 마이크 입력에 섞일 수 있으므로 조용한 착용 상태에서 보정 프로필을 만들고 입력 처리에 사용합니다. [모터 간섭 및 외부음 보존 평가](https://github.com/chlgusrbs0/ullim/issues/17)
 
-변경은 즉시 반영되고 **저장됨** 이후 워치 재시작에도 유지됩니다. 웹페이지를 닫거나 워치의 **연결 닫기**를 눌러도 저장값과 이미 시작한 감지는 유지됩니다. 조절 도구는 정상 착용의 필수 구성요소가 아닙니다. 자세한 항목은 [조절 안내](docs/live-tuning.md), 저장 동작은 [설정 안내](docs/persistent-settings.md)를 참고하세요.
+### 실기기 진동 제어의 한계
 
-## 최종 APK와 시연 자료
+Watch7에서 API의 강도 제어 지원 표시만으로 실제 강약 차이를 보장할 수 없었습니다. 관찰한 기기 제약에 대응하기 위해 펄스의 켜짐·꺼짐 시간으로 요청 강도를 표현합니다. 물리 진폭을 연속적으로 제어하거나 측정했다고 주장하지 않습니다. [촉각 검증 기록](docs/watch-haptic-validation.md)
 
-| 항목 | 최종 산출물 |
-|---|---|
-| APK 파일명 | `ullim-final-mvp-debug.apk` |
-| 패키지 / 버전 | `com.ullim.watch` / `0.1.0` (`versionCode=1`) |
-| 크기 | 53,600,647 bytes |
-| SHA256 | `23cf12052372643ad9772fdffae293078ba8236916a78f6cf510a80dd71bc88d` |
-| 소스 | [PR #86](https://github.com/chlgusrbs0/ullim/pull/86), `6424683` |
+### 실시간 신호 처리와 AI의 분리
 
-APK는 Git 소스에 커밋하지 않고 개발 작업공간의 `artifacts/ullim-final-mvp-debug.apk`로 별도 보관·제출합니다. 새로 복제한 저장소에서는 아래 명령으로 설치용 Debug APK를 빌드할 수 있습니다. [시연 순서와 파일 인계 안내](docs/demo-package.md), [최종 기본값 기록](docs/evidence/final-mvp-defaults.md)과 [실제 설치 확인](https://github.com/chlgusrbs0/ullim/pull/86#issuecomment-6874364988)을 참고하세요.
+AI 추론이 느려지거나 실패하는 경우에도 DSP의 직접 촉각화 경로를 유지합니다. 환경음 분류 결과는 신뢰 가능한 연속 문맥에서 제한적인 보조 수단으로만 사용합니다. [AI 실행 및 평가](docs/ai-runtime-validation.md)
 
-## 로컬 빌드와 설치
+## 검증 결과 및 한계
 
-JDK17 이상과 Android SDK36을 준비하고 SDK 경로를 설정합니다. 기존 빌드 기록은 Windows/JBR21 환경을 사용했습니다.
+| 항목 | 기존 확인 범위 |
+| --- | --- |
+| 실제 기기 | 갤럭시 워치7에서 설치·시작·중지·소리 감지·펄스 출력·설정 저장 기록 |
+| AI | 실제 워치의 추론 및 진동 요청 보정 기록 |
+| 로컬 검사 | 최종 기본값 작업에서 기존 289개 검사 통과 후 수정된 신규 4개 검사 통과; 전체를 다시 실행한 기록은 아님 |
+| 최종 설정 | 35개 수치, 민감도 125%, AI 켜짐; 업데이트 설치 전후 기존 설정과 보정 보존 확인 |
+
+[최종 기본값 및 설치 기록](docs/evidence/final-mvp-defaults.md) · [실제 AI 조절 기록](docs/evidence/live-detailed-tuning.md) · [프로젝트 현황](docs/project-status.md)
+
+정식 블라인드 촉각 구별률, 물리적 반응 지연 P95, 통제된 AI 켜짐/꺼짐 효과 비교는 완료되지 않았습니다. 검증한 기기는 Watch7이며 다른 기기의 호환성을 보장하지 않습니다. 음원 분리, 음성 내용 인식, 특정 사람 추적 또는 발소리 선택 제거 기능도 제공하지 않습니다.
+
+## 빌드 및 설치
+
+JDK 17 이상, Android SDK 36 및 ADB를 준비합니다. 실제 검증 기기는 Galaxy Watch7이며 무선 디버깅을 켜고 ADB 페어링을 완료해야 합니다.
 
 ```bash
 ./gradlew :app:assembleDebug
-adb connect <워치 무선 디버깅 IP:포트>
+adb connect <워치_IP:연결_포트>
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Windows에서는 `./gradlew.bat`를 사용합니다. 개발 연결의 포트와 브라우저 조절 화면의 포트는 서로 다릅니다. `-r` 업데이트 설치는 기존 앱 데이터와 서명이 호환되는 경우에 사용합니다. 설치 전 앱의 감지를 중지하세요.
+Windows에서는 `gradlew.bat`를 사용합니다. ADB 페어링 포트와 연결 포트는 다를 수 있으며 브라우저 조절 포트와도 구분합니다. 여러 기기가 연결된 경우 `adb -s <기기_식별자>`로 설치 대상 워치를 지정합니다. `-r`은 기존 앱 데이터와 서명이 호환되는 경우에 사용합니다. APK 파일은 별도로 공개 배포하지 않습니다.
 
-개발 검사는 로컬의 `:app:testDebugUnitTest :app:assembleDebug :app:lintDebug`로 수행합니다. **GitHub Actions는 사용하지 않습니다.** 정상 APK에는 별도 `nativeCaptureProbe` 검증 도구를 포함하지 않습니다. 세부 환경은 [개발 안내](docs/development.md)에 있습니다.
+### 사용 방법
 
-## 확인한 사실과 남은 평가
+1. 울림 앱에서 안내와 권한을 확인하고 **소리 감지 시작**을 누릅니다.
+2. 필요하면 워치를 착용하고 조용한 곳에서 3초간 모터 간섭 보정을 합니다.
+3. 소리 변화에 따른 손목 진동을 사용합니다. 필요 시 워치 그래프와 AI 분석, 실시간 조절 화면을 확인합니다.
+4. 앱 또는 작동 알림에서 **중지**를 누릅니다. AI를 켜거나 앱을 열기만 해서는 마이크가 시작되지 않습니다.
 
-- Watch7 설치·실행, 사용자 시작/중지, 실제 소리 감지와 펄스 진동, 설정 조절·저장 및 업데이트 후 설정·보정 보존 기록이 있습니다.
-- 실제 Watch7 AI 실행과 진동 요청에 AI가 적용된 기록이 있습니다. 예를 들어 [기존 관측 기록](docs/evidence/live-detailed-tuning.md)에는 한 세션의 유효 추론607회와 남은725프레임 중 AI 조정7프레임이 있습니다. 전체 사용 시간의 적용률이나 인식 정확도·개선 효과로 해석하지 않습니다.
-- 최종 기본값 작업의 기존289개 검사와 신규4개 검사는 통과했고 설치된 APK의 해시도 확인했습니다. [검사·설치 범위](docs/evidence/final-mvp-defaults.md)는 새 실험을 했다는 주장이 아닙니다.
-- 강약·리듬 블라인드 구별률, 실제 물리 반응 지연 P95, 통제된 AI ON/OFF 체감 비교는 아직 완료되지 않았습니다. [#18](https://github.com/chlgusrbs0/ullim/issues/18), [#37](https://github.com/chlgusrbs0/ullim/issues/37), [#39](https://github.com/chlgusrbs0/ullim/issues/39)를 통과했다고 표시하지 않습니다.
+[개발 환경 및 로컬 검사](docs/development.md) · [실시간 설정 조절](docs/live-tuning.md)
 
-원본 PCM·음성 파일은 저장하거나 전송하지 않습니다. 모델 출처·버전·체크섬은 [모델 안내](docs/models.md), 번들 고지는 [YAMNet](app/src/main/assets/notices/YAMNet.txt)과 [Apache-2.0](app/src/main/assets/notices/Apache-2.0.txt)에 있습니다. 전체 외부 네이티브 구성요소 출처 감사는 [#34](https://github.com/chlgusrbs0/ullim/issues/34)의 후속 정리로 남아 있으며 완료했다고 주장하지 않습니다.
+## 기술 문서
 
-## 개발 현황
+- [문서 안내](docs/README.md) — 현재 구현, 기술 설명, 검증 기록, 과거 개발 계획
+- [아키텍처](docs/architecture.md) — 처리 구조와 설계의 변화
+- [프로젝트 현황](docs/project-status.md) — 구현 완료, 후속 평가, 보류 구분
+- [검증 기록](docs/evidence/final-mvp-defaults.md) — 최종 설정과 설치 근거
 
-[프로젝트 현황](docs/project-status.md)에서 구현 완료, 후속 평가, 보류 작업과 종료한 과거 PR을 구분합니다. 해커톤 MVP 통합과 #39의 정식 인수는 별개입니다. 관련 설계는 [아키텍처](docs/architecture.md), 협업 규칙은 [AGENTS.md](AGENTS.md)를 참고하세요.
+## 팀원
+
+<div align="center">
+<table>
+  <tr>
+    <td align="center"><a href="https://github.com/chlgusrbs0"><img src="https://avatars.githubusercontent.com/u/242633013?v=4" width="72" alt="최현균"><br>최현균</a></td>
+    <td align="center">김정민</td>
+    <td align="center">문지원</td>
+    <td align="center"><a href="https://github.com/future6026"><img src="https://avatars.githubusercontent.com/u/90338173?v=4" width="72" alt="박민후"><br>박민후</a></td>
+  </tr>
+</table>
+</div>
+
+## 라이선스
+
+울림의 자체 작성 코드는 [MIT 라이선스](LICENSE)를 적용합니다. 번들 YAMNet 모델, LiteRT 및 기타 외부 구성요소는 각자의 기존 라이선스가 적용됩니다. [모델 출처 및 고지](docs/models.md), [번들 고지](app/src/main/assets/notices/Apache-2.0.txt)를 참고하세요. 외부 구성요소 전체 고지 감사는 [#34](https://github.com/chlgusrbs0/ullim/issues/34)에 남아 있습니다.
