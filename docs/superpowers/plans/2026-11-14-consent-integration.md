@@ -1,17 +1,19 @@
-# First-run consent integration (#29)
+# 최초 실행 안내 및 동의 통합 계획 (#29)
 
-> Execute inline with executing-plans; one fresh-context read-only review before integration. User explicitly transferred all owners and authorized continued issue/PR implementation, eligible merges and autonomous verification.
+> 과거 작업 계획입니다. 당시의 요구사항·체크 상태를 보존하며, 최종 구현 및 검증 상태는 현재 기술 문서를 기준으로 합니다.
 
-Goal: integrate PR65's first-run notice/microphone-only consent into the working combined app without losing DataStore/AI display/error recovery/calibration/session behavior. Base8a9457a; reference original4bbb89f/#29, current MainActivity/UllimApp/ListeningUiState and docs/architecture.md. Full issue comments/PR read and takeover6867077570 rechecked sole latest owner. #6/#25 remain not main complete; implementation first remains authorized, final Draft gates remain.
+> 직접 실행 및 통합 전 독립 읽기 전용 검토 1회. 당시 사용자는 담당 인계, 이슈·PR 구현 지속, 조건 충족 시 병합 및 자율 검증을 승인했다.
 
-Architecture: retain original ullim_first_run SharedPreferences keys for completion/request history. MainActivity renders first-run state and launches microphone-only permission from its explicit consent action, never from a permission result. Home requires the microphone permission, offering a retry/settings action. Notification permission remains separate at an explicit later Start. Both allow/later/Back finish the notice without starting capture; an existing permission offers continuation. Existing motor calibration load/explicit diagnostic redirect, foreground error rollback, stop guards and AI/settings/visualization flows are preserved. Add no microphone owner or capture loop.
+**목표:** PR65의 최초 안내·마이크 전용 동의를 통합 앱에 도입하면서 DataStore·AI 표시·오류 복구·보정·세션 동작을 유지한다. 기반 8a9457a, 원본 4bbb89f/#29, 당시 MainActivity/UllimApp/ListeningUiState 및 docs/architecture.md 참조. 이슈 전체 댓글·PR을 읽고 인계 댓글 6867077570이 유일한 최신 담당인지 재확인. 당시 #6/#25의 main 완료는 미확정이며 구현 우선 및 최종 Draft 검증 조건을 유지한다.
 
-UI keeps the current 48dp+ targets/pane/heading/scroll/theme and realistic hearing/AI/privacy/background limits. Scope is MainActivity/UI/state/strings/tests/docs and the manifest task identity placeholder; no renderer, DSP, classifier, profile schema, system settings or model changes. Normal package/task affinity stays identical; opt-in test package task affinity must be its own applicationId to avoid sharing tasks with the original app.
+**구조:** 원래 ullim_first_run SharedPreferences 완료·요청 이력 키를 유지한다. MainActivity에서 최초 실행 상태를 표시하고 명시적 동의 동작에서 마이크 권한만 요청하며 권한 결과로 감지를 시작하지 않는다. 메인 화면은 마이크 권한을 요구하고 재시도·설정 진입을 제공한다. 알림 권한은 나중에 명시적 시작 시 별도로 요청한다. 허용·나중에·뒤로 가기는 감지 없이 안내를 끝내며 기존 권한이 있으면 계속 진행할 수 있다. 모터 보정 로딩/명시적 진단 이동, 포그라운드 오류 롤백, 중지 방어, AI·설정·시각화 보존. 마이크 소유자·감지 루프 추가 없음.
 
-- [x] Semantic RED Activity tests for fresh notice, allow/skip persistence, permission result without service start, denied/permanent-denied settings return, existing permission continuation and missing-calibration redirect. Keep original stored key compatibility.
-- [x] Port relevant original notice/UI/strings and integrate MainActivity's separate permission launchers and transitions. Preserve current error/cleanup/calibration behavior and reject notification-result bypass while notice is open.
-- [x] Explicitly mark pre-existing MainActivity test fixtures as notice-completed so they still exercise their original service/settings behavior; do not weaken their assertions. Full normal/probe tests/build/lint/release and manifest task isolation checks.
-- [x] One fresh independent read-only review; required findings get one RED→GREEN/full fix pass, no re-review. Record all rulings/minor deferrals. No Critical/Important; two coverage minors deferred in evidence.
-- [x] Publish integration into PR73 and describe exact relationship in PR65. Keep original source/DoD separate and Draft/open; Watch7 permission/first-run/native consent behavior remains unverified unless actually exercised. Do not modify the watch while its unrelated system UI is active; original app remains stopped/mic OFF/profile retained.
+화면은 48dp 이상 터치, 화면·제목·스크롤·테마 및 현실적인 청각·AI·개인정보·백그라운드 한계를 유지한다. 범위는 MainActivity/UI/상태/문자열/시험/문서와 매니페스트 작업 식별자다. 렌더러·DSP·분류기·프로필 스키마·시스템 설정·모델 변경 없음. 일반 앱 패키지·task affinity는 동일하며 선택 진단 앱의 task affinity는 고유 applicationId로 분리한다.
 
-Review focus: late permission callback versus explicit Start, restored pendingStart/first-run state, permission revocation/return without hidden restart, retained motor-calibration setup, user-visible recovery and scroll/large-font semantics. No raw audio/Actions/project-license changes.
+- [x] 실제 Activity 의미 실패 시험: 새 안내, 허용·건너뜀 저장, 권한 결과에서 서비스 시작 없음, 거절·영구 거절 설정 복귀, 기존 권한 진행, 보정 누락 이동. 원래 저장 키 호환성 유지.
+- [x] 원래 안내/UI/문자열 이식, MainActivity의 별도 권한 런처 및 전이 통합. 오류·정리·보정 보존, 안내 중 알림 결과로 우회 금지.
+- [x] 기존 MainActivity 시험의 픽스처를 안내 완료 상태로 설정하되 서비스·설정 시험 단언을 약화하지 않음. 일반/진단 시험·빌드·린트·릴리스 및 매니페스트 작업 분리 검사.
+- [x] 독립 읽기 전용 검토 1회. 필수 발견 사항 한 번의 실패→성공/전체 수정, 재검토 없음. 결정과 경미 보류 기록. 치명적·중요 발견 없음, 검증 범위 경미 항목 2개 보류.
+- [x] PR73에 통합 공개하고 PR65 관계 기록. 원래 소스·DoD 별도 및 당시 Draft/open 유지. 실제 수행하지 않은 Watch7 권한·최초 안내·네이티브 동의는 미검증. 무관한 시스템 UI 활성 중 워치 조작 금지; 원래 앱 중지·마이크 OFF·프로필 보존.
+
+검토 중점: 늦은 권한 콜백과 명시적 시작 구분, pendingStart/최초 실행 복원, 권한 회수·복귀 중 숨은 재시작 금지, 모터 보정 유지, 사용자가 이해할 수 있는 복구, 스크롤·큰 글씨 의미. 원음·Actions·프로젝트 라이선스 변경 없음.

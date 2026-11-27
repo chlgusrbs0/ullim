@@ -1,11 +1,13 @@
-# Hackathon MVP integration
+# 해커톤 MVP 통합 계획
 
-User explicitly prioritizes a rapidly usable hackathon MVP and authorizes PR/merge after essential validation, without waiting for commercial-level surrounding checks. Preserve unresolved hardware truth and keep original acceptance issues open; remove Closes17 from the MVP PR so merge does not falsely close it. Privacy branch remains separate/unpublished.
+> 과거 작업 계획입니다. 당시의 요구사항·체크 상태를 보존하며, 최종 구현 및 검증 상태는 현재 기술 문서를 기준으로 합니다.
 
-Base working MVP09ae702; latest main8398b0a. Core is real microphone→DSP strength/duration/rhythm→calibrated motor feedback suppression→haptics, asynchronous bundled YAMNet AI, screen/settings and explicit start/stop. Existing smoothness limitation stays documented. No new feature/permission/Actions/PCM capture or watch UI operation.
+당시 사용자는 빠르게 사용 가능한 해커톤 MVP를 우선하고 핵심 검증 후 상용 수준의 추가 점검을 기다리지 않고 PR·병합하도록 승인했다. 미해결 하드웨어 결과와 원래 인수 기준을 보존하며, MVP 병합으로 #17이 잘못 종료되지 않도록 Closes17을 제거한다. 개인정보 브랜치는 별도 미공개 상태로 유지한다.
 
-- Merge latest main, preserve the previously tested production app, combine both isolated opt-in probe manifests and main AI input-erasure regression, retain both sets of device evidence.
-- Run normal tests/build/lint and opt-in compile/regression; inspect normal APK package/entrypoints/bundled model SHA/native ABI. One fresh read-only integration review; only real Critical/Important fix pass. Do not delay shipping for additional nonblocking evidence.
-- Publish reviewed integration into PR73, retitle/rewrite as MVP with Refs17 and known limitations; expected-head guarded merge commit. Confirm main merge and issue17 remains open. Build/copy one installable debug APK from exact merged product tree; give a short core demo sequence. No claim of new watch installation or AI ON physical validation.
+작업 기반 MVP 09ae702, 당시 최신 main 8398b0a. 핵심은 실제 마이크 → DSP 강약·길이·리듬 → 보정된 모터 피드백 억제 → 촉각, 비동기 번들 YAMNet, 화면·설정 및 명시적 시작·중지다. 연속감 제약을 보존한다. 새 기능·권한·Actions·PCM 수집·워치 UI 조작 없음.
 
-Review focus: production code preservation across eight conflicts; current main classifier/DSP/microphone fixes retained; opt-in manifest union and forced isolated package; normal APK excludes all probes; bundled assets/ABI/AI wiring; no false automatic issue closure or completed physical acceptance claim.
+- 당시 최신 main 병합, 기존 검증 제품 앱 보존, 독립 선택 진단 매니페스트 두 개와 main AI 입력 지우기 회귀 시험 통합, 양쪽 실기기 근거 보존.
+- 일반 시험·빌드·린트 및 선택 진단 컴파일·회귀 실행. 일반 APK 패키지·진입점·모델 SHA·네이티브 ABI 확인. 독립 읽기 전용 통합 검토 한 번, 실제 치명적·중요 발견만 수정. 비차단 추가 근거로 출시 지연 금지.
+- 검토된 통합을 PR73에 공개하고 MVP 제목·본문 및 Refs17·한계를 정리한다. 예상 head 검증 병합 커밋. main 병합과 당시 이슈17 미종료 확인. 정확한 병합 제품 트리에서 설치용 debug APK 하나 빌드·복사, 짧은 핵심 시연 순서 제공. 새 워치 설치 또는 AI ON 물리 검증 주장 금지.
+
+검토 중점: 충돌 8개에서 제품 코드 보존, main 분류기·DSP·마이크 수정 유지, 선택 진단 매니페스트 통합 및 독립 패키지 강제, 일반 APK의 진단 제외, 번들 자산·ABI·AI 연결, 잘못된 이슈 자동 종료·물리 인수 주장 금지.

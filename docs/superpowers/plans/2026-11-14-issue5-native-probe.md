@@ -1,33 +1,29 @@
-# Issue 5 native capture verification implementation plan
+# 마이크 네이티브 검증 계획 (#5)
 
-> **For agentic workers:** Execute this verification unit inline with superpowers:executing-plans. Do not delegate implementation.
+> 과거 작업 계획입니다. 당시의 요구사항·체크 상태를 보존하며, 최종 구현 및 검증 상태는 현재 기술 문서를 기준으로 합니다.
 
-**Goal:** Verify the existing #5 candidate on Watch7 with denied permission, 60 seconds of allowed capture, and normal stop/release.
+> 작업자 지침: superpowers:executing-plans로 직접 수행하며 위임하지 않는다.
 
-**Architecture:** Keep product capture code and core contracts unchanged. An explicitly enabled debug-only Activity calls the same MicrophoneCapture and AndroidPcmInput, renders a visible bounded test, and logs scalar statistics only. Lifecycle loss stops capture. Normal debug and every release build exclude this entry point.
+**목표:** Watch7에서 기존 #5 후보의 권한 거부, 허용된 60초 감지 및 정상 중지·해제를 검증한다.
+**구조:** 제품 감지 코드 및 공통 계약 유지. 명시적으로 활성화한 디버그 전용 Activity가 같은 MicrophoneCapture와 AndroidPcmInput을 사용하고 제한된 시험 및 수치 통계만 기록한다. 생명주기 이탈 시 중지. 일반 debug와 모든 release에서 진입점 제외.
+**기술:** Kotlin/Android SDK36, AudioRecord, Wear Material3. 새 라이브러리·서비스 없음.
+**명세:** #5 및 AGENTS.md. 당시 사용자는 구현·임시 네이티브 시험 및 사용 중인 앱 복원을 승인했다.
 
-**Tech Stack:** Existing Kotlin/Android SDK36, AudioRecord, Wear Material3; no new library or service.
+## 접근 및 제약
+누적 #17 앱은 PR44의 정확한 어댑터 근거가 아니며 제품 감지 화면 추가는 #25와 중복된다. 선택적 디버그 진단을 사용한다. PCM 저장·전송, 샘플 배열 출력, 워크플로 추가, 시스템 전체 오디오·진동 설정 변경 금지. 개선 APK·비공개 보정 및 원래 마이크·알림 권한을 보존·복원한다. 클라이언트 포맷과 하드웨어 포맷 구분: [Android AudioRecordingConfiguration](https://developer.android.com/reference/android/media/AudioRecordingConfiguration#getClientFormat()).
 
-**Spec:** GitHub issue #5 and AGENTS.md. User has authorized issue implementation, temporary native tests, and restoring their working app.
+## 검토 중점
+- 일반/릴리스 APK에 외부 공개 진단 감지 진입점이 없어야 한다.
+- 화면 밖·일시 중지 진단은 감지 중지.
+- 중복 시작·정리는 실제 감지 소유권 규칙 사용.
+- 권한 거부를 녹음 성공으로 기록하지 않는다.
+- 카운터/RMS/시간만 로그, PCM·음성 파일 금지.
 
-## Approach and constraints
-
-Reusing the cumulative #17 app would not prove PR44's exact adapter. Adding a product capture screen would overlap #25. Use an opt-in debug probe instead. Never persist or transmit PCM, print sample arrays, add workflows, or change global audio/haptic settings. Preserve the improved APK and private calibration and restore them with original microphone/notification grants after testing. Client format is distinct from hardware format: https://developer.android.com/reference/android/media/AudioRecordingConfiguration#getClientFormat().
-
-## Review focus
-
-- A normal/release APK must not contain an exported test capture entry.
-- An offscreen/paused probe must stop instead of continuing capture.
-- Duplicate start and cleanup must use the real capture owner's admission rules.
-- Permission rejection must not be reported as successful recording.
-- Logs may include counters/RMS/timestamps, never raw PCM or a voice file.
-
-## One verification unit
-
-- [x] Read issue/all comments/PR; confirm #3 merged; integrate current main (#24).
-- [x] Add conditional debug manifest/source directories behind `-PnativeCaptureProbe=true`; implement visible 1–60 second probe with numeric-only reporting, duplicate-start check and lifecycle stop. No product behavior changes.
-- [x] Run existing full unit tests, debug assemble/lint and opt-in assemble/lint. Verify ordinary debug/release manifest excludes the probe; record APK hashes.
-- [x] Review immutable candidate diff once with a read-only reviewer and fix required findings. Focus-loss regression RED17s → GREEN31 tests/46s; final ordinary 30 tests/33s. No second review requested.
-- [x] Install exact probe APK. Revoke original microphone grant temporarily and verify PERMISSION/no running microphone. Restore original grant and run 60 seconds in foreground. Ask user for one external sound while actually recording. Record format, sample counts, RMS range, continuity, Stopped, and framework release. [Results](../../evidence/issue5-watch7-native.md). Ruling: sample-derived timestamp gaps establish the frame contract only; use elapsed/sample totals/native observations together and do not claim independent hardware drop detection.
-- [x] Restore exact improved APK, calibration hash and original runtime permission states; verify microphone stopped.
-- [ ] Commit evidence, push PR44, mark ready/merge with expected SHA only if all #5 gates pass; verify issue auto-closure.
+## 검증 작업
+- [x] 이슈·전체 댓글·PR 확인, #3 병합 확인, 당시 main(#24) 통합.
+- [x] `-PnativeCaptureProbe=true` 조건의 debug 매니페스트·소스 디렉터리 추가. 1~60초 가시적 진단, 수치 보고·중복 시작 확인·생명주기 중지. 제품 동작 변경 없음.
+- [x] 전체 단위 시험, 일반 debug assemble/lint, 선택 assemble/lint. 일반 debug/release 매니페스트에 진단 없음 확인, APK 해시 기록.
+- [x] 불변 후보 diff 독립 읽기 전용 검토 한 번과 필수 수정. 포커스 이탈 회귀 실패 17초 → 성공 31개/46초, 최종 일반 시험 30개/33초. 두 번째 검토 요청 없음.
+- [x] 정확한 진단 APK 설치. 원래 마이크 권한 임시 회수로 PERMISSION/마이크 미작동 확인. 권한 복원 후 포그라운드 60초 실행. 실제 녹음 중 사용자에게 외부 소리 한 번 요청. 포맷·샘플 수·RMS 범위·연속성·Stopped·프레임워크 해제 기록. [결과](../../evidence/issue5-watch7-native.md). 결정: 샘플 기반 시간 간격은 프레임 계약만 증명하며 경과시간·샘플 총합·네이티브 관찰을 함께 사용, 독립적 하드웨어 손실 탐지 주장 금지.
+- [x] 정확한 개선 APK·보정 해시·기존 런타임 권한 복원 및 마이크 중지 확인.
+- [ ] 근거 커밋·PR44 푸시, 당시 전체 #5 기준 충족 시에만 준비/예상 SHA 병합 및 자동 종료 확인.

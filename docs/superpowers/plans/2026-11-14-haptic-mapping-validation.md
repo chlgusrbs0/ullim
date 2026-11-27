@@ -1,15 +1,16 @@
-# Haptic mapping verification (#12)
+# 촉각 매핑 검증 계획 (#12)
 
-> Execute inline; one fresh read-only review before merging.
+> 과거 작업 계획입니다. 당시의 요구사항·체크 상태를 보존하며, 최종 구현 및 검증 상태는 현재 기술 문서를 기준으로 합니다.
 
-Goal: verify the original PR50 mapper on current merged DSP, preserving the existing branch and PR.
-Spec: GitHub #12, dependencies #3/#10 merged; original mapper commit4f8322e.
+> 직접 수행하고 병합 전 독립 읽기 전용 검토 1회.
 
-Scope: pure DSP features to20ms HapticFrame commands. This does not certify physical motor amplitude, smoothness or latency. Preserve original app/calibration/settings; no microphone/audio files/network/Actions.
+**목표:** 기존 PR50 매퍼를 병합된 DSP에서 검증하고 원래 브랜치·PR을 유지한다.
+**명세:** #12, 병합된 #3/#10, 원래 매퍼 커밋 4f8322e.
+**범위:** 순수 DSP 특징 → 20ms HapticFrame 명령. 물리 모터 진폭·연속감·지연은 인증하지 않는다. 원래 앱·보정·설정 보존, 마이크·오디오 파일·네트워크·Actions 없음.
 
-- [x] Read issue/all comments/PR50, record user-authorized ownership transfer and merge current main4902ca7 into the original branch. Only mapper and its tests differ from main before validation changes.
-- [x] Verify raw synthetic PCM strength order, sensitivity order,3-knock gaps,5-second duration and silence; retain existing feature-level upper-bound/session/release tests.
-- [x] Add opt-in native mapping scenario and observe numerical command outputs on Watch7 without operating its motor. Final native PASS, original app/profile/settings preserved; see [evidence](../../evidence/issue12-validation.md).
-- [ ] Full normal/opt-in test/build/lint; fresh read-only review, document exact results, update PR50, merge with expected head only after all #12 command-level DoD pass.
+- [x] 이슈·모든 댓글·PR50 확인, 사용자 승인 담당 인계 기록, 당시 main 4902ca7을 원래 브랜치에 병합. 검증 변경 전 main과의 차이는 매퍼와 시험뿐이다.
+- [x] 합성 PCM의 강도·민감도 순서, 노크 3회의 간격, 5초 지속·무음 확인. 기존 특징 단계 상한·세션·해제 시험 유지.
+- [x] 선택 네이티브 매핑 시나리오로 Watch7에서 실제 모터를 작동하지 않고 수치 명령을 관찰. 최종 네이티브 PASS, 원래 앱·프로필·설정 보존. [근거](../../evidence/issue12-validation.md).
+- [ ] 일반/선택 시험·빌드·린트, 독립 검토, 정확한 결과 기록, PR50 갱신 및 당시 명령 수준 DoD 충족 시 예상 head 검증 병합.
 
-Review focus: constant loudness/history comparisons under identical conditions, sensitivity through DSP, quiet-gap preservation, duration and timestamps, session/reset leakage and truthful distinction between commanded and physically felt vibration.
+검토 중점: 같은 조건의 일정 음량·이력, DSP 민감도, 무음 간격, 지속시간·타임스탬프, 세션·초기화 누출, 명령값과 물리 체감 구분.
