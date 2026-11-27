@@ -1,14 +1,16 @@
-# Capture and AI error recovery (#30)
+# 감지 및 AI 오류 복구 계획 (#30)
 
-Add a stable capture failure code flow beside RuntimeState without changing core Contracts. A centralized reporter maps each code to Korean explanation/actions and emits the same code in metadata-only Android logs, only when the controller accepts that current-session error. Preserve original cleanup ownership and manual start admission; no automatic retries or microphone starts.
+> 과거 작업 계획입니다. 당시의 요구사항·체크 상태를 보존하며, 최종 구현 및 검증 상태는 현재 기술 문서를 기준으로 합니다.
 
-Distinguish microphone permission, system-silenced input (may be another app/policy, never infer from PCM zeros), initialization, read, processing, haptic unavailable/output, foreground-start, service command and unsafe cleanup. AudioRecord configuration callbacks/initial configuration provide silencing state without 50Hz Binder polling. Typed capture failures survive the capture worker; native release failure overrides with cleanup and retains ownership. Guard vibrator setup/start against runtime errors. AI errors remain independent with displayed actual fault code, baseline DSP and explicit retry via OFF/ON.
+공통 Contracts 변경 없이 RuntimeState 옆에 안정적인 감지 오류 코드 흐름을 추가한다. 중앙 보고자는 현재 세션 오류를 컨트롤러가 받아들였을 때만 코드별 한국어 안내·대응과 동일한 Android 메타데이터 로그를 생성한다. 기존 자원 정리 소유권·수동 시작 허용을 유지하고 자동 재시도나 감지 시작을 추가하지 않는다(당시 계획).
 
-UI provides code, explanation and appropriate actions: permission/settings, manual retry after release, stop during active sessions, AI details/OFF, or restart guidance when cleanup is unproven. Nonfatal notification/capability limits remain distinct from capture errors. Late callbacks cannot replace a newer session's code. Android logs include code/session only, no raw exceptions, labels or PCM.
+마이크 권한, 시스템 입력 차단(다른 앱·정책 가능성; PCM 0으로 추정 금지), 초기화, 읽기, 처리, 진동 미지원·출력, 포그라운드 시작, 서비스 명령과 불안전한 정리를 구분한다. AudioRecord 설정 콜백·초기 설정으로 차단 상태를 확보하며 50Hz Binder 조회를 하지 않는다. 타입별 감지 오류를 작업자 이후까지 유지한다. 해제 실패는 정리 오류로 대체하고 소유권을 유지한다. 진동 장치 준비·시작의 런타임 오류를 방어한다. AI는 독립 오류 코드·기본 DSP·OFF/ON 명시적 재시도를 제공한다.
 
-- [x] RED failure mapping/retention tests, typed capture read/consumer/silenced fault injection and resource release. Implement catalogue, reporter, guarded service/Activity integration.
-- [x] RED actual Compose recovery tests for retry/permission/cleanup and AI-only errors; verify actual Android reporter/UI log code agreement.
-- [ ] Native adapter callback registration/filtering/unregister still needs device validation. The pure atomic availability ordering test passes; it does not replace the unexecuted native callback test. No contention is inferred from PCM.
-- [x] Full suite/build/lint, independent read-only review, important fixes and preparation for main-target Draft Closes #30. Watch7 permission changes, competing capture, actual motor stop/resource recovery and predecessor merges remain unverified.
+화면에 코드와 설명·대응(권한 설정, 해제 후 수동 재시도, 활성 세션 중지, AI 상세/OFF, 정리 불명 시 재시작)을 제공한다. 치명적이지 않은 알림·기능 제한과 감지 오류를 구별한다. 늦은 콜백은 새 세션의 코드를 바꾸지 않는다. 로그는 코드/세션만 포함하며 원본 예외·레이블·PCM 금지.
 
-Existing #29/PR65 belongs ChatGPT/chlgusrbs0. Read-only validate separately and coordinate; do not modify that branch or duplicate onboarding. #30 is based on #66 including live settings/graphs/AI; future integration must preserve both.
+- [x] 오류 매핑·유지, 타입별 읽기·소비자·입력 차단 오류 및 자원 해제 실패 시험. 코드 목록·보고자·서비스/Activity 방어 구현.
+- [x] 실제 Compose 복구 실패 시험: 재시도·권한·정리·AI 독립 오류, 보고자와 UI 로그 코드 일치.
+- [ ] 네이티브 어댑터 콜백 등록·필터·해제 기기 검증 필요. 원자적 가용 상태 순서 시험은 통과했으나 네이티브 콜백 시험을 대신하지 않는다. PCM으로 경쟁 추정 금지.
+- [x] 전체 시험/빌드/린트, 읽기 전용 검토, 중요 수정 및 main 대상 Draft Closes #30 준비. Watch7 권한·경쟁 감지·실제 모터 종료/자원 회복과 선행 병합은 미검증.
+
+당시 #29/PR65 담당은 ChatGPT/chlgusrbs0. 읽기 전용 확인 및 조정, 브랜치 수정·최초 안내 중복 금지. #30은 실시간 설정·그래프·AI가 포함된 #66 기반이며 후속 통합에서 양쪽을 보존한다.

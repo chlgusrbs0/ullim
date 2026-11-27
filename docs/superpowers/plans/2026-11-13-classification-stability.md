@@ -1,32 +1,34 @@
-# Classification stability implementation plan (#20)
+# 환경음 분류 안정화 구현 계획 (#20)
 
-> For agentic workers: use superpowers:executing-plans task by task.
+> 과거 작업 계획입니다. 당시의 요구사항·체크 상태를 보존하며, 최종 구현 및 검증 상태는 현재 기술 문서를 기준으로 합니다.
 
-**Goal:** Convert YAMNet top-five scores into short-lived stable context and honest Korean display names.
-**Architecture:** A worker-owned pure Kotlin smoother consumes Classification values, never audio or DSP locks. Its bounded score history and candidate confirmation use the capture monotonic timestamp. Empty scores mean uncertain; expired values disappear. UI/worker status wiring follows in #22/#27.
-**Tech stack:** Existing Kotlin/JUnit and unchanged core Classification contract.
-**Spec:** GitHub #20; docs/models.md and architecture.md; user-approved implementation/local-verification-first approach.
+> 작업자 지침: superpowers:executing-plans 단계별 적용.
 
-## Global constraints
-- No fixed sound-name vibration patterns, PCM files, network, Actions or acceptance changes.
-- Preserve raw model labels and original window end/expiry; scores are not calibrated probabilities.
-- Draft PR targeting main with Closes #20. Real audio accuracy and Watch7 behavior remain unverified.
+**목표:** YAMNet 상위 5개 점수를 짧게 유효한 안정 문맥과 정확한 한국어 표시로 변환한다.
+**구조:** 작업자 소유 순수 Kotlin 안정화 로직은 Classification만 소비하며 오디오·DSP 락을 사용하지 않는다. 제한된 점수 이력과 후보 확인은 감지 단조 시간 기준이다. 빈 점수는 불확실, 만료된 값은 제거. UI·작업자 상태 연결은 #22/#27.
+**기술:** 기존 Kotlin/JUnit과 Classification 계약.
+**명세:** #20, docs/models.md, architecture.md, 사용자 승인 로컬 우선 접근.
 
-## Review focus
-- Repeated reads of one result cannot count as new evidence or extend expiry.
-- Out-of-order, future, expired or other-session results cannot replace active context.
-- Ambiguous/low-score/no-signal results must not retain a confident old label.
-- Session restart and long input gaps clear smoothing history.
-- English label fallback must not confuse musical horns with vehicle warnings.
+## 공통 제약
+- 소리별 고정 진동, PCM 파일, 네트워크, Actions, 합격 기준 변경 금지.
+- 모델 원문 및 창 종료·만료 시간 보존. 점수는 보정된 확률이 아니다.
+- main 대상 Draft PR Closes #20; 실제 음원 정확도와 Watch7 동작은 미검증.
 
-### Task 1: Stabilize classifications
-Create ai/ClassificationSmoother.kt, ai/SoundLabels.kt and ai/ClassificationSmootherTest.kt under existing source roots. Extend docs/models.md with thresholds and validation boundary.
-Consumes: Classification(sessionId, timestampNs, validUntilNs, scores).
-Produces: ClassificationSmoother.accept(result: Classification, sessionId: Long, nowNs: Long): Classification?, current(sessionId: Long, nowNs: Long): Classification?, reset(); SoundLabels.display(label: String): String.
-- [ ] Add tests for two observations 500ms apart, alternating labels, low/ambiguous/empty scores, duplicate timestamp reads, expiry, session restart, gaps and exact label mapping.
-- [ ] Run the new tests and observe missing-feature failure.
-- [ ] Implement bounded top-five score EMA (new=.6, old=.4); require top score >=.35 and runner-up margin >=.08. Confirm a candidate on at least two distinct windows spanning >=400ms; emit empty scores before confirmation or on uncertainty. Reset history after expiry gaps/restart. Preserve input expiry exactly.
-- [ ] Run complete testDebugUnitTest/assembleDebug/lintDebug and inspect outputs.
-- [ ] Obtain read-only review, commit/push independent branch and open Draft PR with local evidence and device gaps.
+## 검토 중점
+- 같은 결과 반복 읽기는 새 증거나 만료 연장이 아님.
+- 순서 역전, 미래, 만료, 다른 세션은 현재 문맥을 대체하지 못함.
+- 모호·낮은·무신호 결과에 이전 확정 레이블을 유지하지 않음.
+- 재시작 및 긴 입력 공백에서 이력 초기화.
+- 영문 원문 대체 표시에서 악기 horn과 차량 경보를 혼동하지 않음.
 
-Thresholds are initial development choices, not measured accuracy. Actual label correctness on speech/horns/knocks/noise belongs to the pending standard-audio and Watch7 checks.
+## 작업 1. 분류 안정화
+파일: ai/ClassificationSmoother.kt, ai/SoundLabels.kt, ai/ClassificationSmootherTest.kt, docs/models.md.
+입력: Classification(sessionId, timestampNs, validUntilNs, scores).
+출력: ClassificationSmoother.accept(result: Classification, sessionId: Long, nowNs: Long): Classification?, current(sessionId: Long, nowNs: Long): Classification?, reset(); SoundLabels.display(label: String): String.
+- [ ] 500ms 간격 두 관찰, 교대 레이블, 낮거나 모호하거나 빈 점수, 중복 시각, 만료, 세션 재시작, 공백, 정확한 레이블 시험 추가.
+- [ ] 기능 누락 실패 확인.
+- [ ] 상위 5개 제한 EMA(새 값 .6, 이전 .4), 최고 점수 >=.35, 차순위 차이 >=.08. 400ms 이상에 걸친 두 개 이상 서로 다른 창에서 후보 확인, 확인 전·불확실 시 빈 점수. 만료 공백·재시작 시 이력 초기화, 입력 만료값 그대로 유지.
+- [ ] 전체 testDebugUnitTest/assembleDebug/lintDebug 실행과 결과 검토.
+- [ ] 읽기 전용 검토, 독립 브랜치 커밋·푸시, 로컬 근거·기기 미검증을 포함한 Draft PR.
+
+문턱은 초기 개발 선택이며 측정 정확도가 아니다. 실제 음성·경적·노크·잡음 정확성은 표준 음원 및 Watch7 평가에 남는다.
