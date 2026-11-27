@@ -1,17 +1,23 @@
-# Main listening screen (#25)
+# 메인 감지 화면
 
-`MainActivity` collects the controller's runtime and separate retry-eligibility flows with lifecycle-aware Compose collectors. `ui/UllimApp` receives those observed values and callbacks. Only navigation is saved in the screen; no remembered boolean represents microphone activity. Returning from a guide/settings screen or recreating the Activity does not issue a capture start.
+[문서 안내](README.md)
 
-The primary control reads Start, Starting, Stop or Stopping from the real session phase. Starting and Stopping disable the primary control; Starting also offers a separate cancellation action. The Activity passes the current session token in each stop command. The service ignores old/missing stop tokens and can cancel a matching pending start before microphone ownership attaches. The foreground notification carries the active token and uses a token-specific Intent data URI: updating a new notification cannot replace the token on a retained older PendingIntent handle.
+## 화면 상태 및 조작
 
-An error retains its text while the controller waits for native ownership and terminal cleanup. `startAllowed` can change independently of that unchanged error value; both the start button and diagnostic entry update from it. The command handlers check the controller again before starting capture or opening vibration diagnostics.
+`MainActivity`는 화면 생명주기에 맞춰 컨트롤러의 실행 상태 및 별도 재시도 가능 상태를 Compose로 구독한다. `ui/UllimApp`은 관찰값과 콜백을 받는다. 화면에는 내비게이션만 저장하며 별도 Boolean 값으로 마이크 동작을 추정하지 않는다. 안내·설정에서 복귀하거나 Activity를 재생성해도 감지가 시작되지 않는다.
 
-Permission flags refresh on creation, resume and permission results. Missing permissions and errors offer an Android app-settings entry. Returning from settings refreshes permission notices without starting capture. The settings page opens the existing optional AI controls and exposes vibration diagnostics only when capture can safely start. Sensitivity persistence and the AI label screen remain #28 and #27 work.
+기본 버튼은 실제 세션 단계에 따라 시작, 시작 중, 중지, 중지 중을 표시한다. 시작·중지 진행 중에는 비활성화하며 시작 중 별도 취소 동작을 제공한다. 각 중지 명령에 현재 세션 토큰을 전달한다. 서비스는 이전 또는 누락된 토큰을 무시하고 일치하는 시작 요청은 마이크 연결 전에도 취소할 수 있다. 작동 알림에는 현재 토큰과 토큰별 Intent URI를 사용하여 새 알림이 이전 PendingIntent의 토큰을 바꾸지 못하게 한다.
 
-The home screen distinguishes input sound level from **commanded** vibration level, and displays the capability limitation when amplitude control is unavailable. These numbers do not measure physical vibration.
+네이티브 자원과 종료 정리 대기 중 오류 문구를 유지한다. `startAllowed`는 오류 문구의 변화와 별개로 갱신되며 시작 버튼과 진단 진입 여부에 반영된다. 감지 시작·진동 진단 명령 처리 시 컨트롤러를 다시 검사한다.
 
-## Verification boundary
+권한 상태는 화면 생성, 복귀 및 권한 응답에서 갱신한다. 권한 누락이나 오류 시 Android 앱 설정 진입을 제공한다. 설정 복귀만으로 감지하지 않는다. 설정 화면은 AI 제어 및 안전한 상태에서의 진동 진단 진입을 제공한다. 민감도 저장과 AI 분석 결과도 최종 MVP에 통합되어 있다.
 
-The JVM suite uses Robolectric SDK34 with native graphics and 192dp round-watch qualifiers. `MainActivityUiTest` renders the actual Activity and Wear Compose controls, taps them, records Android service/activity intents through shadows, and drives the real controller with an unstarted fake microphone owner. It checks pending cancellation, token-bearing stop, disabled transitions, retry after unchanged-error cleanup, navigation/recreation, permission settings/return, AI and diagnostic entry, and commanded levels. AudioRecord and the physical motor never run in these tests.
+메인 화면의 입력 크기와 **요청한 진동 강도**는 구별된다. 강도 제어를 지원하지 않는 경우 기능 제한을 표시한다. 물리적 진동 측정값이 아니다.
 
-Run `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` locally (Windows: `gradlew.bat`). Watch7 installation, leaving/returning to the app, rapid taps, actual permissions/service behavior, round-screen touch/scroll/back gestures and microphone/vibration stop video remain required device evidence. Keep the PR Draft and issue open until its device evidence and predecessor merges are complete. No workflows or raw microphone recordings are used.
+## 검증과 한계
+
+Robolectric SDK 34, 네이티브 그래픽 및 192dp 원형 워치 조건에서 `MainActivityUiTest`가 실제 Activity와 Wear Compose 컨트롤을 렌더링하고 조작한다. Android 서비스·Activity Intent를 기록하고 실제 컨트롤러에 아직 시작되지 않은 가짜 마이크 소유자를 연결한다.
+
+검사 대상은 시작 대기 취소, 토큰 포함 중지, 전이 중 비활성화, 같은 오류에서 정리 후 재시도, 화면 이동·재생성, 권한 설정 복귀, AI·진단 진입, 명령 강도다. 실제 AudioRecord와 물리 모터는 실행하지 않는다.
+
+Watch7의 기초 설치 및 실제 화면 조작 기록은 존재한다. 최종 통합본의 빠른 연속 조작, 실제 권한·서비스 동작, 원형 화면의 터치·스크롤·뒤로 가기 및 마이크·물리 진동 중지 전수 시험은 완료되지 않았다. 로컬 시험과 실기기 시험은 구분한다.

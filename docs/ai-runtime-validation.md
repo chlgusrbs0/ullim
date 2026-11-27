@@ -1,18 +1,20 @@
-# AI runtime device validation (#19/#22)
+# AI 실기기 검증 절차
 
-Status: **controlled evaluation procedure; full matrix not completed**. Native model execution and some applied haptic commands were observed on Watch7; see [live inspection](evidence/live-detailed-tuning.md) and [project status](project-status.md). Those records do not establish accuracy, physical motor latency, thermal stability or controlled AI benefit. Local injected engines do not prove those outcomes either. Keep unverified acceptance gates open. Do not use GitHub Actions.
+[문서 안내](README.md)
 
-## Record the environment
+**상태:** 통제 평가 절차 및 미완료 검증 범위. Watch7에서 실제 모델 실행과 일부 촉각 명령 보정은 관찰했으나 정확도, 물리적 지연, 발열 안정성, 통제된 AI 효과 비교를 입증한 것은 아니다. 해커톤 종료로 전체 평가를 보류했다. 아래 절차는 재개 시 사용할 기준이며 새로운 실험 결과가 아니다.
 
-Record Watch7 model, OS/API, APK commit/hash, bundled model hash, battery level, power/thermal mode, sensitivity and room conditions. Use controlled synthetic sounds or properly licensed standard evaluation audio played externally; do not record or retain microphone PCM. Audio sources used for model accuracy must have known expected classes and provenance. Keep command timing separate from physical sound→motor response (#18/#37).
+## 시험 환경과 기준
 
-Build locally, install to an explicitly selected watch, and start the app using the commands in development.md. With the device offline (disconnect internet/phone after installation), start capture manually. The shipped default is AI ON; explicitly select AI OFF before the baseline trial, preserving the distinction between the procedure and the shipped default. Verify DSP/haptic commands and user stop first, then repeat with AI ON under the same sound/volume/sensitivity conditions for at least five minutes each. Never treat a desktop synthetic stream as that five-minute device test.
+Watch7 모델, OS/API, APK 커밋과 해시, 번들 모델 해시, 배터리 잔량, 전력·발열 상태, 민감도와 실내 조건을 기록한다. 외부에서 재생하는 합성음 또는 적법한 라이선스의 표준 평가 음원을 사용한다. 정확도 평가용 음원은 예상 분류와 출처가 명확해야 한다. 마이크 PCM을 녹음·보관하지 않는다. 명령 처리 시간과 실제 소리 발생부터 모터 반응까지의 물리 시간을 구분한다.
 
-## Metadata-only collection
+로컬 빌드 후 지정한 워치에 설치한다. 인터넷과 휴대폰 연결을 끊고 사용자가 직접 감지를 시작한다. 출고 기본값은 AI 켜짐이므로 기준 시험 전 명시적으로 끈다. 같은 소리·음량·민감도에서 AI 끄기와 켜기를 각각 최소 5분 시험하며 DSP·진동 명령 및 중지를 확인한다. 데스크톱 합성 오디오의 빠른 주입 시험은 실기기 5분 시험을 대신할 수 없다.
 
-Use the actual watch serial instead of `WATCH_SERIAL`:
+## 메타데이터 수집
 
-```text
+`WATCH_SERIAL`은 실제 워치 식별자로 바꾼다.
+
+```bash
 adb -s WATCH_SERIAL shell getprop ro.product.model
 adb -s WATCH_SERIAL shell getprop ro.build.version.sdk
 adb -s WATCH_SERIAL shell dumpsys meminfo com.ullim.watch
@@ -21,26 +23,26 @@ adb -s WATCH_SERIAL shell dumpsys thermalservice
 adb -s WATCH_SERIAL logcat -v monotonic -s UllimAI:I
 ```
 
-Capture meminfo/CPU/thermal snapshots before AI, after load, each minute, after OFF/cleanup and after stop. If a command is unavailable on the device, record that limitation rather than inventing a number. Keep CPU/thermal source, timestamps, sample interval and foreground/background/screen-off state. Avoid recording logs from unrelated apps. `UllimAI` exists only for debuggable apps and emits aggregate metadata on phase/fault changes or every five seconds: no PCM, recognized class labels or speech content.
+AI 실행 전, 모델 로딩 후, 매분, AI 끄기·정리 후 및 감지 중지 후 메모리·CPU·발열 정보를 기록한다. 기기에서 지원하지 않는 명령은 미측정으로 남긴다. 출처·시각·표본 간격·화면 켜짐/꺼짐·백그라운드 상태를 기록하고 관련 없는 앱의 로그는 수집하지 않는다. 디버그 앱의 `UllimAI`는 상태/오류 변경 또는 5초마다 집계 메타데이터만 기록한다. 원본 PCM, 분류명, 대화 내용은 포함하지 않는다.
 
-| Measure | OFF baseline | ON steady | ON failure/delay | OFF after ON |
-|---|---|---|---|---|
-| Valid model result count | not expected | must increase to prove native inference | distinguish valid results from completed attempts | must stop increasing after in-flight work ends |
-| Load and last/max inference duration | N/A | report real numbers/distribution evidence | include timeouts and current operation age | pending cleanup honest |
-| Process memory/CPU/thermal | measured, not assumed | compare same conditions | identify pressure or sustained degradation | measure recovery; do not assume immediate GC |
-| DSP cadence/command path | confirm | confirm while AI runs | must continue without waiting for AI | confirm exact baseline policy |
-| Runtime state/UI | OFF | loading/listening | delayed or failed with baseline available | OFF/pending cleanup reflect actual work |
+| 측정 항목 | AI 끄기(기준) | AI 켜기(안정 상태) | 지연·실패 | AI 다시 끄기 |
+| --- | --- | --- | --- | --- |
+| 유효 모델 결과 수 | 증가하지 않음 | 실제 추론 시 증가 | 완료 시도와 유효 결과 구별 | 진행 중 작업 종료 후 증가하지 않음 |
+| 로딩·최근/최대 추론 시간 | 해당 없음 | 실제 수치와 분포 근거 | 시간 초과와 현재 작업 경과 | 정리 대기 상태를 그대로 기록 |
+| 메모리·CPU·발열 | 실측 | 동일 조건 비교 | 지속적 부하·열화 확인 | 실제 회복 측정; 즉각적인 GC 가정 금지 |
+| DSP 주기·명령 | 확인 | AI 동작 중 확인 | AI 대기 없이 유지 | 기준 정책 복귀 확인 |
+| 실행 상태·화면 | 꺼짐 | 로딩·감지 | 지연·실패, 기본 경로 유지 | 꺼짐·정리 대기 실제 표시 |
 
-The current summary reports last/max duration rather than a full latency distribution. Collect per-operation controlled measurements or instrumentation in the device test if a percentile is needed; do not infer P95 from the maximum or a five-second sample. #18/#37 separately require measured physical reaction, not `UllimAI` timestamps.
+최근/최대 시간만으로 P95를 추정하지 않는다. 백분위가 필요하면 작업별 통제 측정을 수집한다. 물리 반응 지연은 AI 로그 타임스탬프와 별도 실측한다.
 
-## Failure, toggle and lifecycle scenarios
+## 실패·토글·세션 검증
 
-- AI ON before capture: model must not load until the user starts microphone capture.
-- Rapid OFF/ON during load/inference: at most one process lane, one native operation and one pending window; old results must not reach the new generation.
-- Delay beyond 500ms: show delayed, clear AI context and keep DSP moving. Beyond 1s inference or 10s load/previous operation: latch AI failure. These defaults are not measured Watch7 limits.
-- Restart microphone capture after AI failure: AI must not retry automatically. Explicit AI OFF→ON authorizes retry; a close failure requires process restart.
-- OFF during inference: context disappears immediately, model closes only after inference returns. If native code never returns, record one occupied lane and pending cleanup; do not claim native cancellation or memory release.
-- Stop, permission revoke, service destruction and new session: microphone/haptic teardown remains independent; late AI callbacks cannot resurrect status or previous audio.
-- Model missing/corrupt/unsupported native library and inference failure: report AI-only fault, no secret retries, no DSP stop. Host injection tests cover control logic; actual native/device behavior still requires evidence.
+- 감지 전 AI 켜기: 사용자 감지 시작 전 모델이 로드되지 않아야 한다.
+- 로딩·추론 중 빠른 토글: 프로세스 작업 경로 하나, 네이티브 작업 하나, 최신 대기 창 하나의 경계를 유지하고 이전 결과가 새 세대로 전달되지 않아야 한다.
+- 추론 500ms 초과: 지연 표시, AI 문맥 제거 및 DSP 유지. 추론 1초 또는 로딩·이전 작업 10초 초과는 오류 판정 기준이다. 실측 하드웨어 한계가 아니다.
+- 최종 런타임은 추론 시간 초과 시 기존 작업과 모델 정리가 완료되고 5초가 지난 뒤 세션당 한 번의 자동 복구를 허용한다. 두 번째 시간 초과나 다른 오류는 명시적 AI 끄기→켜기로 재시도한다. 모델 닫기 실패 시 프로세스 재시작이 필요하다.
+- 추론 중 AI 끄기: 문맥은 즉시 사라지지만 네이티브 닫기는 추론 반환 후 진행한다. 반환하지 않으면 점유된 작업 경로와 정리 대기를 기록하며 강제 취소·메모리 해제를 주장하지 않는다.
+- 중지, 권한 회수, 서비스 종료, 새 세션: 마이크·진동 정리와 AI는 독립적이며 지연된 콜백이 이전 상태를 되살리지 못해야 한다.
+- 모델 누락·손상·미지원 라이브러리·추론 실패: AI 독립 오류로 보고하고 기본 DSP를 유지한다. 주입 엔진으로 검증한 제어 로직과 실제 기기 동작을 구분한다.
 
-Attach timestamped metadata, APK/model hashes, tables, screenshots and actual pass/fail for every case. No measurements exist yet. If YAMNet fails the device constraints, keep #22 open and choose a smaller model only through the existing SoundClassifier contract with new provenance and measured comparisons. Do not change acceptance criteria or declare improvement without #37 evidence.
+실제 실행 시각, APK/모델 해시, 표, 화면 및 성공·실패를 기록한다. 전체 통제 측정은 미완료다. 다른 모델로 변경할 경우 기존 SoundClassifier 계약을 유지하고 새로운 출처·비교 측정 및 사용자 승인을 확보한다. 원본 시험 기록과 합격 기준을 보존하며 GitHub Actions는 사용하지 않는다.

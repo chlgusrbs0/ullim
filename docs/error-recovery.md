@@ -1,31 +1,37 @@
-# Error codes and manual recovery (#30)
+# 오류 코드와 수동 복구
 
-CaptureFailure is a stable code catalogue beside the existing RuntimeState contract. The controller still owns session admission and native cleanup. CaptureFailureReporter selects the Korean message and emits `session=<id> code=<code>` under `UllimError` only if the current-session error is accepted. UI shows that same code. Logs contain no PCM, labels, source speech, exception payloads or audio files.
+[문서 안내](README.md)
 
-| Code | Meaning and next action |
+## 오류 안내
+
+`CaptureFailure`는 RuntimeState 계약과 함께 안정적인 오류 코드 목록을 정의한다. 세션 허용과 네이티브 자원 정리는 컨트롤러가 담당한다. `CaptureFailureReporter`는 현재 세션 오류가 수락된 경우에만 한국어 안내 및 `UllimError` 로그의 `session=<id> code=<code>`를 생성한다. 화면도 같은 코드를 표시한다. 원본 PCM, 분류명, 대화, 예외 상세 내용, 오디오 파일은 로그에 포함하지 않는다.
+
+| 오류 코드 | 의미와 대응 |
 | --- | --- |
-| MIC_PERMISSION | Permission denied/revoked; open app permission settings, then manually start. Active revocation requests a token-matched stop. |
-| MIC_SILENCED | Framework reports this input silenced. Check competing recording/system microphone access, then manually retry. It does not prove which other app is responsible. |
-| MIC_INITIALIZATION / MIC_READ | Recorder setup/input failed. Stop competing recording or check device/permission state, wait for release, retry manually. |
-| PROCESSING | DSP/consumer failed. Stop processing/output, release input, then manual retry. |
-| HAPTIC_UNSUPPORTED / HAPTIC_OUTPUT | No supported motor or output failed. Capture stops; diagnostic entry can inspect support when cleanup permits it. |
-| FOREGROUND_START | Foreground promotion/start failed. Return to the visible app and retry manually. |
-| SERVICE_COMMAND | Stop could not be delivered and fallback stop failed. Open app settings for force-stop; never claim Activity recreation frees native resources. |
-| CLEANUP | Native release cannot be confirmed. Retain ownership and disable start/diagnostics; open app settings for force-stop and reopen. |
-| UNKNOWN | Legacy/unclassified error; retained explanation and manual start guard still apply. |
+| MIC_PERMISSION | 권한 거부·회수. 앱 권한 설정 후 수동 시작. 감지 중 회수는 현재 토큰에 맞는 중지를 요청한다. |
+| MIC_SILENCED | 프레임워크가 입력 차단을 보고함. 다른 녹음 또는 시스템 마이크 접근을 확인하고 수동 재시도. 특정 앱이 원인이라고 단정하지 않는다. |
+| MIC_INITIALIZATION / MIC_READ | 녹음 초기화·입력 실패. 경쟁 녹음을 중지하거나 기기·권한 상태를 확인한 뒤 자원 해제 후 재시도한다. |
+| PROCESSING | DSP/소비자 오류. 처리와 출력을 멈추고 입력을 해제한 다음 수동 재시도한다. |
+| HAPTIC_UNSUPPORTED / HAPTIC_OUTPUT | 지원하는 진동 모터가 없거나 출력 실패. 감지를 중지하고 정리 후 진단 기능으로 지원 여부를 확인한다. |
+| FOREGROUND_START | 포그라운드 서비스 시작·승격 실패. 보이는 앱 화면에서 수동으로 다시 시도한다. |
+| SERVICE_COMMAND | 중지 전달 및 대체 중지 실패. 앱 설정에서 강제 중지한다. Activity 재생성만으로 네이티브 자원이 해제됐다고 판단하지 않는다. |
+| CLEANUP | 네이티브 자원 해제를 확인할 수 없음. 소유권을 유지하고 시작·진단을 비활성화한다. 앱 설정에서 강제 중지 후 다시 연다. |
+| UNKNOWN | 기존 또는 분류되지 않은 오류. 기존 안내와 수동 시작 제한을 유지한다. |
 
-Error state retains its session's stop token while resources are owned/unsettled, even though core ListeningState.Error contains only a reason. A terminal cleanup failure may replace an earlier error for that same active session; old-session and unrelated UI failures cannot overwrite it. After both release and terminal completion, manual start clears the old code. No automatic restart is added.
+## 오류 처리 구조
 
-AndroidPcmInput registers AudioRecord configuration callbacks and initializes its availability from the recorder's own active configuration. An atomic metadata guard checks silencing around reads without per-frame Binder queries. A callback beats an older initial query. PCM zeros are normal silence, never evidence of microphone contention. Typed capture exceptions preserve input/output cause through cleanup; a failed native release overrides the cause with CLEANUP and keeps the existing ownership barrier.
+자원 소유·정리가 끝나지 않은 오류 상태는 해당 세션의 중지 토큰을 유지한다. 같은 활성 세션의 최종 정리 오류는 이전 오류를 대체할 수 있으나 이전 세션과 무관한 UI 오류는 덮어쓰지 못한다. 자원 해제와 종료가 모두 확인된 뒤 수동 시작하면 이전 코드를 지운다. 자동 감지 재시작은 하지 않는다.
 
-Service motor setup/preparation is guarded before attaching microphone ownership. Rendering failure stops the session with an output-specific code. AI errors remain independent, use `AI_<fault>` in UI and `UllimError` metadata, retain baseline DSP, and offer the existing details/OFF/ON route. AiRuntime owns a separate process-scope fault observer, so closing a model after the service stops still logs cleanup/executor failures; session/fault deduplication prevents heartbeat log spam. OFF and retries use the local-settings main/control authority; no automatic native retry or model interruption is claimed.
+`AndroidPcmInput`은 AudioRecord 설정 콜백을 등록하고 실제 녹음 설정으로 가용 상태를 초기화한다. 원자적 메타데이터 검사로 읽기 전후 입력 차단을 확인하며 프레임마다 Binder 호출을 하지 않는다. 최신 콜백은 이전 초기 조회보다 우선한다. PCM의 0은 정상 무음이며 마이크 경쟁의 증거가 아니다. 타입이 지정된 예외로 입력·출력 원인을 정리 이후까지 보존한다. 네이티브 해제 실패 시 CLEANUP으로 판정하고 소유권 장벽을 유지한다.
 
-## Local verification limits
+모터 준비는 마이크 소유권 연결 전에 검사한다. 렌더링 실패는 출력 오류 코드로 감지를 중지한다. AI 오류는 독립적이며 `AI_<fault>`를 화면과 로그에 표시하고 기본 DSP를 유지한다. AiRuntime의 프로세스 범위 오류 관찰자는 서비스 종료 후 모델 닫기·실행기 실패도 기록한다. 세션·오류 중복 제거로 주기적 로그 반복을 방지한다. 토글은 메인 제어 스레드의 설정을 따른다. 네이티브 작업을 강제로 중단했다고 주장하지 않는다. 시간 초과 복구 정책은 모델 문서에 설명되어 있다.
 
-Pure tests cover cause/code mapping, stale rejection, active-error cleanup escalation, stop-token retention, typed input/consumer failures, native-release ownership, and metadata silencing/initial-query ordering. Actual MainActivity Compose tests cover error code/manual retry after release, unsafe cleanup→system settings with start disabled, and permission revocation→current token stop. AI Flow UI tests check its independent error code.
+## 검증과 한계
 
-The service integration test runs real ListeningService lifecycle/Handler/controller/renderer orchestration with an injected fake PcmInput and Robolectric vibrator. Three paced synthetic frames play a command before a read failure; the test checks that output was active, then cancelled, with the matching code/log, one release and manual retry. A real worker with an injected close failure separately proves process-scope reporting after capture Stop, matching the displayed AI_CLEANUP code exactly once. Neither test initializes a real AudioRecord, native model or physical motor. The unmodified Android adapter could not initialize under the initial Robolectric shadow attempt, so that attempt did not demonstrate read-failure handling. AudioRecord callback registration/delivery, competing apps, actual permission revocation, device native release, notification teardown and physical motor stop remain Watch7 checks.
+순수 로직 시험은 오류 매핑, 이전 세션 배제, 정리 오류 승격, 중지 토큰 유지, 타입별 오류, 자원 해제 실패 및 입력 차단 메타데이터 순서를 확인했다. 실제 MainActivity Compose 시험은 오류 코드·수동 재시도, 불안전한 정리 시 시스템 설정 진입과 시작 비활성화, 권한 회수 시 현재 토큰 중지를 확인했다. AI Flow UI 시험은 독립 오류를 검증했다.
 
-Run `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` locally. Keep #30/its PR open/Draft until predecessor main merges and device evidence satisfy the issue. Separate owner #29/PR65 onboarding is not modified by this branch; its eventual integration must retain explicit consent and these recovery paths. No workflows or raw microphone recordings are used.
+실제 ListeningService의 생명주기·Handler·컨트롤러·렌더러를 연결한 통합 시험은 가짜 PcmInput과 Robolectric 진동 장치를 사용했다. 세 개의 시간 간격을 둔 합성 프레임으로 출력한 뒤 읽기 오류를 주입해 출력 취소, 일치 코드·로그, 한 번의 자원 해제와 수동 재시도를 확인했다. 모델 닫기 실패를 주입한 작업자 시험에서는 감지 종료 이후 프로세스 범위 오류 `AI_CLEANUP`이 정확히 한 번 기록되었다.
 
-References: [Android input-sharing policy](https://developer.android.com/media/platform/sharing-audio-input), [AudioRecord callbacks](https://developer.android.com/reference/android/media/AudioRecord#registerAudioRecordingCallback(java.util.concurrent.Executor,%20android.media.AudioManager.AudioRecordingCallback)).
+초기 Robolectric 모의 환경에서 변경하지 않은 Android 어댑터의 초기화에 실패한 시도는 실제 읽기 오류 처리 증거로 인정하지 않는다. 실제 AudioRecord 콜백, 경쟁 앱, 기기 권한 회수, 네이티브 해제, 알림 및 물리적 모터 종료는 전수 검증되지 않았다. 최초 안내·권한 흐름은 최종 MVP에 통합되었으나 전체 실기기 시험은 미완료다.
+
+참고: [Android 오디오 입력 공유 정책](https://developer.android.com/media/platform/sharing-audio-input), [AudioRecord](https://developer.android.com/reference/android/media/AudioRecord).

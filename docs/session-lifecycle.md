@@ -1,22 +1,26 @@
-# Session lifecycle (#23)
+# 감지 세션과 생명주기
 
-`ListeningController` is the logical state authority behind CaptureRuntime's read-only RuntimeState flow. Core ListeningState/AiStatus/PCM/haptic contracts remain unchanged. It admits one monotonically numbered session, binds the microphone owner to that starting token, and accepts status transitions only for the active session. Recording requires an attached owner. Unattributed UI errors cannot interrupt an active session.
+[문서 안내](README.md)
 
-CaptureRuntime bridges levels, capability indication and process-local AI choice to the controller. Service attachment now passes the session token explicitly. Old tokens and different resource objects cannot overwrite current status or release its owner. Every service capture run uses a new MicrophoneCapture object. UI values remain derived from actual service/controller events; they are not optimistic start/stop toggles.
+## 세션 관리
 
-## Cleanup barrier and errors
+`ListeningController`는 CaptureRuntime의 읽기 전용 RuntimeState를 뒷받침하는 상태 관리의 정본이다. ListeningState, AiStatus, PCM 및 촉각 공통 계약을 유지한다. 단조 증가 번호의 세션 하나만 허용하고 시작 토큰에 마이크 소유자를 연결한다. 활성 세션만 상태 변경할 수 있고 실제 녹음에는 연결된 소유자가 필요하다. 출처가 없는 UI 오류는 활성 세션을 중단하지 못한다.
 
-- Starting → Listening requires successful microphone recording notification and current owner.
-- Starting/Listening → Stopping disables AI context indication and clears displayed levels. Repeated stop and late Recording are ignored.
-- Native owner release and terminal DSP/haptic/service cleanup are both required before another start. If `finished` arrives before release, state remains Stopping; if release arrives before `finished`, a new start is still refused.
-- Errors retain their reason. Errors before resource acquisition allow retry immediately; errors after acquisition wait for both release and terminal completion. A failed foreground start explicitly completes rollback even if no capture worker ever started.
-- A failed native microphone release retains its run and controller lease. The app does not claim the microphone was freed or admit another recorder. The UI asks for full process restart; actual OS recovery must be tested on Watch7. `awaitStopped` only confirms the capture routine terminated, not successful native release in this error case.
-- AI native cleanup may still be pending on its independent bounded lane after capture stops. Its context has already been invalidated; this does not permit an old AI callback to affect a new capture. See models.md for those separate flags and deadlines.
+CaptureRuntime은 크기, 기능 지원 표시와 프로세스 내 AI 설정을 컨트롤러에 전달한다. 서비스 연결 시 명시적 토큰을 전달한다. 이전 토큰이나 다른 자원 객체가 현재 상태를 덮어쓰거나 소유권을 해제할 수 없다. 매 감지마다 새 MicrophoneCapture를 사용한다. 화면은 실제 서비스·컨트롤러 이벤트에서 상태를 얻는다.
 
-ForegroundSession cancels fan-out/DSP/haptic/AI output first, requests microphone stop and removes the foreground notification. Cleanup is idempotent, including rollback after foreground promotion failure. Microphone stop sets an atomic request immediately and dispatches at most one stop-control thread for that run. Native start/stop/release remain serialized under the run monitor, while the UI caller does not wait for that monitor. A blocked native call remains owned and prevents another microphone; it is not described as forcefully cancelled.
+## 상태 전이와 자원 정리
 
-## Local and device evidence
+- 시작 중 → 감지 중: 녹음 성공 알림과 현재 소유자 확인이 필요하다.
+- 시작 중/감지 중 → 중지 중: AI 문맥 표시와 입력·출력 수준을 제거한다. 반복 중지와 늦은 녹음 알림은 무시한다.
+- 네이티브 자원 해제 및 DSP·진동·서비스의 최종 정리가 모두 끝난 뒤 새 시작을 허용한다. `finished`가 먼저 도착하거나 해제가 먼저 되어도 둘 다 확인되기 전에는 시작할 수 없다.
+- 오류 원인을 유지한다. 자원 획득 전 오류는 즉시 재시도할 수 있으나 획득 후 오류는 해제와 종료를 기다린다. 포그라운드 시작 실패 시 감지 작업자가 실행되지 않았더라도 롤백을 완료한다.
+- 네이티브 마이크 해제 실패 시 실행 객체와 소유권을 유지하며 새 녹음기를 허용하지 않는다. 화면은 프로세스 재시작을 안내한다. `awaitStopped`는 감지 루틴 종료만 뜻하며 이 오류에서 네이티브 해제를 보장하지 않는다.
+- 감지 중지 후 AI 정리가 독립 작업 경로에서 계속 대기할 수 있다. 문맥은 이미 무효화되며 이전 AI 콜백은 새 세션에 영향을 주지 않는다.
 
-Local tests exercise concurrent start admission, stop-before-attach, completion/release ordering, old-token rejection, ordinary error retry and unattributed UI errors. Fake native inputs block start/stop so the tests can verify caller return and output cancellation before releasing the gate; another test injects release failure and verifies no second recorder is admitted. These tests do not prove physical motor cessation, actual AudioRecord behavior or OS service survival.
+ForegroundSession은 오디오 분배·DSP·진동·AI 출력을 먼저 취소하고 마이크 중지를 요청한 뒤 포그라운드 알림을 제거한다. 정리 작업은 반복 실행해도 안전하며 시작 승격 실패 롤백에도 적용된다. 마이크 중지는 즉시 원자적 요청을 설정하고 해당 실행에 최대 하나의 제어 스레드를 전달한다. 네이티브 시작·중지·해제는 실행 모니터에서 직렬화되지만 UI 호출자는 이 모니터를 기다리지 않는다. 반환하지 않는 네이티브 호출은 소유 상태로 남으며 강제 취소했다고 표시하지 않는다.
 
-Reproduce locally with `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` (Windows: gradlew.bat). Watch7 still needs repeated adb start/stop, rapid taps, service destruction, permission changes and error/retry traces. Record actual session state, owner cleanup and notification/microphone/physical vibration behavior; keep #23 open/Draft until that evidence and predecessor merges exist. No GitHub Actions or microphone audio files are used.
+## 검증과 한계
+
+로컬 시험은 동시 시작, 소유자 연결 전 중지, 완료·해제 순서, 이전 토큰 거부, 오류 후 재시도, 무관한 UI 오류를 확인했다. 가짜 네이티브 입력의 시작·중지를 막아 해제 전 호출자 반환과 출력 취소를 검사했다. 해제 실패 주입 시험에서 두 번째 녹음기 연결 거부를 확인했다.
+
+실제 모터 종료, AudioRecord 동작과 OS 서비스 유지 전수 검증은 별개다. Watch7에서 반복 ADB 시작·중지, 빠른 조작, 서비스 종료, 권한 변경 및 오류 복구를 전수 측정하지 않았다. 재개 시 실제 세션 상태·자원 정리·알림·마이크·물리 진동을 기록한다. GitHub Actions와 마이크 원음 파일은 사용하지 않는다.

@@ -1,17 +1,26 @@
-# AI result display (#27)
+# AI 분석 결과 표시
 
-Home shows a compact AI summary after the sound/command graphs. The AI controls show the same summary with translated classes' original model labels. Both use `collectAiDisplay` to collect the real process choice, controller and worker StateFlows with lifecycle-aware subscriptions. The pure `AiDisplay` projection never starts capture, changes AI mode or affects DSP/haptics. Opening home creates the process worker holder but does not start a native model job or microphone.
+[문서 안내](README.md)
 
-OFF immediately suppresses recognition. Idle/error/stopping capture, wrong worker sessions and loading/delayed/failed execution cannot display an old label or score. Each displayed classification is checked again against the active session and the current monotonic time. Future and expired results are not recognized. Empty, low or ambiguous scores show `판별 불확실`; the display conservatively requires score >=0.35 and margin >=0.08 after normalizing duplicate labels. The worker's temporal smoother remains responsible for confirming distinct windows; the UI does not invent confirmations.
+## 화면과 상태
 
-Exact Korean names come from SoundLabels. Untranslated model classes retain their original string marked `모델 원문`; Unknown/unsupported sentinel results show an unsupported message. A numeric percentage is explicitly labeled **model score, not correctness probability**. No classification is presented as a danger warning or a measured accuracy guarantee.
+메인 화면의 소리·진동 명령 그래프 아래에 AI 분석 요약을 표시한다. AI 상세 화면은 같은 요약과 번역된 분류명의 모델 원문을 제공한다. 두 화면은 `collectAiDisplay`를 사용해 실제 설정, 컨트롤러 및 작업자의 StateFlow를 화면 생명주기에 맞춰 구독한다. 순수 상태 변환 함수 `AiDisplay`는 감지를 시작하거나 AI 설정을 변경하지 않으며 DSP·진동 처리에 영향을 주지 않는다. 메인 화면을 열면 프로세스 작업자 보관 객체가 생성될 수 있으나 모델 실행이나 마이크 감지는 시작되지 않는다.
 
-The worker's `resultExpired` metadata distinguishes first-result waiting from a result that its heartbeat has cleared at expiry. Context clearing, a new result, OFF and new sessions reset this flag. Expired UI projection removes both label and score even if a caller still retains the Classification object. The service heartbeat supplies expiration changes while no inference completes, and lifecycle collection refreshes state on return. Main also redraws from the bounded graph reader while Listening. Pending native cleanup and restart-required faults remain visible without pretending a blocked native call was terminated.
+AI를 끄면 인식 결과를 즉시 숨긴다. 감지 대기·오류·중지 중이거나 작업자 세션이 일치하지 않는 경우, 모델 로딩·지연·실패 상태에서는 이전 분류명과 점수를 표시하지 않는다. 활성 세션 및 단조 시간 기준으로 결과를 다시 검증하며 미래 시각이나 만료된 결과는 인정하지 않는다. 빈 점수, 낮은 점수, 모호한 결과는 `판별 불확실`로 표시한다. 중복 분류명을 정리한 뒤 점수 0.35 이상, 차순위와의 차이 0.08 이상을 요구한다. 서로 다른 분석 창의 확인은 작업자의 시간적 안정화 로직이 담당한다.
 
-Wear text wraps without ellipsis in scrollable screens. The main start/stop control and both graphs precede the AI content. Host tests do not prove Watch7 circular-edge readability, gesture behavior or font scaling.
+정확한 한국어 명칭은 `SoundLabels`에서 가져온다. 번역되지 않은 분류명은 `모델 원문`으로 표시하며 Unknown 등 미지원 결과는 별도 안내한다. 백분율은 **모델 점수**이지 정답 확률이 아니다. 위험 경보나 실측 정확도로 해석하지 않는다.
 
-## Evidence boundary
+## 결과 만료와 화면 갱신
 
-Pure display tests cover execution phases, capture/worker/result session gates, exact expiry and future time, low/empty/tied/duplicate scores, Korean/original/Unknown mapping and cleanup flags. A real AiWorker test advances its injected monotonic clock across expiry, next results, OFF and new sessions. Robolectric Compose tests drive mock classification/runtime/choice StateFlows through the same production collector: loading→fresh Speech→Knock→uncertain→expired→OFF, delayed/failure/stopping suppression and original-label/cleared-expiry behavior. A separate real AiControlsActivity test taps ON/OFF, recreates the Activity and returns, verifying that idle capture remains Idle, no service command is sent and no native model operation starts.
+`resultExpired`는 첫 결과를 기다리는 상태와 작업자의 주기적 검사에서 만료 결과를 제거한 상태를 구분한다. 문맥 초기화, 새 결과, AI 끄기, 새 세션 시작 시 초기화된다. 호출자가 이전 Classification 객체를 보관하고 있어도 만료된 분류명과 점수는 제거한다. 추론이 완료되지 않아도 서비스의 주기 검사에서 만료 상태를 전달하며, 화면에 복귀할 때 구독 상태를 갱신한다. 감지 중 메인 화면은 크기가 제한된 그래프 기록에서도 갱신한다. 네이티브 정리 대기 및 재시작이 필요한 오류는 실제 상태대로 표시한다.
 
-Run `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` locally. These tests use synthetic classifications and an injected engine; they do not load native YAMNet or establish recognition accuracy. Watch7 screenshots for every state, full original-label wrapping, actual offline inference, new/old sound transitions and graph/control responsiveness remain unverified. Keep the PR Draft and #27 open until device evidence and predecessor main merges exist. No workflows, PCM/voice storage, classification logs or remote services were added.
+원형 화면의 텍스트는 말줄임 없이 줄바꿈하며 스크롤할 수 있다. 시작·중지 버튼과 두 그래프가 AI 내용보다 앞선다.
+
+## 검증과 한계
+
+- 순수 로직 시험: 실행 단계, 감지·작업자·결과 세션 일치, 만료·미래 시각, 낮거나 빈 점수, 동점·중복, 한국어·원문·Unknown, 정리 상태.
+- 실제 AiWorker에 주입된 단조 시계를 진행시켜 만료, 다음 결과, AI 끄기 및 새 세션을 검증했다.
+- Robolectric Compose 시험은 실제 구독기를 통해 로딩 → Speech → Knock → 불확실 → 만료 → AI 끄기 및 지연·실패·중지·원문 표시를 검증했다.
+- 실제 AiControlsActivity 시험은 AI 토글, 화면 재생성 및 복귀 중 대기 상태가 유지되고 서비스 명령이나 네이티브 모델 실행이 시작되지 않는지 확인했다.
+
+로컬 재현 명령은 개발 안내를 따른다. 합성 분류와 주입 엔진을 이용한 시험은 네이티브 YAMNet 실행이나 인식 정확도를 증명하지 않는다. 실제 Watch7의 모든 상태별 화면, 긴 원문 분류명, 오프라인 추론, 소리 전환 및 조작 반응성 전수 검증은 완료되지 않았다. 해커톤 종료에 따라 추가 평가는 보류되었다. 원본 PCM·음성·분류명 로그는 저장하지 않는다.

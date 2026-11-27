@@ -1,33 +1,34 @@
-# Wear accessibility and verification (#31)
+# 워치 접근성 및 화면 설계
 
-Capture's primary button exposes its actual phase as stateDescription alongside its visible action and status text. Settings sensitivity buttons expose the current numeric value. AI choice uses one native Wear SwitchButton with checked state, explicit Switch role, visible label and localized state description, shared by settings and AI details. Screen panes/headings/traversal grouping identify navigation without replacing useful child text. Rapidly changing graph values are not live regions, so no continuous speech announcement is requested.
+[문서 안내](README.md)
 
-Input RMS is a solid path and envelope a dashed path, with explicit labels and both latest numeric values in the Canvas description. Output remains a separate duration/intensity row labeled as commands rather than physical measurements. Path subpaths preserve missing intervals. Color is not the only means of interpreting states or traces.
+## 접근성 설계
 
-UllimTheme keeps the watch's dynamic palette only when its enabled text/button pairs reach4.5:1 and chart/outline pairs reach3:1, including actual output alpha. Otherwise it uses the tested Wear fallback. The gate is remembered per palette; no new high-contrast preference is stored. Disabled controls remain visibly disabled with independent status text. This numerical color gate does not substitute for device settings/readability checks.
+감지 버튼은 동작·상태 문구와 실제 단계의 `stateDescription`을 제공한다. 민감도 버튼은 현재 수치를 읽을 수 있다. 설정과 AI 상세 화면은 실제 Wear SwitchButton을 공유하며 체크 상태, Switch 역할, 표시 문구와 한국어 상태 설명을 제공한다. 화면·제목·탐색 그룹을 구분하되 하위 요소의 유용한 문구를 대체하지 않는다. 빠르게 변하는 그래프 수치는 라이브 리전으로 설정하지 않아 지속적인 음성 안내를 요청하지 않는다.
 
-Controls have a minimum48dp touch target and text is allowed to wrap; font scale is not reduced to make text fit. Main/settings/guide/errors use a scrollable round-screen layout. AI details has a pane title and a full-width wrapping Back control rather than a fixed circular text button. Diagnostics uses the same theme, heading/pane information and explicit touch minima. System Back navigation in the main screen returns through existing routes without starting capture.
+입력 RMS는 실선, 엔벌로프는 점선으로 나타내며 라벨 및 최근 두 수치를 Canvas 설명에 제공한다. 출력은 물리적 실측이 아닌 진동 명령 강도·시간의 별도 행이다. 누락 구간을 이어 그리지 않으며 색상만으로 상태를 구분하지 않는다.
 
-## Host evidence
+UllimTheme는 동적 색상의 활성 텍스트·버튼 대비가 4.5:1 이상, 그래프·윤곽 대비가 3:1 이상일 때 유지한다(실제 출력 투명도 포함). 그렇지 않으면 검증된 Wear 대체 색상을 사용한다. 색상별 판정을 기억하며 별도의 고대비 설정을 저장하지 않는다. 비활성화 상태와 설명은 독립적으로 표시한다. 수치 대비 기준은 기기 가독성 시험을 대신하지 않는다.
 
-- Pure tests measure fallback enabled text/button/chart/outline pairs and low-contrast palette rejection.
-- On a192dp round-qualified host, WearAccessibilityTest renders at actual Compose fontScale2.0, checks TextLayoutResult overflow/ellipsis/wrapping for primary controls, sensitivity/AI and graph labels, measures touch minima, validates state/role/checked semantics and invokes the real Activity back dispatcher.
-- The real AiControlsActivity test changes Android font configuration and asserts its layout density is2.0. Its old52dp circular Back label overflowed; the wrapping full-width control removes that overflow.
-- Existing MainActivity, settings persistence, AI and capture/error tests run alongside these checks; accessibility labels do not drive microphone or model state.
-- A synchronous View draw generated and was visually inspected at `app/build/host-ui/large-font-home.png`. It is a192px host viewport after scrolling to the large primary button, not a Watch7 screenshot. PixelCopy/captureToImage timed out under PAUSED Robolectric and is not claimed as working device capture.
+컨트롤의 최소 터치 영역은 48dp이고 줄바꿈을 허용한다. 텍스트를 맞추기 위해 글자 배율을 낮추지 않는다. 메인·설정·안내·오류는 스크롤 가능한 원형 화면을 사용한다. AI 상세 화면은 제목과 줄바꿈 가능한 전체 너비 뒤로 가기 버튼을 사용하며 진단도 같은 테마와 터치 최소 기준을 적용한다. 시스템 뒤로 가기는 감지를 시작하지 않고 기존 경로로 복귀한다.
 
-The unmodified synthetic [host preview](evidence/issue31-host-2x.png) is retained for review. It shows the viewport scrolled to the primary button; preceding text can be outside the scroll viewport. It does not prove circular hardware clipping, actual TalkBack output or that a whole screen fits without scrolling.
+## 로컬 검증
 
-Run `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` locally. Native TalkBack has not been run; semantics tests do not establish spoken focus order or actual assistive-service behavior.
+- 순수 시험에서 대체 색상의 텍스트·버튼·그래프·윤곽 대비와 저대비 색상 거부를 확인했다.
+- 192dp 원형 모의 화면의 WearAccessibilityTest는 실제 Compose 글자 배율 2.0에서 주요 버튼·민감도·AI·그래프 라벨의 넘침·말줄임·줄바꿈, 터치 영역, 상태·역할·체크 의미, 실제 Activity 뒤로 가기를 검사했다.
+- AiControlsActivity의 실제 글자 설정을 변경한 시험에서 배율 2.0을 확인했다. 이전 52dp 원형 뒤로 가기 문구 넘침은 전체 너비 버튼으로 대응했다.
+- 기존 메인 화면·설정 저장·AI·감지 오류 시험도 수행했다. 접근성 라벨은 마이크나 모델 상태를 변경하지 않는다.
+- `app/build/host-ui/large-font-home.png`를 동기 View 그리기로 생성해 시각 검토했다. 192px의 스크롤된 모의 화면이며 실제 Watch7 스크린샷이 아니다. PAUSED Robolectric의 PixelCopy/captureToImage 시도는 시간 초과되어 성공으로 간주하지 않는다.
 
-## Remaining device/dependency checklist
+보존된 [모의 화면](evidence/issue31-host-2x.png)은 기본 버튼으로 스크롤한 상태를 보여준다. 실제 원형 기기의 잘림이나 TalkBack 동작, 스크롤 없이 전체 화면이 들어간다는 근거는 아니다.
 
-- [ ] Integrate #29 onboarding with its original owner's consent/permission behavior preserved, then include it in these checks. PR65 remains separate; its current host visibility-test failure was reported to the owner.
-- [ ] On Watch7, read and operate Start/Starting/Stop/Stopping/error, sensitivity limits and AI OFF/ON/fault with TalkBack; verify focus movement and announcements without graph speech spam.
-- [ ] Change system font/display scale and high-contrast settings; capture every screen, including long model originals, errors, diagnostics and onboarding.
-- [ ] Verify circular-edge clipping, scroll reachability, touch accuracy, system Back/gestures and return from system permission settings.
-- [ ] Confirm no status relies solely on color or vibration, and microphone/AI descriptions do not imply complete hearing assistance or treatment.
+## 미완료 실기기 평가
 
-These boxes stay unchecked until actual evidence exists. Predecessor main merges and issue DoD remain incomplete; keep #31/its PR open/Draft. No Actions, raw audio storage, transmission, diagnosis or native accessibility validation is implied.
+최초 안내·동의 및 권한 흐름은 최종 MVP에 통합되었다. 아래 실기기 확인은 전체 완료되지 않았다.
 
-References: [Compose semantics](https://developer.android.com/develop/ui/compose/accessibility/semantics), [Android touch targets](https://developer.android.com/guide/topics/ui/accessibility/apps).
+- TalkBack을 이용한 시작·중지·오류·민감도·AI 조작과 포커스 이동, 과도한 그래프 안내 방지.
+- 시스템 글꼴·표시 배율과 고대비 설정, 긴 모델 원문·오류·진단·최초 안내 화면.
+- 원형 가장자리 잘림, 스크롤 도달, 터치 정확성, 시스템 뒤로 가기·제스처 및 권한 설정 복귀.
+- 색상·진동에만 의존하지 않는 상태 설명, 완전한 청각 보조나 치료 효과를 암시하지 않는 안내.
+
+참고: [Compose 접근성 의미](https://developer.android.com/develop/ui/compose/accessibility/semantics), [Android 터치 영역](https://developer.android.com/guide/topics/ui/accessibility/apps).
