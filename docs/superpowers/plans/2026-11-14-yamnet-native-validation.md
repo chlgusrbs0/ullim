@@ -1,18 +1,20 @@
-# YAMNet native verification plan
+# YAMNet 네이티브 검증 계획
 
-> Execute inline; use one fresh read-only review before integration.
+> 과거 작업 계획입니다. 당시의 요구사항·체크 상태를 보존하며, 최종 구현 및 검증 상태는 현재 기술 문서를 기준으로 합니다.
 
-Goal: verify the existing pinned YAMNet component on Watch7, including real model inference while a separate DSP producer continues. User requires actual AI participation before hackathon acceptance.
+> 직접 실행하고 통합 전 독립 읽기 전용 검토 1회.
 
-Scope: preserve original PR56 branch and transplant only its model/LF commits to current main. Add an opt-in separate-package synthetic probe; normal debug/release must exclude it. No microphone, motor, network, raw audio files or original app data changes.
+**목표:** Watch7에서 기존 고정 YAMNet 구성요소의 실제 추론과 별도 DSP 생산자 동작을 검증한다. 당시 사용자는 해커톤 인수 전 실제 AI 참여를 요구했다.
 
-- [x] Inspect issue19/all comments/PR56; record isolation in PR56 comment; preserve model hashes/license/521labels.
-- [x] Transplant LF fix and model commit, resolve only Gradle context preserving current tests/native guards.
-- [x] Add regression for zeroing inference input after success and failure.
-- [x] Add bounded native test: canonical silence/sine/noise class scores, real model load/inference/close timing and memory; separate 20ms DSP producer and latest-window AI consumer for10 seconds; no production AI enablement until lifecycle/performance evidence.
-- [x] Run full local tests/build/lint, verify packaged hashes, tensor contract and normal/release exclusion.
-- [x] Read-only review and required fixes; execute final native candidate. Observed actual cadence and DSP/AI overlap, not scheduled-frame counts alone. See [evidence](../../evidence/issue19-validation.md).
-- [x] Create replacement PR74 and link/close superseded PR56; preserve its branch and keep issue19 open until final gate/merge.
-- [ ] Merge/close issue19 only when its component gates pass. Production AI usefulness and five-minute integration remain separate required issues.
+**범위:** 원래 PR56 브랜치 보존, 모델/LF 커밋만 당시 main으로 이식. 선택적 별도 패키지 합성 진단 추가; 일반 debug/release에서 제외. 마이크·모터·네트워크·원음 파일 및 원래 앱 데이터 변경 없음.
 
-Native PSS and battery temperature are observations, not a five-minute thermal or perception pass. No-INTERNET/Bluetooth permissions plus bundled local inference demonstrates app independence while ADB WiFi remains connected; do not claim a physically disconnected watch. Production service/AI toggles, smoothing, meaningful haptic A/B and five-minute AI/DSP behavior remain #20–#22/#36/#37.
+- [x] 이슈19·전체 댓글·PR56 확인, PR56에 격리 기록, 모델 해시·라이선스·521개 레이블 보존.
+- [x] LF 수정 및 모델 커밋 이식, Gradle 맥락 충돌만 해결하고 기존 시험·네이티브 제한 보존.
+- [x] 성공·실패 후 추론 입력 0 덮어쓰기 회귀.
+- [x] 제한된 네이티브 시험: 기준 무음/사인/잡음 점수, 실제 로딩·추론·닫기 시간 및 메모리, 20ms DSP 생산자와 최신 창 AI 소비자의 10초 독립 동작. 생명주기·성능 근거 전 제품 AI 활성화 금지.
+- [x] 전체 로컬 시험/빌드/린트, 패키지 해시·텐서 계약·일반/릴리스 제외 검사.
+- [x] 읽기 전용 검토와 필수 수정, 최종 네이티브 후보 실행. 예약 프레임 수만이 아닌 실제 주기 및 DSP·AI 중첩 관찰. [근거](../../evidence/issue19-validation.md).
+- [x] 대체 PR74 생성, 기존 PR56 연결·종료 및 브랜치 보존. 당시 최종 기준/병합 전 #19 open.
+- [ ] 구성요소 기준 충족 시에만 #19 병합/종료. 제품 AI 효용·5분 통합은 별도 기준.
+
+네이티브 PSS·배터리 온도는 관찰값이며 5분 발열·체감 평가 합격이 아니다. 인터넷/Bluetooth 권한 없음과 번들 로컬 추론은 ADB Wi-Fi 연결 상태에서 앱 독립성을 보이며 물리적으로 연결 해제된 워치라고 주장하지 않는다. 제품 서비스/AI 토글·안정화·촉각 A/B·5분 AI/DSP는 당시 #20~#22/#36/#37 범위다.
