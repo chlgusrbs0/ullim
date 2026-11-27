@@ -1,12 +1,12 @@
 # AI runtime device validation (#19/#22)
 
-Status: **procedure only; Watch7 measurements not performed**. Local injected engines do not prove native inference, hardware speed or thermal stability. Keep issues/PRs open/Draft until their device DoD and predecessors are verified. Do not use GitHub Actions.
+Status: **controlled evaluation procedure; full matrix not completed**. Native model execution and some applied haptic commands were observed on Watch7; see [live inspection](evidence/live-detailed-tuning.md) and [project status](project-status.md). Those records do not establish accuracy, physical motor latency, thermal stability or controlled AI benefit. Local injected engines do not prove those outcomes either. Keep unverified acceptance gates open. Do not use GitHub Actions.
 
 ## Record the environment
 
 Record Watch7 model, OS/API, APK commit/hash, bundled model hash, battery level, power/thermal mode, sensitivity and room conditions. Use controlled synthetic sounds or properly licensed standard evaluation audio played externally; do not record or retain microphone PCM. Audio sources used for model accuracy must have known expected classes and provenance. Keep command timing separate from physical sound→motor response (#18/#37).
 
-Build locally, install to an explicitly selected watch, and start the app using the commands in development.md. With the device offline (disconnect internet/phone after installation), start capture manually. AI is initially OFF. Verify DSP/haptic commands and user stop first, then repeat with AI ON under the same sound/volume/sensitivity conditions for at least five minutes each. Never treat a desktop synthetic stream as that five-minute device test.
+Build locally, install to an explicitly selected watch, and start the app using the commands in development.md. With the device offline (disconnect internet/phone after installation), start capture manually. The shipped default is AI ON; explicitly select AI OFF before the baseline trial, preserving the distinction between the procedure and the shipped default. Verify DSP/haptic commands and user stop first, then repeat with AI ON under the same sound/volume/sensitivity conditions for at least five minutes each. Never treat a desktop synthetic stream as that five-minute device test.
 
 ## Metadata-only collection
 
