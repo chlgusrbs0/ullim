@@ -5,10 +5,10 @@
   <p><strong>소리를 듣는 또 하나의 방법.</strong></p>
   <p>주변의 소리를 손목의 촉각으로 전달하는 스마트워치 기반 청각 접근성 프로젝트</p>
 
-  <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&amp;logoColor=white">
-  <img alt="Wear OS" src="https://img.shields.io/badge/Wear%20OS-3DDC84?logo=android&amp;logoColor=white">
-  <img alt="LiteRT" src="https://img.shields.io/badge/LiteRT-4285F4">
-  <img alt="MIT 라이선스" src="https://img.shields.io/badge/License-MIT-blue">
+  <a href="https://kotlinlang.org/"><img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&amp;logoColor=white"></a>
+  <a href="https://developer.android.com/training/wearables"><img alt="Wear OS" src="https://img.shields.io/badge/Wear%20OS-3DDC84?logo=android&amp;logoColor=white"></a>
+  <a href="https://ai.google.dev/edge/litert"><img alt="LiteRT" src="https://img.shields.io/badge/LiteRT-4285F4"></a>
+  <a href="LICENSE"><img alt="MIT 라이선스" src="https://img.shields.io/badge/License-MIT-blue"></a>
 
   <p>단국대학교 EASYTHON 2026 · AI를 활용한 사회문제 해결</p>
 </div>
