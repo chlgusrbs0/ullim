@@ -1,13 +1,14 @@
-# Sound/haptic visualization (#26)
+# 소리와 진동 명령 시각화 계획 (#26)
 
-Goal: plot actual DSP RMS/envelope and mapped HapticFrame commands on the same monotonic source timeline, on the watch only.
+> 과거 작업 계획입니다. 당시의 요구사항·체크 상태를 보존하며, 최종 구현 및 검증 상태는 현재 기술 문서를 기준으로 합니다.
 
-Use a process-local per-session bounded 256-slot ring of immutable numeric points (5-second display window at 50 DSP frames/s). The single audio producer performs a constant-time atomic write; it never calls UI code or copies history. The UI reads snapshots at at most 10Hz while its Activity is started; no observer is needed for DSP/rendering to continue. Session replacement makes old writes unreachable; no PCM is retained. A point stores a common source timestamp, RMS, envelope, commanded intensity and command duration. Motor measurements are never implied.
+목표: 실제 DSP RMS/엔벌로프 및 HapticFrame 명령을 같은 단조 시간의 소리 발생 시점 기준으로 워치에 표시한다.
 
-Two labeled Wear Canvas rows use one window's bounds. Input includes RMS and envelope; output draws commanded intensity over its actual HapticFrame duration. Gaps remain gaps, silence is a baseline, and stopped status is explicit. Keep #25 primary controls above charts and existing error/AI paths independent. Read-only screenshots/tests are host evidence only.
+프로세스 내 세션별 불변 수치 256슬롯 순환 버퍼(초당 DSP 50프레임, 표시 5초)를 사용한다. 단일 오디오 생산자는 일정 시간 안에 원자적 쓰기를 수행하고 UI 호출이나 이력 복사를 하지 않는다. UI는 Activity 시작 상태에서 최대 10Hz로 읽으며 DSP·렌더링에는 관찰자가 필요하지 않다. 세션 교체 시 이전 쓰기는 접근 불가하며 PCM 보관 금지. 한 점은 공통 시각, RMS, 엔벌로프, 명령 강도·지속시간을 저장한다. 물리 모터 측정을 암시하지 않는다.
 
-- [x] RED pure tests: exact synthetic PCM/DSP/mapper correspondence, shared timestamps, bounded/expired history, session/stale rejection and processing without UI snapshots.
-- [x] Implement numeric history and service/controller bridge, without core contract changes.
-- [x] Add lifecycle-limited UI snapshots and synchronized Canvas rows with silence/stopped/commanded semantics; verify actual Compose UI labels and state without microphone hardware.
-- [x] Full suite/build/lint and independent read-only review; fix important findings, prepare publication as a main-target Draft Closes #26. Real PCM/Watch7 video, screen-off DSP/haptic performance and predecessor merges remain unverified.
+두 Wear Canvas 행은 같은 창 범위를 사용한다. 입력은 RMS·엔벌로프, 출력은 HapticFrame 지속시간 동안의 명령 강도다. 불연속은 비워두고 무음은 기준선, 중지 상태는 별도 표시한다. #25 기본 제어를 그래프보다 앞에 두고 기존 오류·AI 경로는 독립적이다. 호스트 화면·시험은 개발 근거일 뿐이다.
 
+- [x] 순수 실패 시험: 합성 PCM/DSP/매퍼의 정확한 대응, 공통 시각, 제한·만료 이력, 세션·이전 상태 거부 및 UI 읽기 없이 처리.
+- [x] 수치 이력과 서비스·컨트롤러 연결, 공통 계약 변경 없음.
+- [x] 생명주기 제한 스냅샷과 동기 Canvas, 무음·중지·명령 의미 표시. 실제 Compose 라벨과 상태를 마이크 없이 확인.
+- [x] 전체 시험/빌드/린트·독립 검토·중요 수정, main 대상 Draft Closes #26 준비. 실제 PCM 및 Watch7 영상, 화면 꺼짐 DSP·진동 성능, 선행 병합은 미검증.
