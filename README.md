@@ -19,6 +19,19 @@
 
 갤럭시 워치7의 마이크로 주변 소리를 감지하고, 소리의 강약·지속시간·리듬을 진동으로 변환합니다. 환경음 분류 AI는 기본 신호 처리에 보조적으로 사용되며, 감지부터 추론과 진동 출력까지 워치 자체에서 수행합니다.
 
+## 팀원
+
+<div align="center">
+  <table width="100%">
+    <tr>
+      <td align="center" width="25%"><a href="https://github.com/chlgusrbs0"><img src="https://github.com/chlgusrbs0.png?size=320" width="160" height="160" alt="최현균"><br><strong>최현균</strong></a></td>
+      <td align="center" width="25%"><a href="https://github.com/nemodx"><img src="https://github.com/nemodx.png?size=320" width="160" height="160" alt="김정민"><br><strong>김정민</strong></a></td>
+      <td align="center" width="25%"><a href="https://github.com/bondy8807"><img src="https://github.com/bondy8807.png?size=320" width="160" height="160" alt="문지원"><br><strong>문지원</strong></a></td>
+      <td align="center" width="25%"><a href="https://github.com/future6026"><img src="https://github.com/future6026.png?size=320" width="160" height="160" alt="박민후"><br><strong>박민후</strong></a></td>
+    </tr>
+  </table>
+</div>
+
 ## 주요 기능
 
 - **소리의 촉각화:** 소리의 강약·지속시간·리듬에 따라 진동을 변환합니다.
@@ -78,19 +91,6 @@ adb -s WATCH_IP:CONNECT_PORT install -r app/build/outputs/apk/debug/app-debug.ap
 ## 기술 문서
 
 아키텍처 상세 설명, 모델 정보, 개발 환경과 검증 기록은 [기술 문서 안내](docs/README.md)에서 확인할 수 있습니다.
-
-## 팀원
-
-<div align="center">
-  <table>
-    <tr>
-      <td align="center"><a href="https://github.com/chlgusrbs0"><img src="https://github.com/chlgusrbs0.png?size=144" width="72" height="72" alt="최현균"><br>최현균</a></td>
-      <td align="center"><a href="https://github.com/nemodx"><img src="https://github.com/nemodx.png?size=144" width="72" height="72" alt="김정민"><br>김정민</a></td>
-      <td align="center"><a href="https://github.com/bondy8807"><img src="https://github.com/bondy8807.png?size=144" width="72" height="72" alt="문지원"><br>문지원</a></td>
-      <td align="center"><a href="https://github.com/future6026"><img src="https://github.com/future6026.png?size=144" width="72" height="72" alt="박민후"><br>박민후</a></td>
-    </tr>
-  </table>
-</div>
 
 ## 라이선스
 

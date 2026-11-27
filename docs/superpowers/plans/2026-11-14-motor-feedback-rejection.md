@@ -1,36 +1,33 @@
-# Motor feedback rejection implementation plan
+# 자기 진동 재입력 억제 구현 계획
 
-> Execute inline; one fresh read-only review after the implementation and regression suite.
+> 과거 작업 계획입니다. 당시의 요구사항·체크 상태를 보존하며, 최종 구현 및 검증 상태는 현재 기술 문서를 기준으로 합니다.
 
-**Goal:** Stop the measured self-sustaining output after a short sound while preserving external sound duration/level and session cleanup. Physical strength/continuity/P95 remain native acceptance gates.
+> 직접 수행하며 구현·회귀 시험 후 독립 읽기 전용 검토 1회.
 
-**Spec:** #17, #18, AGENTS.md; user's explicit transfer of all work and priority on sound strength/duration over AI.
+**목표:** 짧은 소리 이후 실측된 자기 유지 출력을 멈추면서 외부음의 지속·크기와 세션 정리를 보존한다. 물리 강약·연속감·P95는 별도 실제 기기 인수 조건.
+**명세:** #17, #18, AGENTS.md, 당시 사용자 담당 인계 및 AI보다 소리 강약·지속 우선 지시.
+**근거:** 당시 808d3f4/c435... 단일 사건 수동 시험에서 0.5초 창 39개, 파형 시도 178회, 거부 프레임 없음, 요청 진폭26~217. 첫 과도 응답 후 활성 입력 RMS 약0.4, 출력 종료 시 0.008 미만. 모터 결합 근거이나 시간 상관만으로 모든 상관음이 자기 잡음이라는 증거는 아니다. 사용자 정정에 따라 앞선 조용함/작음/큼 요청 시험은 실제로 조용함만 시행했다.
 
-**Evidence:** Current808d3f4/c435... manual single-event trial has39 half-second windows,178 waveform attempts, no rejected frames, requested amplitudes26..217. Active-input RMS reaches~0.4 after the initial transient and returns below0.008 when output stops. This supports motor coupling; temporal correlation alone is not proof that every correlated sound is self-noise. Prior requested quiet/small/large trial was actually quiet-only per the user's correction.
+**구조:** 조용한 상태의 명시적 사용자 시작 유한 보정으로 두 요청 진폭의 모터 단독 스펙트럼 전력을 확보한다. 실시간 60ms 교체 잡음과 일치시킨다. 마이크 샘플이 아닌 수치 스펙트럼 경계만 유지한다. DSP 전 실제 성공한 출력 요청과 제한 잔향에 겹치는 오디오 구간에서 보정 전력을 뺀다. 당시 초기 계획의 AI는 기존 미수정 분배를 받으며, 최종 구현에서는 보정 PCM 공유로 변경됐다. 프로필 누락·무효 시 명시 보정을 안내하고 마이크·서비스 시작을 차단한다. 중지·화면 종료는 보정·마이크·출력을 취소하며 네이티브 해제까지 단일 소유권 유지.
 
-**Architecture:** Obtain a quiet, user-started finite calibration of motor-only spectral power at two requested amplitudes, matching live60ms replacement noise. Retain numeric spectral bounds, not microphone samples. Before DSP, subtract calibrated motor power only for audio sample intervals overlapping actual successful output requests and their bounded tail. AI receives the existing unmodified fan-out. Missing/invalid profile routes to explicit calibration and blocks microphone/service start rather than entering the known feedback path. Stop/screen exit cancels calibration, microphone and output and retains the single-owner lease until native release.
+파일: dsp/FrameSpectrum.kt, haptics/MotorNoiseProfile.kt, MotorOutputTimeline.kt, MotorNoiseSuppressor.kt, MotorCalibration.kt, Android 보정 UI/구동기, LiveDsp·ListeningService의 좁은 통합, 기존 진단 진입. 공통 인터페이스·프레임 시각 유지.
 
-Files: `dsp/FrameSpectrum.kt`; `haptics/MotorNoiseProfile.kt`, `MotorOutputTimeline.kt`, `MotorNoiseSuppressor.kt`, `MotorCalibration.kt`; Android calibration UI/driver; narrow `LiveDsp` and `ListeningService` integration; existing diagnostic entry. Core interfaces and frame timestamps unchanged.
+## 작업
+- [x] 기존 #17 분석기 커밋 보존, 808d 통합, 기준 시험/빌드/린트 33초 성공.
+- [x] 실패 시험: 스펙트럼 에너지·왕복, 취소·잔향 포함 제한 출력 이력, 모터만 제거, 외부 톤·과도·지속 보존, 무출력 동일성, 세션 초기화, 유한 보정 창·프로필.
+- [x] 고정 512점 FFT, 제한 임시 배열, 불변 수치 프로필, 시간 구간 전처리 및 유한 보정 모델. PCM 저장/업로드/로그, DSP 디스크·로그 I/O 금지.
+- [x] 기존 감지 소유권, VIBRATE/RECORD_AUDIO 권한, 화면 종료 취소를 이용한 명시 보정 통합. 기기·펌웨어 키 수치 프로필만 원자적으로 저장.
+- [x] 전체 시험/빌드/린트, 읽기 전용 검토 및 중요 수정. 진폭 미지원 출력 모드 불일치를 재현·수정한 후 전체 209개 시험 및 빌드/린트 통과. 당시 네이티브 결과 전 Draft.
+- [ ] 사용자 복귀 후 조용함·모터·외부 사건 비교. 사용자 샤워 중 마이크 활성 금지. 설정 복원 및 중지 정리 검증. 진폭 지원 플래그나 소프트웨어 시험을 물리 성공으로 표시하지 않는다.
 
-## Tasks
+검토 중점: 겹치는 대역 외부음 보존, 보정 누락·손상 시 안전, 이동/중지 시 중복 마이크 금지, 오래된 시각은 최신 미래 요청이 아닌 과거 모터 구간 조회, 펌웨어 변경 시 보정 무효화. 재입력 억제가 작동해도 약·강 구별과 연속 출력은 실제 기기 검증 필요.
 
-- [x] Preserve inherited #17 analyzer commits, integrate808d; baseline test/build/lint succeeded33s.
-- [x] RED: spectral energy and round trip; overlapping bounded output history including cancel/tail; motor-only rejection, preservation of external tone/transient/duration, no-output identity and session reset; finite calibration sample-window/profile validation.
-- [x] Implement fixed512-point FFT with bounded scratch arrays, immutable numeric profile, interval-aware preprocessor and finite calibration model. No PCM persistence/upload/logging; no disk/log I/O in DSP.
-- [x] Integrate explicit calibration using existing capture ownership, VIBRATE/RECORD_AUDIO permission checks and cancellation on activity exit. Save only device/firmware-keyed numeric profile atomically.
-- [x] Regress full suite/build/lint; fresh read-only review and fix Important findings. Full209 tests/build/lint passed after reproducing and fixing the no-amplitude-control output-mode mismatch. Keep Draft until native results.
-- [ ] Native quiet/motor/external event comparison when user returns. No microphone activity while the user is away showering. Restore settings; verify Stop cleanup. Do not label amplitude support flags or software tests as physical success.
+## 후속: 네이티브 보정 성공 뒤 거친 펄스 체감
+네이티브 0db8845에서 실측 프로필을 저장했다. 사용자는 소리 감지와 체감 강약이 많이 개선됐지만 거친 반복 펄스가 남는다고 보고했다. 단일 박수/중지의 정확한 절차는 확인되지 않았으므로 통제 결과로 확대하지 않는다.
 
-Review focus: preserve real sound in overlapping bands; fail-safe missing/corrupt calibration; no duplicate mic on navigation/stop; stale timestamps must query historical motor intervals, not the most recent future request; firmware changes invalidate profile. Low/strong distinguishability and continuous rendering require explicit actual-device validation even if feedback rejection works.
+실시간 출력 변경 전 기존 유한 마이크 없는 비교 도구로 반송 펄스 질감과 60ms 요청 교체를 분리한다. 20/10/5ms 주기의 단일 호출 3종, 각각 약한 20% 듀티 600ms, 무음 300ms, 강한 80% 듀티 600ms. 총 1500ms, 요청 ON 총량 120/480ms는 통제 수치이며 물리 진폭 비율이 아니다. 이 진단은 실시간 렌더러·보정·모델을 변경하지 않는다. 설치·시험 전 감지 중지, 기존 유한 취소·실패·화면 종료 방어 유지. 총 시간·듀티·무음·단일 호출·유한 정상 종료 회귀 후 전체 검사 및 실제 설치. 부드러움·약강 차이는 사용자 체감으로 판단한다. 빠른 소프트웨어 ON/OFF는 모터 공진 주파수 제어가 아니다.
 
-## Follow-up: rough pulse sensation after successful native calibration
+## 후속: 같은 워치의 삼성 설정 미리보기와 비교
+다른 펌웨어를 선행 조건으로 삼거나 베타 전용 결함이라고 추정하지 않는다. 당시 ZZK1 framework57dfb17c의 createOneShot은 createWaveform에 위임한다. 설치된 별도 Settings 강도 화면은 500ms createOneShot 1/255/기본 속성을 사용했다. L/M 비교 후보는 빌드·218개 시험 통과했으나 설치하지 않았다. 추가 추적에서 새로운 경로라는 가정을 배제했다: 500ms 단일 StepSegment는 촉각 피드백 후보이고 서비스는 UNKNOWN을 TOUCH로 바꾼다. 실제 소리/진동 강도 메뉴는 Global.setting_vibration_intensity를 쓰고 삼성 프리셋을 재생한다. 같은 시험을 반복 요청하기 전에 후보를 제거했으며 패치는 저장소 외부에 보존했다. 시스템 바이너리·디스어셈블은 저장소 외부에 두고 해시·제한된 동작 메타데이터만 커밋한다.
 
-Native0db8845 now saves a measured profile. User reports much better sound detection and apparent strength control, while repeated rough pulses remain. The exact single-clap/Stop protocol was not explicitly confirmed, so do not turn this report into that controlled result.
-
-Use the existing finite, microphone-free comparison driver to distinguish carrier texture from60ms request replacement before changing live output. Three single calls use periods20/10/5ms, each weak20% duty600ms, silence300ms, strong80% duty600ms. Total1500ms and requested ON totals120/480ms are controlled, not physical amplitude ratios. Keep live renderer/calibration/model unchanged for this probe. Stop existing detection before installing/testing; cancellation, failed dispatch and screen exit retain existing finite safeguards. Add a regression that checks total duration, duty, silence, one call and normal finite completion; then full build/tests/lint and actual-device installation. Judge smoothness and weak/strong separation from user feedback, not software timing. A faster software on/off interval is not the motor's resonant-frequency control.
-
-## Follow-up: match the same watch's Samsung Settings preview
-
-Do not require another firmware as a prerequisite or infer the defect is beta-specific. Current ZZK1 framework57dfb17c has createOneShot delegate to createWaveform. A separate installed Settings intensity fragment uses500ms createOneShot1/255/default attributes; a candidate L/M comparison was built and passed218 tests but NOT installed. Further tracing ruled out the presumed new path:500ms/one StepSegment is a haptic-feedback candidate, and the service rewrites UNKNOWN to TOUCH. The actual sound/vibration strength menu writes Global.setting_vibration_intensity and plays a Samsung preset. The candidate was therefore removed before asking the user to repeat an equivalent test; its patch is preserved outside the repository. System binaries/disassembly stay outside the repository; commit only hashes and narrow behavior metadata.
-
-The tracing revealed a concrete missing calibration input: the real Samsung Global.setting_vibration_intensity key was absent from MotorProfileStore.deviceKey. Add a regression that changes this key in the host sandbox and rejects the old profile on next load, then include its read-only value in the identity. Do not write global settings on the watch. Older profiles deliberately require explicit recalibration after this identity change; never assume their missing value was the current one. This fixes profile validity, not smooth continuous amplitude. Native installation/recalibration only after full checks; preserve the actual installed APK and report its replacement accurately.
+추적으로 실제 Global.setting_vibration_intensity가 MotorProfileStore.deviceKey에서 누락됨을 확인했다. 호스트 샌드박스에서 해당 키 변경 후 옛 프로필 거부 회귀 시험을 추가하고 읽기 전용 값을 식별자에 포함한다. 실제 워치 Global 설정 쓰기 금지. 옛 프로필은 새 식별자 도입 후 명시 재보정이 필요하며 누락 당시 값이 현재 값과 같다고 가정하지 않는다. 프로필 유효성 수정이지 부드러운 연속 진폭 개선이 아니다. 전체 검사 후 실제 설치·재보정, 설치 APK 보존 및 정확한 교체 보고.

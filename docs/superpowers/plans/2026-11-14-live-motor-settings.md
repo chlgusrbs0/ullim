@@ -1,32 +1,34 @@
-# Live motor-setting calibration validity (#17)
+# 감지 중 모터 설정과 보정 유효성 계획 (#17)
 
-> Execute inline; one fresh read-only review of this unit before integration.
+> 과거 작업 계획입니다. 당시의 요구사항·체크 상태를 보존하며, 최종 구현 및 검증 상태는 현재 기술 문서를 기준으로 합니다.
 
-Goal: prevent an active capture from continuing with motor-noise bounds calibrated for different vibration settings. Spec #17 and the existing PR73 remaining gate. Basebec3444/current installed064dd0d; user authorized all ownership, continued fixes, device verification and eligible merges.
+> 직접 실행하고 통합 전 독립 읽기 전용 검토 1회.
 
-Architecture: keep the existing profile key/file bytes. Reuse its exact System4/Global1 keys for a main/control-thread ContentObserver. Capture one expected key before loading the profile, register then re-read before microphone/output startup. A later mismatch/read failure reports MOTOR_CALIBRATION and uses existing capture/renderer/AI shutdown. Closing or stale callbacks cannot affect another session. No settings reads in the audio thread and no setting writes.
+**목표:** 실제 진동 설정이 바뀐 뒤 다른 설정으로 보정된 모터 잡음 경계를 이용해 감지를 계속하지 않도록 한다. 명세 #17 및 당시 PR73의 남은 조건. 기반 bec3444, 설치본 064dd0d. 당시 사용자는 담당 인계·수정·기기 검증 및 조건 충족 병합을 승인했다.
 
-Files: MotorProfileStore.kt (shared key names/URIs, identical key representation); new MotorSettingsWatcher.kt (read-only observation lifecycle); ListeningService.kt (start/stop ownership); focused watcher/store/service tests. An opt-in separate-package native registration probe may be added after host verification; normal/release must exclude it.
+**구조:** 기존 프로필 키·파일 바이트를 유지한다. 정확히 System 4개/Global 1개 키를 재사용하여 메인 제어 스레드 ContentObserver를 등록한다. 프로필 로드 전에 예상 키를 얻고 등록 후 마이크·출력 시작 전에 다시 읽는다. 이후 불일치·읽기 실패는 MOTOR_CALIBRATION으로 보고하고 기존 감지·렌더러·AI 종료를 사용한다. 닫힌 관찰자·이전 콜백은 새 세션에 영향 없음. 오디오 스레드 설정 읽기 및 설정 쓰기 금지.
 
-- [x] Read current issue17/all comments/PR73, actual service/store/controller/tests and official ContentResolver/Settings.Global API references. Existing load already accepts explicit firmwareKey, so no load API change is necessary.
-- [x] RED tests: global/system changes, same/unrelated notifications, registration recheck mismatch, read failure, queued callbacks after close/new observer; exact legacy key representation; real Service cancellation/release/restart, observation preflight failure without microphone creation, stale callback after user stop/new token.
-- [x] Implement watcher and service lifecycle hooks. Registration failure/preflight mismatch must prevent microphone creation. Known startup failures, normal stop, asynchronous read failure and destroy close the observer; closed callbacks have no effect. Preserve existing error/ownership barriers.
-- [x] Full test/build/lint; one read-only review and one required fix pass. No new approval request for already authorized implementation.
-- [x] Native read-only registration/recheck/close on Watch7, same profile-key hash where possible; do not change actual Global/System settings. Full positive external-change/physical stop test waits for the user in the morning. Keep17Draft/open.
-- [x] Preserve installed candidate/profile/settings/stay-on1 and back up064d before any later installation. Record exact APK/install/cleanup evidence; no Actions/raw audio/hidden API/root/protected-setting writes.
+파일: MotorProfileStore.kt(키·URI 공유, 동일 키 표현), MotorSettingsWatcher.kt(읽기 전용 관찰 생명주기), ListeningService.kt(시작·중지 소유권), 관련 시험. 호스트 검증 후 선택적 별도 패키지 네이티브 진단 가능, 일반/릴리스 제외.
 
-Review focus: registration-to-start race, previous callbacks versus new session, errors that could block microphone/renderer cleanup, key-format compatibility, no duplicate callbacks/retry/secret restarts, and truthful native scope.
+- [x] 이슈17·전체 댓글·PR73·서비스/저장소/컨트롤러/시험 및 ContentResolver/Settings.Global 공식 API 확인. 기존 로드는 명시 firmwareKey를 받아 API 변경 불필요.
+- [x] 실패 시험: Global/System 변경, 같은 값·무관 알림, 등록 재조회 불일치, 읽기 실패, 닫기/새 관찰자 이후 대기 콜백, 이전 키 표현 일치, 실제 Service 취소·해제·재시작, 사전 검사 실패 시 마이크 미생성, 중지/새 토큰 뒤 이전 콜백.
+- [x] 관찰자·서비스 생명주기 구현. 등록 실패/사전 불일치 시 마이크 생성 금지. 시작 실패·정상 중지·비동기 읽기 실패·종료에서 관찰자 닫기; 닫힌 콜백 무효. 기존 오류·소유권 장벽 보존.
+- [x] 전체 시험/빌드/린트, 독립 읽기 전용 검토 1회 및 필수 수정 1회. 승인된 구현 추가 질문 없음.
+- [x] Watch7 읽기 전용 등록·재조회·닫기 및 가능한 동일 키 해시 검증. 실제 Global/System 설정 변경 금지. 실제 외부 변경과 물리 중지 시험은 사용자 복귀 이후로 보류. 당시 #17 Draft/open 유지.
+- [x] 설치 후보·프로필·설정·stay-on1 유지, 이후 설치 전 064d 백업. APK·설치·정리 근거 기록. Actions·원음·숨겨진 API·root·보호 설정 쓰기 금지.
 
-Additional observed RED: an explicit notification for an unverifiable/missing setting was incorrectly ignored because the legacy key uses '-' for missing values. Exact watched URI notifications now invalidate when that specific value cannot be read; unrelated/parent notifications with an unchanged identity remain ignored. The registration race test also inspects the real host ContentResolver registration before changing the key inside the post-registration read.
+검토 중점: 등록~시작 경쟁 조건, 이전 콜백과 새 세션, 마이크·렌더러 정리 차단 오류, 키 표현 호환성, 중복 콜백·재시도·숨은 재시작 금지, 네이티브 확인 범위의 정직한 표기.
 
-Initial opt-in verification exposed an invalid hyphenated taskAffinity in the new probe manifest (52 host tests failed at package parsing, not silently skipped). Corrected the affinity to a valid package-style name before any device installation and rerun the full suite.
+추가 실패 시험: 이전 키가 누락 값을 '-'로 표현하므로 검증 불가/누락 설정의 명시 알림을 잘못 무시했다. 해당 URI의 값이 읽히지 않으면 무효화하고, 식별자가 같은 무관/상위 알림은 무시한다. 등록 경쟁 시험은 재조회 중 키를 변경하기 전 실제 호스트 ContentResolver 등록도 검사한다.
 
-The next opt-in run exposed an existing permission-navigation test hardcoding the normal package name. Production already uses packageName correctly; updated the assertion to the actual application.packageName so it verifies both normal and separate probe settings targets instead of weakening the behavior check.
+첫 선택 진단 검증에서 새 매니페스트 taskAffinity의 하이픈 오류로 패키지 파싱 호스트 시험 52개 실패(건너뜀 아님). 기기 설치 전 유효 패키지식 이름으로 수정하고 전체 재검사했다.
 
-Further real RED in service/store tests: stopping alone could reuse the same old key after an unverifiable change. Preserve the numeric profile bytes but persist a one-byte no_backup invalidation marker and an in-process latch. Even an empty marker blocks load after restart; only successful save plus marker removal restores validity. Stop microphone/output before this control-thread persistence. The native probe validates this lifecycle with a generated numeric fixture in its own separate package; it never rewrites the user's calibration or actual system settings.
+다음 검증에서 기존 권한 탐색 시험의 일반 패키지 하드코딩을 발견했다. 제품은 이미 packageName을 올바르게 사용하므로 실제 application.packageName 단언으로 두 패키지의 설정 진입을 확인한다.
 
-API references: https://developer.android.com/reference/android/content/ContentResolver#registerContentObserver(android.net.Uri,%20boolean,%20android.database.ContentObserver) and https://developer.android.com/reference/android/provider/Settings.Global#getUriFor(java.lang.String).
+서비스/저장소 추가 실패: 중지 자체만으로 검증 불가 변경 후 같은 옛 키를 재사용할 수 있었다. 수치 프로필 바이트는 보존하되 no_backup 1바이트 무효화 표시와 프로세스 래치를 사용한다. 빈 표시도 재시작 후 로드를 차단하고 성공적 저장과 표시 제거 후만 유효하다. 제어 스레드 저장 전 마이크·출력 중지. 네이티브 진단은 자체 별도 패키지에서 생성 수치만 사용하며 사용자 보정·실제 시스템 설정을 다시 쓰지 않는다.
 
-Fresh read-only review found two P2 issues; both received one required fix pass. Getter-level RED tests failed twice because exceptions were masked as the existing absent-value marker. The new checked reader preserves exceptions while retaining byte-identical serialization for legitimate values/null; the default watcher uses it. One-flag probe build reproduced the unsafe normal application ID (inspection only, never installed); enabling the probe now unconditionally uses .nativeprobe and the synthetic cache activity also refuses any other runtime package.
+API 참고: [ContentResolver](https://developer.android.com/reference/android/content/ContentResolver#registerContentObserver(android.net.Uri,%20boolean,%20android.database.ContentObserver)), [Settings.Global](https://developer.android.com/reference/android/provider/Settings.Global#getUriFor(java.lang.String)).
 
-Final verification: opt-in full236 tests/0 failures/errors/skips plus assemble/lint in61s; normal full236 tests/0 failures/errors/skips plus assembleDebug/lintDebug/assembleRelease in71s. Normal debug and release manifest/DEX exclude NativeMotorSettingsProbeActivity. Watch7 PID4634 read-only five-URI register/recheck/close and own generated numeric-cache invalidation/recalibration passed in5286ms. Current key SHA256 exactly matches the original4262-byte profile header; original profile47a0c314...f06c, stay-on1 and font1.0 preserved. Own probe was removed after terminal PASS. Actual external settings changes and tactile/physical timing remain morning gates;17/73 stay open/Draft.
+독립 검토에서 P2 2개를 발견해 한 차례 필수 수정. getter 예외가 이전 누락 표시로 가려져 실패 시험 두 번 발생. 새 검사 읽기는 정상 값/null의 바이트 동일 표현을 유지하고 예외를 보존하며 기본 관찰자가 사용한다. 플래그 하나의 진단 빌드에서 일반 application ID 위험을 재현(검사만, 설치 없음). 진단 활성 시 .nativeprobe를 강제하고 합성 캐시 Activity도 다른 실행 패키지를 거부한다.
+
+최종 검증: 선택 진단 전체 236개 실패/오류/건너뜀 0, assemble/lint 61초; 일반 전체 236개 실패/오류/건너뜀 0, assembleDebug/lintDebug/assembleRelease 71초. 일반 debug/release 매니페스트·DEX에 NativeMotorSettingsProbeActivity 없음. Watch7 PID4634 읽기 전용 5개 URI 등록·재조회·닫기 및 자체 생성 수치 캐시 무효화/재보정 5286ms 성공. 키 SHA256은 기존 4262바이트 프로필 헤더와 정확히 일치, 원래 프로필47a0c314...f06c, stay-on1, font1.0 보존. 진단 앱 최종 PASS 후 제거. 실제 외부 설정 변경 및 촉각·물리 시간은 미완료이며 당시 #17/PR73은 open/Draft.

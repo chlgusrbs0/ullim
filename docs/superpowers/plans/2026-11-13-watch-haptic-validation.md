@@ -1,51 +1,46 @@
-# Watch7 controlled output comparison plan (#18)
+# Watch7 통제 진동 출력 비교 계획 (#18)
 
-> **For agentic workers:** Use superpowers:executing-plans to implement this plan task-by-task.
+> 과거 작업 계획입니다. 당시의 요구사항·체크 상태를 보존하며, 최종 구현 및 검증 상태는 현재 기술 문서를 기준으로 합니다.
 
-**Goal:** Separate waveform segmentation from repeated OS effect replacement on the actual Watch7 before changing the live scheduler.
+> 작업자 지침: superpowers:executing-plans 단계별 적용.
 
-**Architecture:** Add a finite, cancellable diagnostic comparison using the same AndroidWaveformDevice/USAGE_TOUCH as live output. Compare one600ms, thirty20ms segments in one call, ten60ms calls and three200ms calls, all at amplitude220 and total600ms. Do not change DSP, live scheduler defaults, core contracts or perception/physical latency acceptance criteria.
+**목표:** 실제 Watch7에서 실시간 스케줄러 변경 전에 파형 분할과 OS 진동 효과 반복 교체를 구분한다.
+**구조:** 실시간과 동일 AndroidWaveformDevice/USAGE_TOUCH를 이용한 유한·취소 가능한 진단. 진폭 220, 총 600ms를 유지하며 600ms 1회, 한 호출의 20ms 30구간, 60ms 10회, 200ms 3회를 비교한다. DSP·실시간 기본값·공통 계약·지각 및 물리 지연 합격 기준은 변경하지 않는다.
+**기술:** Kotlin, Android 메인 Handler/SystemClock, WaveformDevice, Wear Compose, Robolectric/JUnit.
+**명세:** #18, AGENTS.md. 사용자 SM-L300/API37에서 실시간은 끊기고 기존 600ms 단일 진단은 부드럽다고 보고. 속성·분할·교체 원인은 아직 분리하지 못함.
 
-**Tech Stack:** Kotlin, Android main Handler/SystemClock, existing WaveformDevice, Wear Compose, Robolectric/JUnit.
+## 제약 및 검토 중점
+- PCM·음성 저장/전송, 분류 로그, 네트워크/Actions 추가 금지.
+- 무한 패턴·큐, 밀린 출력 몰아서 전송, 중지/화면 종료 후 출력, 명령 시간의 물리 지연 주장 금지.
+- 교체 전 이전 진단 취소, 미지원 모터 거부, 네이티브 예외 시 안전하게 실패.
+- UI 스레드 지연 시 누락된 청크를 몰아서 보내지 않고 비교 중단.
+- 실제 소리→모터 P95, 강약 상관 및 지속·리듬 평가 전 #18 Draft 유지. 당시 선행 기능 미병합.
 
-**Spec:** GitHub issue #18; AGENTS.md. User reports choppy live output but smooth existing single600ms diagnostic on SM-L300/API37. That observation does not isolate attributes versus segmentation versus supersession yet.
+## 작업. 통제 비교와 근거
+- [ ] 동일 진폭·총 시간, 서로 다른 분할·호출 횟수, 교체·중지 취소, 지연 및 플랫폼 실패 시험.
+- [ ] 대상 시험의 구현 전 실패 기록.
+- [ ] 제한된 비교 실행기와 정확한 명령 상태 진단 버튼 구현.
+- [ ] 대상 시험·전체 시험·assemble/lint 로컬 실행.
+- [ ] 읽기 전용 검토 및 중요 결함 수정.
+- [ ] 설정을 삭제하지 않고 같은 Watch7에 설치, 사용자 비교 결과와 실패 기록, 임시 기기 설정 복원.
+- [ ] 원음 없는 근거·측정 방법 기록, main 대상 Draft Closes #18. 완료 기준 생략 금지.
 
-## Constraints and review focus
+## 후속: 전체 진폭 범위
+실제 A/B 부드러움, C 거침, D 세 펄스. E의 60/130/220 점진 파형은 체감 강약 차이 없음, F 중첩은 거침. 기존 별도 100ms 버튼도 유사하다. 실시간 스케줄링 유지. 동일 TOUCH 어댑터에서 합법적 진폭 끝점 1/255와 600ms를 각각 한 번 호출하는 G/H 추가. 마이크/DSP 변수와 시스템 강도 변경 없이 넓은 범위·긴 출력 시험. 차이가 있어도 블라인드 3단계 합격이 아니며 차이가 없어도 물리/API 경로 조사 없이 하드웨어 결론을 만들지 않는다.
 
-- No PCM/voice storage or transmission, no classified label logs, no network or Actions additions.
-- No infinite patterns/queues, catch-up bursts, output after stop/activity exit, or claims that dispatch timing is physical latency.
-- Always cancel old diagnostic on replacement; reject unavailable motors; fail closed on native exception.
-- A delayed UI thread must abort the comparison rather than send multiple missed chunks together.
-- Keep #18 Draft until actual source-to-motor P95, strong/weak correlation and duration/rhythm gates are measured; previous feature dependencies remain unmerged.
+- [x] 끝점 진단 누락 실패 후 정확한 1/255, 동일 600ms, 유한 단일 호출 및 완료 검증.
+- [x] 요청값 라벨 추가, 취소·실패 동작 유지.
+- [ ] 로컬 검사·읽기 전용 검토·정확한 APK 설치·실제 G/H 체감 확보. 당시 #18 Draft 유지.
 
-## Task: controlled comparison and evidence
+## 후속: 실시간 강도와 연속감 손실 위치 조사
+ZZK1 이후 사용자도 작은·큰 소리에서 이진적이고 끊기는 출력을 보고했다. A~H로 공통 출력 경로 문제를 확인했으므로 동일 끝점 반복 대신 매핑·스케줄 변경 전 실시간 DSP→OS 수치 경계를 수집한다. #18 내부 진단이며 새 사용자 모드나 목표 완화가 아니다.
 
-- [ ] Add failing tests for equal amplitude/total duration but different segmentation/call counts, replacement/stop cancellation, delayed dispatch and platform failure.
-- [ ] Run targeted tests and record RED before implementation.
-- [ ] Implement bounded comparison driver and diagnostic buttons with accurate command-only status.
-- [ ] Run targeted tests, full tests, assemble/lint locally.
-- [ ] Inspect/review implementation read-only, address important defects.
-- [ ] Install without deleting settings; compare on same Watch7 with user, record actual outcomes including failures. Restore any temporary device settings.
-- [ ] Document measurement procedure and raw-audio-free evidence; commit/push Draft PR main with Closes #18. No DoD shortcut.
+- [x] #5 검토된 마이크 출처·권한·상태 수정 통합, #30 타입 오류와 기존 시험 보존. 최신 main #4 문서 포함. 전체 로컬 시험/빌드/린트 1분 성공, 178개 실패·오류·건너뜀 0개.
+- [ ] haptics/HapticTelemetry.kt 추가: 세션 수치 범위·카운터, 25프레임 고정 창, 교체 가능한 최신 스냅샷 하나. PCM·레이블·무한 큐 금지. RMS/엔벌로프/잡음/크기/명령 강도, 거부 프레임, 콜백 간격·프레임 나이, 실제 파형 API 요청 수·간격·진폭 범위 기록. API 시간은 물리 모터 시간이 아님.
+- [ ] 투명 TracingEnvelopeDevice 래퍼: 원본 배열·계획 및 실패 그대로 전달. 디버그만 생성. 메인 주기 검사는 최신 하나만 읽고 감지/DSP 콜백에서 로그 I/O 금지.
+- [ ] 수치 범위/창 전환, 최신값만 보존, 세션 불일치, 파형 요청 시간, 어댑터 위임/실패 전파 실패 시험 후 구현 및 전체 검사.
+- [ ] 독립 읽기 전용 검토, 중요 발견 회귀 수정, Draft 유지.
+- [ ] 앱 데이터 삭제 없이 후보 설치. 원래 UI35 백업 952d2a0...은 Git 외부 보존. 제한 감지 후 일반 중지, UllimTrace 수치만 수집, 서비스·마이크 정리 및 설정 보존 확인.
+- [ ] 입력·명령·호출 실측으로 실제 수정 선택. 계측 자체로 체감 강도·연속감 개선을 주장하지 않는다. 품질·물리 P95 미해결 시 당시 #18/#37/#39 열어 둔다.
 
-## Follow-up: full amplitude range
-
-Actual A/B smooth, C rough, D three pulses; E60/130/220 ramp has no perceived strength difference, F overlap remains rough. Separate existing100ms buttons also feel similar. Keep live scheduling unchanged. Add G/H as separate single600ms calls through the same TOUCH adapter at the legal amplitude endpoints1/255. This tests a wider range and longer steady output without introducing microphone/DSP variables or changing system intensity settings. A perceived difference would not prove three-level blind accuracy; no difference would still need physical/API-path investigation rather than a fabricated hardware conclusion.
-
-- [x] RED: endpoint probes missing; then verify exact1/255 amplitude, identical600ms duration, one finite call and completion.
-- [x] Add labels explaining requested values and preserve all cancellation/failure behavior.
-- [ ] Run local checks, read-only review, install the exact comparison APK and obtain actual G/H feedback. Keep #18 Draft.
-
-## Follow-up: locate the live loss of strength and continuity
-
-User still reports binary-feeling choppy output for small and large sounds after ZZK1. Existing A~H tests already establish a shared-output-path failure; repeating unchanged endpoints is not useful. Record the actual live DSP-to-OS numeric boundaries before changing mapping or scheduler behavior. This diagnostic is the builder's choice within #18, not a new user-facing mode or a weaker product goal.
-
-- [x] Integrate #5 reviewed microphone source/permission/status fixes, preserving typed input errors from #30 and the existing capture tests; latest main #4 documents are included. Full local test/build/lint success1m,178 tests/0 failures/errors/skips.
-- [ ] Add `haptics/HapticTelemetry.kt`: per-session numeric ranges/counters only, fixed25-frame windows, one replaceable latest snapshot; no PCM, audio labels or unbounded queues. Track RMS/envelope/noise/level/requested intensity, rejected frames, callback gap, frame age and actual waveform API request counts/intervals/amplitude range. API times are not physical motor times.
-- [ ] Add a transparent `TracingEnvelopeDevice` wrapper; pass original arrays/plans and propagate failures unchanged. Only debug builds instantiate trace/wrapper. Main heartbeat consumes at most one latest snapshot; no logging I/O on capture/DSP callbacks.
-- [ ] Add RED tests for exact numeric ranges/window rollover, latest-only retention, session mismatch, waveform request timing and transparent adapter delegation/failure propagation. Implement, then full tests/build/lint.
-- [ ] Fresh read-only review of this unit; correct Important findings with RED/GREEN, retain Draft.
-- [ ] Install candidate on Watch7 without clearing app data. Preserve exact UI35 backup952d2a0... outside git. Perform bounded microphone trial with normal Stop, retrieve only UllimTrace numeric logs, confirm service/microphone cleanup and original settings.
-- [ ] Use measured input/request/call data to choose the actual repair; do not claim this instrumentation fixes perceived amplitude/continuity. Keep #18/#37/#39 open while quality and physical P95 are unresolved.
-
-Ruling: preserve #35 on its independent branch9d2e09c and test this #18 candidate with its existing UI. Merge the #5 correction into the earlier runtime dependency instead of importing unrelated #35 UI work into PR69. The previously installed UI35 APK is verified and backed up locally for exact restoration.
+결정: #35의 독립 브랜치 9d2e09c 보존, #18 후보는 기존 UI로 시험. #5 수정은 이전 런타임 의존성에 병합하며 PR69에 무관한 #35 UI를 넣지 않는다. 이전 설치 UI35 APK는 정확한 복원용으로 로컬 검증·백업됨.

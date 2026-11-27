@@ -1,13 +1,15 @@
-# Wear accessibility (#31)
+# Wear 접근성 계획 (#31)
 
-Preserve actual runtime/control behavior while improving semantic and visual access on small circular screens. Base #67; #29 remains another owner's PR, currently separately validated125/126 with one visibility assertion failing. Do not overwrite that branch or claim onboarding/real TalkBack verified. Its integration/accessibility remains pending until that dependency can be integrated with its policy preserved.
+> 과거 작업 계획입니다. 당시의 요구사항·체크 상태를 보존하며, 최종 구현 및 검증 상태는 현재 기술 문서를 기준으로 합니다.
 
-Use native Wear controls/roles, state descriptions for capture and current sensitivity/AI selection, screen pane titles and heading order. Do not replace useful visible text with duplicate contentDescription or announce 10Hz graphs as live regions. Make RMS solid and envelope dashed with explicit text/numeric semantics, so color alone never identifies their meaning. Keep common time axis and physical-command disclaimer.
+작은 원형 화면의 의미·시각 접근성을 개선하면서 실제 실행과 제어 동작을 유지한다. #67 기반. 당시 #29는 다른 담당자의 PR이며 별도 125/126 시험 중 표시 검사 1개 실패. 브랜치 덮어쓰기 및 최초 안내·실제 TalkBack 검증 주장 금지. 정책을 유지한 통합 전까지 최초 안내 접근성은 미완료.
 
-Retain dynamic watch colors only when tested text/button pairs meet4.5:1 and chart marks3:1; otherwise use a verified fallback scheme. Use actual system font scale; no shrinking to hide overflow. All controls have >=48dp touch targets and wrap without ellipsis. Verify2x font on192dp round host through TextLayoutResult, measured button bounds, reachable scroll controls and back. Host screenshots are development evidence only.
+실제 Wear 컨트롤·역할, 감지 상태·민감도·AI 선택 설명, 화면 제목·제목 순서를 사용한다. 유용한 텍스트를 중복 contentDescription으로 대체하거나 10Hz 그래프를 라이브 리전으로 안내하지 않는다. RMS 실선·엔벌로프 점선, 명시 텍스트·수치 의미로 색상만의 구분 방지. 공통 시간축 및 물리 측정과 명령 구분 유지.
 
-- [x] RED pure contrast/fallback tests and Compose semantic/layout tests before feature changes.
-- [x] Implement theme contrast selection, semantic state/pane/heading improvements and non-color trace shapes; include main/settings/AI/diagnostic surfaces in review.
-- [x] Actual Compose checks for primary start/stop and sensitivity/AI semantics, large-font text/bounds, scrolling/back and status text. Capture/inspect host screenshot if supported.
-- [x] Full local tests/build/lint and independent read-only review; fix important findings and prepare main-target Draft Closes #31.
-- [ ] Pending device/dependency gates: #29 onboarding integration, real Watch7 TalkBack focus/readout, system navigation, large-font/contrast settings and round-edge screenshots. Do not mark these passed from semantics or host images.
+동적 색상은 검증된 텍스트·버튼 대비 4.5:1, 그래프 표시 3:1을 충족할 때만 유지하며 아니면 검증된 대체 테마를 사용한다. 실제 시스템 글자 배율 사용, 넘침을 숨기기 위한 축소 금지. 터치 영역 48dp 이상, 말줄임 없이 줄바꿈. 192dp 원형 호스트에서 2배 글꼴, TextLayoutResult, 버튼 범위, 스크롤 도달·뒤로 가기 검사. 호스트 화면은 개발 근거다.
+
+- [x] 대비·대체 테마 순수 실패 시험과 Compose 의미·레이아웃 시험.
+- [x] 대비 선택, 상태·화면·제목 의미, 색상 외 그래프 모양 개선. 메인·설정·AI·진단 검토.
+- [x] 실제 Compose 기본 시작·중지, 민감도·AI 의미, 큰 글씨·범위·스크롤·뒤로 가기·상태 확인. 지원 시 호스트 캡처 확인.
+- [x] 전체 로컬 시험/빌드/린트, 독립 검토·중요 수정, main 대상 Draft Closes #31 준비.
+- [ ] 기기·의존 조건: #29 통합, 실제 Watch7 TalkBack 포커스·음성, 시스템 탐색, 큰 글씨·고대비, 원형 가장자리 스크린샷. 의미 시험·호스트 이미지로 통과 주장 금지.

@@ -1,23 +1,41 @@
-# Local sensitivity and AI settings (#28)
+# 민감도와 AI 설정 저장
 
-Defaults are sensitivity **125%** and AI **ON** (an explicitly saved OFF choice is preserved). The 35 tuning defaults are the user's final Watch7 choices captured on 2026-11-14 in `MvpDefaults`; first install, reset and displayed default values use the same profile. Existing valid saved choices take precedence. The captured fixture is `app/src/test/resources/final-mvp-settings.properties`. The lower-level `TuningSettings.DEFAULT` remains a signal-processing baseline, not the shipped user profile.
+[문서 안내](README.md)
 
-Wear settings offer 75–125% sensitivity, an AI toggle, current output capability, reset and storage feedback. Sensitivity is a DSP response parameter, not a measured physical motor gain. Capability is reported only after actual capture initialization; idle does not imply full amplitude support.
+## 기본값과 저장 범위
 
-One application-owned SettingsController asynchronously loads `files/datastore/ullim_settings.preferences_pb`, using Preferences DataStore 1.1.7 with the existing Kotlin stack. It stores schema1, sensitivity, AI choice and 35 numeric tuning values. Missing keys, invalid types, nonfinite/out-of-range values or unsupported schema use shipped defaults. Missing schema permits compatible old keys; unknown keys are ignored and preserved on writes. ReplaceFileCorruptionHandler replaces malformed preference bytes with empty/default preferences. No PCM, classification history or voice data is stored.
+| 항목 | 최종 MVP |
+| --- | --- |
+| 민감도 | 기본 125%, 75~125% 조절 |
+| AI | 기본 켜짐, 명시적으로 저장한 꺼짐 선택 우선 |
+| 상세 조절 | 2026-11-14 실제 Watch7에서 조절한 35개 값 |
+| 저장 위치 | `files/datastore/ullim_settings.preferences_pb` |
+| 저장 기술 | Preferences DataStore 1.1.7 |
 
-Edits wait until initial load completes. Then current choices are applied on the main/control scope immediately; no UI/DSP waits for disk. A serialized writer keeps at most one running request and one conflated latest pending choice. Revision checks prevent an older completion/error from changing newer save status. Loading happens once, so delayed storage emissions cannot turn AI back on after a newer OFF. The current choice is durable only after its save succeeds: pending and failed writes are visibly distinguished, and failure leaves the in-memory choice applied with explicit retry/reset actions. An interrupted/failed write may leave an older persisted value for next process startup.
+신규 설치, 기본값 복원 및 표시되는 기본값은 `MvpDefaults`의 동일한 프로필을 사용한다. 유효한 기존 설정은 우선 적용한다. `app/src/test/resources/final-mvp-settings.properties`에 최종 설정 스냅샷을 보존한다. 하위 `TuningSettings.DEFAULT`는 신호 처리의 기준값이며 실제 출고 기본값이 아니다.
 
-Application startup loads preferences without creating a model or starting a microphone. Restoring AI ON follows the current setting; actual model work still requires explicit capture start. Until loading finishes, capture uses safe in-memory defaults; restored values then apply. SettingsRuntime updates CaptureRuntime and only an already existing AI worker from the main control thread. Audio-thread AiCaptureFeed never reconciles settings. OFF clears AI context immediately while safe native cleanup remains asynchronous, as documented in models.md.
+설정 화면에서 민감도·AI 토글, 출력 지원 상태, 초기화 및 저장 결과를 제공한다. 민감도는 DSP 반응 파라미터이지 실제 물리 모터 증폭률이 아니다. 출력 지원 상태는 실제 감지 초기화 후 보고하며 대기 상태만으로 완전한 진폭 제어를 주장하지 않는다.
 
-The service uses LiveDsp, which reads the validated in-memory sensitivity once per 20ms DSP frame. It preserves processing history and applies changes without restarting capture. Mapping/scheduling/core contracts remain unchanged. Main settings and the separate AI details activity share the same controller and save feedback. Activity recreation does not create another store or reset choices. Storage is local and the existing manifest disables backup.
+## 저장 및 즉시 적용
 
-## Verification and remaining gates
+앱 단위 SettingsController 하나가 스키마 1, 민감도, AI 선택과 35개 값을 비동기 로드한다. 누락 키, 잘못된 타입, 범위를 벗어난 값, 비유한 수 및 미지원 스키마는 출고 기본값을 사용한다. 스키마가 없으면 호환되는 이전 키를 허용하며 모르는 키는 무시하되 쓰기 과정에서 보존한다. `ReplaceFileCorruptionHandler`는 손상된 설정 바이트를 빈 기본 설정으로 복구한다. PCM, 분류 이력, 음성은 저장하지 않는다.
 
-Actual DataStore tests write/reopen/reset a temporary file, recover corrupt protobuf bytes, and validate typed/schema defaults. Controller tests cover delayed load, edit guards, blocked I/O with immediate application, conflated latest OFF/sensitivity, save failure/retry and read fallback. LiveDsp tests change the actual CaptureRuntime value during an uninterrupted synthetic stream and compare next-frame DSP levels/haptic commands against a fixed-sensitivity reference, preserving timestamps/duration/bounds.
+초기 로딩 완료 후 편집을 허용한다. 최신 설정은 메인 제어 범위에 즉시 적용되며 UI·DSP는 디스크를 기다리지 않는다. 직렬화된 저장 요청은 실행 중 하나와 최신 대기 요청 하나를 유지한다. 리비전 검사로 이전 완료·오류가 새 저장 상태를 덮지 않도록 한다. 로딩은 한 번만 하므로 지연된 저장값이 더 새로운 AI 끄기 선택을 되돌리지 않는다. 저장 성공 후에만 영구 반영으로 표시하며 실패 시 메모리 설정을 유지하고 재시도·초기화를 제공한다. 중단된 쓰기 후에는 이전 저장값이 복원될 수 있다.
 
-Actual MainActivity Compose tests tap settings, change sensitivity/AI, recreate and reset, checking runtime values and completed storage. AI details activity tests exercise its shared toggle/recreation/back. In PAUSED Robolectric, tests explicitly drive Android's main Looper for I/O completion; this is test scheduling, not a fake storage result. Existing independent AI/DSP tests still cover OFF fallback while AI work is blocked. These tests are not physical wrist or native model evidence.
+## 감지 및 AI와의 관계
 
-The implementation is integrated into main. Actual35-value watch tuning, completed storage and unchanged preferences/calibration across an APK update are recorded in [final defaults](evidence/final-mvp-defaults.md) and [PR86](https://github.com/chlgusrbs0/ullim/pull/86#issuecomment-6874364988). Existing local storage/controller/UI tests are described above; no new tests were run for the documentation cleanup. Controlled AI ON/OFF efficacy and full OS recovery evaluation remain separate follow-ups in [project status](project-status.md). No GitHub Actions or raw audio storage is used. Optional local settings communication is distinct from standalone sound processing.
+앱 시작 시 설정만 로드하며 모델이나 마이크를 시작하지 않는다. AI 켜짐을 복원해도 실제 모델 실행에는 사용자 감지 시작이 필요하다. 로딩 완료 전에는 안전한 메모리 기본값을 사용하고 이후 복원값을 적용한다. SettingsRuntime은 메인 제어 스레드에서 CaptureRuntime과 이미 존재하는 AI 작업자만 갱신한다. 오디오 스레드의 AiCaptureFeed는 설정을 직접 조정하지 않는다. AI 끄기 시 문맥을 즉시 제거하고 네이티브 정리는 비동기로 수행한다.
 
-References: [Android DataStore guide](https://developer.android.com/topic/libraries/architecture/datastore), [DataStore release history](https://developer.android.com/jetpack/androidx/releases/datastore#1.1.7).
+LiveDsp는 20ms 프레임마다 검증된 메모리 민감도를 읽고 처리 이력을 보존하며 감지 재시작 없이 변경을 반영한다. 매핑·스케줄링·공통 계약은 유지한다. 메인 설정과 AI 상세 화면은 같은 컨트롤러를 사용한다. Activity 재생성으로 별도 저장소를 만들거나 설정을 초기화하지 않는다. 매니페스트의 백업 비활성화 설정을 유지한다.
+
+## 검증과 한계
+
+- 실제 DataStore 시험: 임시 파일 쓰기·재열기·초기화, 손상 protobuf 복구, 타입·스키마 기본값.
+- 컨트롤러 시험: 지연 로딩, 편집 제한, 디스크 지연과 즉시 반영, 최신 AI/민감도 저장, 실패·재시도와 읽기 대체.
+- LiveDsp 시험: 끊김 없는 합성 스트림에서 실제 CaptureRuntime 민감도를 변경하고 다음 프레임의 DSP·진동 명령을 기준값과 비교한다.
+- Compose 시험: 설정 화면 조작, Activity 재생성·초기화와 저장 완료, AI 상세 화면의 공통 토글. PAUSED Robolectric의 메인 Looper 진행은 시험 스케줄링이며 가짜 저장 결과가 아니다.
+- 최종 Watch7에서 35개 값 조절과 저장 완료, APK 업데이트 전후 설정 및 보정 보존을 확인한 기록이 있다.
+
+위 로컬 시험은 물리적 손목 반응이나 네이티브 모델 검증과 다르다. 통제된 AI 켜짐/꺼짐 효과 및 OS 복구 전수 시험은 미완료다. 선택적 로컬 설정 통신은 워치 단독 소리 처리와 구분된다.
+
+참고: [Android DataStore](https://developer.android.com/topic/libraries/architecture/datastore).

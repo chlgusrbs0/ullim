@@ -1,13 +1,14 @@
-# AI classification display (#27)
+# AI 분류 결과 표시 (#27)
 
-Bind the actual AiWorker StateFlow and process AI choice to a pure display projection shared by home and AI controls. Core contracts and inference/haptic policy stay fixed. Home puts the compact AI status/result after both sound/command graphs; the scrollable AI controls show the same result and optional original label. Wear text wraps without truncation. No automatic microphone start, warnings implying danger or calibrated confidence, or native inference claims.
+> 과거 작업 계획입니다. 당시의 요구사항·체크 상태를 보존하며, 최종 구현 및 검증 상태는 현재 기술 문서를 기준으로 합니다.
 
-Projection gates: OFF clears all recognition immediately; no active capture, wrong worker/result session, loading/delayed/failed execution cannot show a recognition. A fresh result must pass current-session monotonic freshness and conservative score/margin gates (.35/.08, duplicate labels normalized); empty/low/ambiguous scores mean uncertain. Exact Korean labels take priority; untranslated classes keep original text marked as model original. Unknown/unsupported sentinel gets an explicit unsupported result, never a warning. Numeric score is labeled model score, not correctness probability. Expired/future results cannot display label or score.
+실제 AiWorker StateFlow와 프로세스 AI 설정을 메인·AI 제어 화면이 공유하는 순수 표시 변환에 연결한다. 공통 계약과 추론·진동 정책은 유지한다. 메인 화면은 두 소리·명령 그래프 뒤에 AI 요약을, 스크롤 가능한 제어 화면은 같은 결과와 선택적 원문 레이블을 표시한다. Wear 텍스트는 잘리지 않고 줄바꿈한다. 마이크 자동 시작, 위험을 암시하는 경고, 보정된 신뢰도·네이티브 추론 성과 주장은 금지한다.
 
-AiSnapshot adds resultExpired=false metadata so the real heartbeat clearing an expired result remains distinguishable from first-result waiting. Reset on clearContext/new result/session/OFF; no raw label/PCM logging added. Record cross-issue scope on #22 before modification. Screen consumers independently check freshness at display time, in addition to worker expiry.
+표시 조건: AI 끄기는 모든 인식을 즉시 제거한다. 비활성 감지, 작업자·결과 세션 불일치, 로딩·지연·실패 시 인식을 표시하지 않는다. 현재 세션의 단조 시간 유효성, 점수·차순위 차이(.35/.08, 중복 레이블 정규화)를 확인한다. 빈·낮은·모호한 점수는 불확실로 표시한다. 한국어 명칭 우선, 미번역은 모델 원문, Unknown은 미지원 안내로 표시한다. 점수는 정답 확률이 아니다. 만료·미래 결과를 표시하지 않는다.
 
-- [x] RED pure projection tests: all phases, session mismatch, uncertainty/duplicate/tie, exact expiry/future, Korean/original/Unknown and conservative model score.
-- [x] RED worker expiry metadata test, then implement flag and projection.
-- [x] Actual Compose tests driven by MutableStateFlow classification/runtime/enable/clock: fresh label/score, replacement, ambiguous/expired/failed/OFF clearing and current controls remaining usable. Verify original-label wrapping on a small host surface; Watch7 text screenshots remain pending.
-- [x] Connect real MainActivity and AI controls through lifecycle-aware flow collection. Test/build/lint and one independent read-only review; fix important findings and prepare main-target Draft publication Closes #27. Predecessor main merges, native model accuracy and Watch7 readability remain required unverified evidence.
+AiSnapshot에 resultExpired=false 메타데이터를 추가하여 첫 결과 대기와 주기 검사에서 지운 만료를 구별한다. clearContext/새 결과/세션/OFF에서 초기화한다. 원음·레이블 로그는 추가하지 않는다. 변경 전 #22에 범위 공유. 화면도 사용 시 유효성을 확인한다.
 
+- [x] 순수 표시 실패 시험: 모든 단계, 세션 불일치, 불확실·중복·동점, 정확한 만료·미래 시각, 한국어·원문·Unknown, 보수적 점수.
+- [x] 작업자 만료 메타데이터 실패 시험 후 플래그 및 표시 구현.
+- [x] 실제 Compose 시험: MutableStateFlow 분류·실행·설정·시계로 최신 레이블/점수, 교체, 불확실/만료/실패/OFF 제거 및 제어 가능성 확인. 작은 호스트 화면 원문 줄바꿈 확인; 실제 Watch7 스크린샷은 미완료.
+- [x] 실제 MainActivity 및 AI 제어를 생명주기 인식 구독에 연결. 테스트·빌드·린트와 독립 읽기 전용 검토, 중요 문제 수정 후 main 대상 Draft PR(Closes #27) 준비. 선행 병합, 네이티브 정확도·Watch7 가독성은 미검증.

@@ -1,12 +1,14 @@
-# Persistent sensitivity and AI choice (#28)
+# 민감도 및 AI 선택 저장 계획 (#28)
 
-Use Preferences DataStore 1.1.7 (compatible with existing Kotlin stack), one application-owned store. Defaults: sensitivity1.0, AI OFF. Offer conservative sensitivity steps .75/1/1.25 (existing DSP accepts .5..2). Schema1 tolerates missing keys, invalid types/nonfinite/out-of-range values and unknown future versions by using safe defaults. ReplaceFileCorruptionHandler recovers corrupt preference bytes. No PCM or classification data is stored.
+> 과거 작업 계획입니다. 당시의 요구사항·체크 상태를 보존하며, 최종 구현 및 검증 상태는 현재 기술 문서를 기준으로 합니다.
 
-SettingsController loads once asynchronously, disabling edits until ready. It applies current choices immediately on its main/control scope; writes are serialized with one conflated pending request. Revisions prevent old save completions from clearing newer saving/error status. In-memory choices remain applied on I/O failure with explicit unsaved/error text and retry/reset actions. No later disk emission can overwrite a newer explicit choice. Do not block UI/DSP on disk, silently claim durability or add automatic microphone starts.
+Preferences DataStore 1.1.7 및 앱 소유 저장소 하나를 사용한다. 당시 기본값은 민감도 1.0, AI OFF이며 최종 MVP의 기본값과 구분한다. 민감도 .75/1/1.25 단계(기존 DSP 허용 .5~2)를 제공한다. 스키마 1은 키 누락·잘못된 타입·비유한 값·범위 초과·미지원 버전에 안전한 기본값을 사용한다. ReplaceFileCorruptionHandler로 손상 설정 바이트를 복구한다. PCM과 분류 데이터는 저장하지 않는다.
 
-Application initializes the controller. Applying values updates CaptureRuntime AI/sensitivity and only an existing AI worker on the main control thread; no native worker/model is created by settings loading. Service's live DSP wrapper reads current sensitivity per frame; audio delivery never changes AI mode. Wear settings expose bounded sensitivity, AI toggle, real output limitation, saved/loading/error status and reset; AI detail screen uses the same persistence authority. Existing core contracts and haptic policy remain fixed.
+SettingsController는 비동기 초기 로딩 전 편집을 제한한다. 현재 설정을 메인 제어 범위에 즉시 반영하고 직렬 쓰기와 최신 대기 요청 하나를 유지한다. 리비전으로 이전 저장 완료가 새로운 저장·오류 상태를 제거하지 않게 한다. I/O 실패에도 메모리 설정을 유지하고 미저장·오류 문구와 재시도·초기화를 제공한다. 뒤늦은 디스크 값이 더 새로운 선택을 덮지 못한다. 디스크로 UI/DSP를 막거나 저장을 거짓 표시하거나 자동 감지 시작을 하지 않는다.
 
-- [x] RED actual DataStore tests: durable reload, typed/schema defaults, corrupt bytes, resets/unknown keys. Implement repository.
-- [x] RED controller tests: delayed initial load/edit guard, immediate application before blocked save, latest-write ordering and failed save honesty/retry. Implement process lifecycle and main-thread bridge.
-- [x] Prove actual DSP/mapped command response to live sensitivity and exact AI OFF baseline continuity with existing bounded worker tests.
-- [x] Add actual Wear Compose setting/toggle/recreation tests. Full unit suite, assemble/lint, independent read-only review and important fixes. Prepare main-target Draft publication Closes #28; retain predecessor/Watch7 UI→physical response/restart DoD as unverified.
+앱에서 컨트롤러를 초기화한다. 메인 제어 스레드에서 CaptureRuntime AI·민감도 및 기존 AI 작업자만 갱신한다. 설정 로딩으로 작업자·모델을 생성하지 않는다. 서비스의 LiveDsp는 프레임마다 민감도를 읽으며 오디오 전달에서 AI 모드를 변경하지 않는다. Wear 설정에서 범위 내 민감도, AI 토글, 출력 제한, 저장·로딩·오류 및 초기화를 제공한다. AI 상세도 동일 저장 권한을 사용한다. 공통 계약 및 진동 정책 유지.
+
+- [x] 실제 DataStore 실패 시험: 재로딩·타입/스키마 기본값·손상 바이트·초기화/미지 키. 저장소 구현.
+- [x] 컨트롤러 실패 시험: 지연 초기 로딩·편집 제한·차단 저장 전 즉시 반영·최신 쓰기 순서·실패 표시/재시도. 앱 생명주기·메인 스레드 연결.
+- [x] 실제 DSP·매핑 명령의 실시간 민감도 반응과 기존 제한 작업자 시험을 통한 AI OFF 기준 경로 연속성 확인.
+- [x] 실제 Wear Compose 설정·토글·재생성 시험. 전체 단위 시험/assemble/lint, 독립 검토·중요 수정, main 대상 Draft Closes #28 준비. 선행 및 Watch7 UI→물리 반응·재시작 검증 조건은 미검증.

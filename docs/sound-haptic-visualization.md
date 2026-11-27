@@ -1,15 +1,25 @@
-# Sound and commanded-haptic comparison (#26)
+# 소리와 진동 명령 시각화
 
-The home screen plots two on-watch rows: input RMS/envelope, and HapticMapper's commanded intensity over each HapticFrame duration. They share one five-second monotonic **source-time** window. This aligns each command with the audio features from which it was mapped; it does not measure scheduler/OS/physical motor delay. The labels explicitly distinguish commands from physical vibration.
+[문서 안내](README.md)
 
-ListeningService offers paired numeric features and mapper commands after attempting scheduling. The graph represents the mapper's requested commands; it does not confirm delivery or scheduler acceptance, and a late command can be dropped by the scheduler. VisualizationHistory stores no PCM. Each active session has 256 atomic slots; the single audio producer writes one immutable numeric point in constant time and never waits for a UI lock or callback. Snapshot readers skip overwritten slots and stale sessions. Beginning/stopping/failing/finishing capture replaces or clears the current history. Late old-session writes cannot enter the new ring.
+## 그래프의 의미
 
-The Activity reads history on a separate coroutine dispatcher at no more than 10Hz while STARTED and Listening. Its snapshot worker is cancelled on phase changes or leaving that lifecycle state. There is no subscription required by the audio producer, and a full ring overwrites old points. Turning the screen/UI off therefore adds no backpressure to DSP or the renderer by design. Actual screen-off service survival and performance still require Watch7 evidence.
+메인 화면은 입력 RMS·엔벌로프와 HapticMapper가 요청한 HapticFrame의 강도·지속시간을 두 줄로 나타낸다. 같은 5초 단조 시간 기준의 **소리 발생 시점**을 사용하므로 명령을 생성한 음향 특징과 비교할 수 있다. 스케줄러·OS·물리 모터의 지연을 측정하는 그래프는 아니다.
 
-Both Canvas rows use the same start/end timestamps and amplitude range. Input discontinuities are not bridged. The output width represents command duration, clipped at the current window. Silence is a baseline; no samples, silence and stopped capture have separate text. Screen readers get recent numeric RMS or commanded intensity as percentages; these are local numeric levels, not raw audio or motor measurements.
+ListeningService는 스케줄링을 시도한 뒤 음향 특징과 매퍼 명령의 수치를 전달한다. 그래프가 표시하는 명령은 매퍼의 요청이며 실제 전송 성공이나 스케줄러 수락을 보장하지 않는다. 늦은 명령은 스케줄러에서 폐기될 수 있다.
 
-## Local evidence and remaining DoD
+## 데이터 구조와 갱신
 
-Pure tests feed actual synthetic PCM through DspProcessor, HybridHapticMapper and HapticScheduler with a recording renderer, without requesting any UI snapshots until processing finishes. Every displayed numeric point is checked against its feature/command and all rendered frames are checked against mapped commands. Additional tests verify bounded history after 10,000 writes, five-second expiry, session replacement/stale stop and mismatched/duplicate timestamps. The actual MainActivity Compose suite checks the two source/command labels and real-controller stop status. An integration regression inserts a current numeric pair, waits for both Canvas descriptions to show its distinct input/output levels, and verifies stop clears them; deliberately disconnecting the Activity snapshot collector makes this test fail.
+VisualizationHistory에는 PCM을 저장하지 않는다. 활성 세션마다 원자적 슬롯 256개를 두고 단일 오디오 생산자가 불변 수치 한 점을 일정 시간 안에 쓰며 UI 락이나 콜백을 기다리지 않는다. 스냅샷 읽기는 덮어쓴 슬롯과 이전 세션을 건너뛴다. 시작·중지·실패·종료 시 현재 이력을 교체 또는 초기화하며 이전 세션의 늦은 쓰기가 새 버퍼에 들어가지 못한다.
 
-Run `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` locally. These are host tests with synthetic audio and a fake renderer, not actual microphone/physical haptic evidence. Real PCM comparison performed transiently in memory, Watch7 video of both rows/rapid sound changes, screen-off/background DSP/vibration performance, gestures and predecessor main merges remain pending. Do not save or upload raw microphone PCM/voice. Keep #26 open and its PR Draft until those checks pass. No GitHub Actions, PC dashboard, network or remote graph service is involved.
+Activity는 STARTED 및 감지 중 상태에서 별도 코루틴 디스패처로 최대 10Hz로 읽는다. 단계 변경 또는 화면 생명주기 이탈 시 읽기 작업을 취소한다. 오디오 생산자는 구독자가 없어도 작동하며 가득 찬 버퍼는 이전 점을 덮어쓴다. 설계상 UI를 끄더라도 DSP·렌더러의 역압이 발생하지 않는다. 실제 화면 꺼짐 서비스 유지·성능은 실기기 검증과 구분한다.
+
+두 Canvas는 동일 시작·종료 시각과 값 범위를 사용한다. 입력의 불연속 구간을 이어 그리지 않는다. 출력 폭은 현재 창 범위 안에서 명령 지속시간을 나타낸다. 무음은 기준선이며 입력 없음·무음·감지 중지를 구분한다. 스크린리더는 최근 RMS·진동 명령 백분율을 읽을 수 있다. 원음이나 모터 실측값은 아니다.
+
+## 검증과 한계
+
+순수 시험은 합성 PCM을 실제 DspProcessor, HybridHapticMapper, HapticScheduler에 전달하고 기록용 렌더러를 사용한다. UI 스냅샷 없이 처리한 뒤 표시 수치와 특징·명령 및 렌더링 프레임을 비교한다. 10,000번 쓰기 후 버퍼 제한, 5초 만료, 세션 교체, 이전 중지, 불일치·중복 시간도 확인했다.
+
+실제 MainActivity Compose 시험은 두 그래프의 구분 표시와 컨트롤러 중지를 검사한다. 통합 회귀 시험은 현재 세션 수치쌍을 주입하고 서로 다른 입력·출력 수준의 Canvas 설명 및 중지 후 초기화를 확인했다. Activity의 스냅샷 구독을 의도적으로 끊으면 이 시험은 실패한다.
+
+합성 음원과 가짜 렌더러 시험은 실제 마이크·물리 진동의 증거가 아니다. 최종 워치의 빠른 소리 변화, 원형 화면 조작, 화면 꺼짐·백그라운드 성능 전수 시험은 미완료다. 실제 입력 비교가 필요할 때 원음은 일시적으로 메모리에서만 다룬다. 기본 그래프는 워치 안에서 동작하며 외부 그래프 서버를 요구하지 않는다. 별도의 선택적 로컬 설정 화면과 구분한다.

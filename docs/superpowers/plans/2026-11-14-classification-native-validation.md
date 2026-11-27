@@ -1,21 +1,21 @@
-# Classification native verification (#20)
+# 환경음 분류 네이티브 검증 계획 (#20)
 
-> Execute inline; one fresh read-only review before integration.
+> 과거 작업 계획입니다. 당시의 요구사항·체크 상태를 보존하며, 최종 구현 및 검증 상태는 현재 기술 문서를 기준으로 합니다.
 
-Goal: isolate the existing #20 component on merged #19 and observe actual model scores through confirmation, uncertainty and expiry on Watch7.
+> 직접 수행하고 통합 전 새 읽기 전용 검토를 한 번 진행한다.
 
-Architecture: retain the pure Kotlin smoother and its core Classification contract. Add only an opt-in separate-package Activity using generated signals and controlled score scenarios. No microphone, vibrator, network or original app changes.
+**목표:** 병합된 #19 기반에서 기존 #20 구성요소를 분리하고 Watch7 실제 모델 점수의 확인·불확실·만료를 관찰한다.
+**구조:** 순수 Kotlin 안정화 로직과 Classification 계약 유지. 생성 신호와 통제 점수 시나리오를 사용하는 선택적 별도 패키지 Activity만 추가. 마이크·진동·네트워크·원래 앱 변경 없음.
+**명세:** #20, docs/models.md. 원래 PR57/커밋 2eaa296 보존, 대체 브랜치는 main ab730a6 기반.
 
-Spec: GitHub #20 and docs/models.md. Original PR57/commit2eaa296 is preserved; replacement branch starts at main ab730a6.
+- [x] 이슈·모든 댓글·PR57 확인 및 소유권 보존. 2eaa296만 이식하고 문서 충돌 해결 시 현재 모델 근거 유지.
+- [x] 호스트 시험에서 정확한 문턱·확인 경계를 검사. 명시적 동작으로 시작하는 네이티브 검증 및 합성 무음·발화 유사·경적 유사·노크 유사·잡음·사인파 추가. 이름은 합성 방식이지 인식 정답이 아니다.
+- [x] 네이티브 통제 점수로 Speech/horn/Knock, 모호성, 저점수, 중복, 중지·지연 만료, 초기화, 다른 세션 검사. 원문 레이블·한국어·점수·단조 시각/만료와 실제 추론 결과를 별도 기록. 실행 오류 연결은 #22.
+- [x] 일반/선택적 시험·빌드·린트 및 일반/릴리스 제외 확인. 최종 후보를 Watch7에서 실행하고 원래 앱·프로필·설정을 보존, 임시 진단 앱만 제거. [근거](../../evidence/issue20-validation.md).
+- [ ] 새 읽기 전용 검토, 필수 발견 사항 한 차례 수정, 근거·한계 기록, 원래 브랜치를 삭제하지 않고 PR57 대체. 당시 DoD 충족 시 병합; 정확도·최종 AI 효용 주장 금지.
 
-- [x] Read issue/all comments/PR57 and preserve ownership; transplant only2eaa296, preserving current model evidence during documentation conflict resolution.
-- [x] Exercise exact threshold/confirmation boundaries with host tests; add action-gated native validation and generated silence, voice-like, horn-like, knock-like, noise and sine inputs. Names describe synthesis, never presumed recognition.
-- [x] Native controlled scores cover Speech/horn/Knock, ambiguity, low scores, duplicates, stopped/delayed expiry, reset and other sessions. Log original label, Korean mapping, scores and monotonic time/expiry separately from actual inference results. Execution-error state wiring remains #22.
-- [x] Run normal/opt-in test/build/lint, verify normal/release exclusion. Run the final candidate on Watch7; preserve original app/profile/settings and remove only the temporary probe afterwards. [Evidence](../../evidence/issue20-validation.md).
-- [ ] Fresh read-only review, address required findings once, document exact evidence/limits; replace PR57 without deleting its branch. Merge only if issue DoD is met; no accuracy or final AI usefulness claim.
+검토 중점: 콜백 없이 만료, 중복 관찰, 원문/EMA 불일치, 지연, 세션 누출, 정확한 분류 번역 및 일반 앱에 진단 기능 혼입 방지.
 
-Review focus: stale results without new callbacks, duplicate observations, raw/EMA disagreement, delayed results, session leakage, exact ontology translation and no accidental normal-app probe.
+결정: 생성 음원만 사용하고 합성 방식과 모델이 실제 출력한 레이블을 별도 기록한다. 원음 비수집 원칙을 유지하며 실제 음성·경적·노크 인식 정확도는 별도 인수 한계다.
 
-Ruling: use generated test audio only, with known synthesis and observed model labels recorded separately. This preserves the repository's no-user-audio policy; these fixtures do not establish real speech/horn/knock recognition accuracy, which remains an explicit integration/acceptance limit.
-
-Boundary regression exposed Float EMA drift: repeated .42 became .42000002, changing a raw .08000001 margin into .07999998. Use the algebraically equivalent previous + .6*(incoming-previous), preserving constant inputs without weakening thresholds. The exact margin regression failed before this fix.
+경계 회귀 시험에서 Float EMA 오차를 발견했다. 반복 .42가 .42000002가 되어 원래 .08000001 차이가 .07999998로 변했다. 대수적으로 동일한 previous + .6*(incoming-previous)로 상수 입력을 보존하고 문턱을 완화하지 않는다. 정확한 차이 회귀 시험은 수정 전 실패했다.

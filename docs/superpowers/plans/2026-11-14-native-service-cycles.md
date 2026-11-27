@@ -1,38 +1,38 @@
-# Native service lifecycle verification plan (#23)
+# 실제 서비스 생명주기 반복 검증 계획 (#23)
 
-> Execute inline with superpowers:executing-plans; one fresh-context read-only review before native execution. The user authorized autonomous issue/PR work and Watch7 tests while asleep, including preserving their installed app and settings.
+> 과거 작업 계획입니다. 당시의 요구사항·체크 상태를 보존하며, 최종 구현 및 검증 상태는 현재 기술 문서를 기준으로 합니다.
 
-**Goal:** Exercise the current integrated service with real AudioRecord, DSP, AI OFF/ON/OFF, duplicate commands, normal stop and repeated restart on Watch7. Keep incomplete issue gates open.
+> superpowers:executing-plans로 직접 수행, 네이티브 실행 전 독립 읽기 전용 검토 1회. 당시 사용자는 자율 이슈/PR 작업과 수면 중 Watch7 시험(설치 앱·설정 보존)을 승인했다.
 
-**Architecture:** An opt-in Activity in mandatory com.ullim.watch.nativeprobe runs bounded foreground-only checks against unchanged production ListeningService/CaptureRuntime/AiRuntime. It performs real numeric motor calibration in its own storage, then three capture cycles with OFF3s→ON8s→OFF2s. Each transition is checked against actual state/model/active recording configuration counts. Request duplicate starts and stale stop commands; await real terminal cleanup before the next token. No original PCM, labels, audio files, network or actual system-setting writes.
+**목표:** 실제 AudioRecord, DSP, AI OFF/ON/OFF, 중복 명령, 정상 중지·반복 재시작을 Watch7에서 시험한다. 미완료 인수는 유지한다.
 
-**Base/spec:** 1ccb5fc9185040ee9b798945d4f642e8216f6b33, issue23 and docs/session-lifecycle.md. This measures the current integration, not the original e615 PR source. Native app manifest/source/test additions only; normal debug/release exclude probes. Existing normal installed4b206f/profile47a remain untouched. Own probe permissions may be granted for the test; original permissions/settings are preserved.
+**구조:** 필수 com.ullim.watch.nativeprobe의 선택적 Activity는 제품 ListeningService/CaptureRuntime/AiRuntime을 변경하지 않고 제한된 포그라운드 검사를 수행한다. 자체 저장소에서 실제 수치 모터 보정, OFF3초→ON8초→OFF2초 감지 3회. 실제 상태·모델·활성 녹음 구성 수로 전이를 확인한다. 중복 시작·이전 중지 명령을 보내고 다음 토큰 전 실제 정리를 기다린다. 원본 PCM·레이블·오디오 파일·네트워크·실제 시스템 설정 쓰기 없음.
 
-**Constraints:** three capture cycles; calibration timeout10s; start5s; AI load/inference8s budget; stop/AI cleanup8s; each watch wait is bounded and failure triggers stop rather than a retry. On Activity pause/focus loss/destroy cancel the run and request native cleanup; record requested result separately from verified cleanup. Require zero active recording configurations before calibration/start and one while capturing; public AudioManager counts are device-wide observations, not privileged per-UID attribution. Abort if baseline has another recorder. Do not log configuration IDs or classification labels.
+**기반/명세:** 1ccb5fc9185040ee9b798945d4f642e8216f6b33, #23, docs/session-lifecycle.md. 기존 e615 PR 소스가 아니라 당시 통합본 검증이다. 네이티브 앱 매니페스트/소스/시험만 추가, 일반 debug/release 진단 제외. 기존 설치4b206f/프로필47a 유지. 자체 진단 권한만 허용, 원래 권한·설정 보존.
 
-## Work
+**제약:** 감지 3회, 보정 10초, 시작 5초, AI 로딩/추론 8초, 중지/AI 정리 8초. 모든 기기 대기는 유한하며 실패 시 재시도 대신 중지. Activity 일시 중지·포커스 이탈·종료에서 취소 및 네이티브 정리 요청; 요청 결과와 확인된 정리를 구분. 보정/시작 전 활성 녹음 0, 감지 중 1을 요구한다. 공개 AudioManager 카운트는 기기 전체 관찰값이며 UID별 권한 정보가 아니다. 다른 녹음기가 있으면 중단. 구성 ID·레이블 로그 금지.
 
-- [x] Add opt-in test source set. RED Activity boundary tests: absent action no effects, missing microphone permission fails before calibration/capture, wrong runtime package refuses any storage/mic operation.
-- [x] Implement bounded orchestration Activity and declaration, leaving production service/controller/mapper unchanged. Success requires calibration saved,3 cycles, actual AI successes, zero terminal recording configurations and AI unloaded/not busy/no pending cleanup.
-- [x] Run opt-in full tests/build/lint and normal tests/build/release; assert probe exclusion in normal manifest/DEX. Commit source.
-- [x] One independent read-only review of this unit. One required fix pass with RED→GREEN and full suite; no repeat reviewer.
-- [x] If watch remains reachable, install only own probe, grant own microphone/notification permissions, run once and poll the same process. Inspect service/AppOps/numeric logs and original app/profile hashes. Remove own probe only after observed terminal result and cleanup. Reopen original idle screen.
-- [x] Record exact source/APK/native evidence and limits, update PR61. Do not merge/close23 while predecessors/remaining OS scenarios or physical gates are missing.
+## 작업
+- [x] 선택 시험 소스 세트 추가. Activity 경계 실패 시험: 명시 action 없을 때 효과 없음, 마이크 권한 없으면 보정/감지 전 실패, 잘못된 실행 패키지는 저장·마이크 거부.
+- [x] 제한 실행 Activity 및 선언 구현, 제품 서비스/컨트롤러/매퍼 변경 없음. 성공 조건은 보정 저장, 3회, 실제 AI 성공, 최종 녹음 0 및 AI 로드/작업/정리 대기 없음.
+- [x] 선택 전체 시험/빌드/린트, 일반 시험/빌드/release, 일반 매니페스트/DEX의 진단 제외 확인 및 소스 커밋.
+- [x] 독립 읽기 전용 검토와 필수 실패→성공/전체 수정 한 번, 반복 검토 없음.
+- [x] 워치 연결 시 자체 진단만 설치, 자체 마이크·알림 권한 허용, 한 번 실행 및 같은 프로세스 확인. 서비스/AppOps/수치 로그 및 원래 앱/프로필 해시 검사. 최종 결과·정리 확인 후 자체 진단만 제거하고 원래 대기 화면 복귀.
+- [x] 정확한 소스·APK·네이티브 근거·한계 및 PR61 갱신. 당시 선행·나머지 OS·물리 기준 미충족 상태에서 #23 병합·종료 금지.
 
-## Review focus
+## 검토 중점
+데이터/마이크 접근 전 패키지 분리, 생명주기 취소의 거짓 PASS, 자원 점유 중 시간 초과, 실제 OFF/ON 추론 증거, 다음 세션 전 정리, 기기 전체 녹음 카운트 표현. 원음·숨겨진 API·Global 쓰기·제품 동작 변경 없음. 워치 연결 불가 시 네이티브 근거를 보류하고 코드 작업 지속.
 
-Package isolation before any data/mic access; false PASS on lifecycle cancellation; timeout while a native resource remains owned; real OFF/ON inference evidence; cleanup before next session; device-wide public recording counts correctly described. No raw audio, hidden APIs, global settings writes or production behavior changes. Watch unavailability leaves native evidence pending and does not stop code work.
+[공개 녹음 구성 API](https://developer.android.com/reference/android/media/AudioManager#getActiveRecordingConfigurations()): 빈 값은 조회 시 녹음 없음이며 네이티브 객체 해제 증거가 아니다.
 
-Official public recording-count reference: https://developer.android.com/reference/android/media/AudioManager#getActiveRecordingConfigurations(). Empty means no active recording when queried; it does not prove unallocated native objects were released.
+격리 앱에서도 실제 SettingsRuntime의 AI 토글·저장 완료/오류를 사용하며 프로세스 로컬 값으로 우회하지 않는다. 알림 권한과 감지 중 앱 알림 1개, 중지 후 0개를 요구한다. 알림 권한 누락의 실제 실패 시험 1개/10초 후 사전 검사에 추가. 첫 Activity 경계 3개는 클래스 누락 컴파일 실패 23초 후 22초 통과. 컴파일 수정은 기존 공개 상태 흐름 및 잘못된 패키지 시뮬레이션용 Activity 하위 클래스를 사용했다(Robolectric Config에 packageName 옵션 없음).
 
-Use the actual SettingsRuntime controller for AI toggles in the isolated app, including save completion/error checks; do not bypass it with only process-local values. Require notification permission and one active app notification during capture, zero after stop. Missing notification permission was a real semantic RED(1 failed/10s), then added to preflight. Initial three Activity boundary tests passed22s after the expected missing-class compile RED23s; implementation compile fixes used the existing public state flow and a test Activity subclass for unsafe package simulation (Robolectric Config has no packageName option).
+24afe91 독립 검토의 중요 항목 3개: 각 모드 저장 오류가 나중 토글로 지워질 수 있음, 보정 취소가 고립된 ListeningService 시작 가능, 진행 중 유효 추론이 OFF 정리 중 완료되어 카운트 증가 가능. 검토자의 경미 오류/정리 오표기도 검증 무결성 때문에 중요로 재분류: 정리된 재시도 오류를 자원 미해제로 기록하고 실제 코드를 대체함. 4개 모두 구체적 의미 실패 16초: SETTINGS_ERROR 대신 null, 비서비스 마이크 소유자에 STOP Intent, 차단 추론 완료로 OFF_NOT_VERIFIED, 정리된 Error 거부. 한 차례 수정으로 각 저장 완료 대기, 서비스 반복 토큰만 중지, 정리 후 추론 카운트 고정(마지막 완료 포함), FAIL/CANCELLED는 정리된 Error 허용, PASS는 Idle 유지. 재검토·경미 보류 없음.
 
-One fresh read-only review of24afe91 found3 Important items: each mode's save error can be erased by a later toggle; calibration cancellation can start an orphan ListeningService; a valid in-flight inference may finish during OFF cleanup and increase its counter. Also re-graded the reviewer's Minor error/cleanup mislabel as Important for verification integrity: it incorrectly records a clean retryable error as unreleased resources and replaces the actual failure code. All4 have concrete semantic RED16s: expected SETTINGS_ERROR versus null; unexpected STOP service Intent for a non-service microphone lease; OFF_NOT_VERIFIED from the real worker completing a blocked inference; settled Error incorrectly rejected. One required fix pass awaits each settings save, stops only the service-cycle token, freezes inference count after cleanup (including that completion in totals), and accepts settled Error only for FAIL/CANCELLED while PASS still requiresIdle. No re-review. No deferred minors.
+**결정:** 물리 촉각·종단 지연·나머지 OS 조건은 미입증 상태다. 진단은 실제 감지/AI/서비스 반복 정리만 측정하며 최종 인수로 간주하면 하드웨어·OS 실패를 가릴 수 있어 이 근거만으로 병합/종료하지 않는다.
 
-Final: Ruling: physical tactile response, end-to-end latency and remaining OS scenarios remain unproven and open; this verifier measures actual capture/AI/service cycle cleanup only. Treating it as final acceptance could hide hardware/OS failures, so no such merge/closure is authorized by this evidence.
+**최종 로컬 결과:** 4개 회귀 실패 16초→성공, 전체244/244. 선택 test/build/lint/releaseUnitTest 컴파일 42초. 진단 전용 수정 이전 일반236/236 시험/빌드/린트/release 58초. 일반 매니페스트/DEX에 Session Activity 없음. 플래그 활성 상태에서도 시험 소스는 debug 전용, release 시험 컴파일 통과. 제품 런타임 파일 변경 없음.
 
-Final: fixed all4 findings — corresponding four regression tests RED16s→GREEN, full244/244; opt-in test/build/lint/releaseUnitTest compilation42s. Normal236/236 test/build/lint/release58s before probe-only review fixes; normal manifest/DEX exclude the Session Activity. Test sources are debug-only even when the probe property is enabled, release test compilation passed. No production runtime files changed.
+**Watch7 결과:** 소스0eec917 설치·해시, 최종 FAIL CALIBRATION_FAILED/UNSTABLE_PHASE_0, cycles0/inferences0/cleanupVerified=true/3664ms. 오디오 사용 2초890ms 후 비활성, 서비스 기록 없음. 자체 진단 제거, 원래4b206f/프로필47a/stay-on1/font1.0 보존. 배치·측정 조건을 의도적으로 통제하기 전 동일 재시도 금지, 문턱 완화·픽스처 대체 금지. 서비스 반복 성공 미입증.
 
-Watch outcome: native installed/hashed source0eec917, terminal FAIL CALIBRATION_FAILED/UNSTABLE_PHASE_0, cycles0/inferences0/cleanupVerified=true/3664ms. Audio use2s890ms then inactive, service records absent. Own probe removed and original4b206f/profile47a/stay-on1/font1.0 preserved. Do not retry unchanged until the placement/measurement condition is deliberately controlled; no threshold weakening or fixture substitution. Service-cycle success remains unproven.
-
-Evidence and probe source integrated into PR73 at3a3df18; PR61 and PR73 descriptions updated with the explicit failed native outcome, zero service cycles/inferences, cleanup and preserved original state. Both remain Draft/open; no issue closure/main merge from this unit.
+근거 및 진단 소스 PR73의3a3df18 통합, PR61·PR73 설명에 실제 실패·반복0·추론0·정리 및 원래 상태 보존 기록. 당시 둘 다 Draft/open이며 이 작업 단위로 이슈 종료나 main 병합을 하지 않았다.

@@ -1,50 +1,69 @@
-# Bundled YAMNet classification model (#19)
+# YAMNet 환경음 분류 모델과 AI 처리
 
-- Author: Google / TensorFlow authors. Model: `google/lite-model/yamnet/classification/tflite/1` (version 1, unchanged binary).
-- Download: https://storage.googleapis.com/download.tensorflow.org/models/tflite/task_library/audio_classification/android/lite-model_yamnet_classification_tflite_1.tflite
-- Official usage reference: https://developers.google.com/codelabs/tflite-audio-classification-basic-android
-- Model implementation/ontology: https://github.com/tensorflow/models/tree/master/research/audioset/yamnet
-- Retrieved 2026-11-13. Asset `yamnet.tflite`: 4,126,810 bytes; SHA-256 `10c95ea3eb9a7bb4cb8bddf6feb023250381008177ac162ce169694d05c317de`.
-- `yamnet-labels.txt` was extracted unchanged from the model's embedded ZIP entry `yamnet_label_list.txt`: 6,230 bytes, 521 lines; SHA-256 `8e1267a120c1932b7273c0d0e0c5529edbb9a35512b437b1c8982baa59047051`.
-- Embedded model metadata declares Apache License 2.0. The upstream license with copyright is retained in `app/src/main/assets/notices/Apache-2.0.txt` (from https://github.com/tensorflow/models/blob/master/LICENSE). The model and labels are unmodified; app adapter code is independently written.
-- Interpreter runtime: official `com.google.ai.edge.litert:litert:1.4.2`, Apache-2.0. CPU, one thread; no Play Services, server or runtime download. Runtime guide: https://developers.google.com/edge/litert/android
+[문서 안내](README.md)
 
-The binary's FlatBuffer declares float32 input `[15600]` and float32 output `[1,521]`; its internal weights are quantized. Input is 975ms of 16kHz mono audio normalized by 32768. No extra resampling or spectrogram preprocessing is performed outside the model. The Android loader verifies asset hashes and both tensor shapes/types. Model failures throw to the independent AI worker (#22), which leaves the DSP path running without AI context.
+## 모델과 출처
 
-Classification uses the window end in the capture monotonic clock domain and expires 1.5s later. Scores are model scores, not calibrated probabilities or guaranteed recognition confidence. Top five original labels retain exact output indices. Low-score/unstable/expired interpretation and Korean display labels belong to #20. PCM stays in memory; inference input buffers are zeroed after each call. The adapter is serialized and close is idempotent.
+| 항목 | 내용 |
+| --- | --- |
+| 제작자 | Google / TensorFlow 저작자 |
+| 모델 | `google/lite-model/yamnet/classification/tflite/1` (버전 1, 원본 바이너리) |
+| 다운로드 날짜 | 2026-11-13 |
+| `yamnet.tflite` | 4,126,810바이트, SHA-256 `10c95ea3eb9a7bb4cb8bddf6feb023250381008177ac162ce169694d05c317de` |
+| `yamnet-labels.txt` | 모델 내부 ZIP의 `yamnet_label_list.txt` 원본 추출, 6,230바이트, 521행, SHA-256 `8e1267a120c1932b7273c0d0e0c5529edbb9a35512b437b1c8982baa59047051` |
+| 추론 엔진 | `com.google.ai.edge.litert:litert:1.4.2`, CPU 단일 스레드 |
+| 라이선스 | 모델 메타데이터 및 LiteRT: Apache-2.0. 자체 어댑터는 독립 작성 |
 
-## Verification boundary
+공식 [모델 바이너리](https://storage.googleapis.com/download.tensorflow.org/models/tflite/task_library/audio_classification/android/lite-model_yamnet_classification_tflite_1.tflite), [사용 예제](https://developers.google.com/codelabs/tflite-audio-classification-basic-android), [모델 구현 및 분류 체계](https://github.com/tensorflow/models/tree/master/research/audioset/yamnet), [LiteRT 문서](https://developers.google.com/edge/litert/android). 모델과 레이블은 수정하지 않았다. 저작권 고지를 포함한 [Apache-2.0 원본 고지](../app/src/main/assets/notices/Apache-2.0.txt)는 번들에 보존한다. 모델 실행은 Play Services, 서버, 런타임 다운로드를 요구하지 않는다.
 
-Local contract tests use an injected engine to verify normalization, invalid input/output rejection, labels, timestamps, input erasure and closure. They do **not** execute the native Android interpreter. The separate Watch7 test executes the actual bundled interpreter on generated signals alongside independent DSP; [#19 evidence](evidence/issue19-validation.md) records exact assets, outputs, cadence and observations. This is component evidence, not final microphone/service/toggle or physical haptic acceptance. The current service connection is implemented in #22; whole-app AI ON/OFF and physical usefulness remain tracked in #22/#36/#37. No accuracy or improvement claim is made from model execution alone.
+## 입력과 출력
 
-## Result stability (#20)
+FlatBuffer는 float32 입력 `[15600]`과 float32 출력 `[1,521]`을 선언하며 내부 가중치는 양자화되어 있다. 16kHz 단일 채널 음원 975ms를 32768로 나누어 정규화한다. 모델 밖에서 추가 리샘플링이나 스펙트로그램 전처리를 하지 않는다. Android 로더는 자산 해시와 텐서 타입·크기를 검사한다. 실패는 독립 AI 작업자에 전달되며 DSP는 AI 문맥 없이 계속 작동한다.
 
-`ClassificationSmoother` keeps at most five smoothed scores (EMA: new 0.6, old 0.4). Both the raw and smoothed winner must score at least 0.35, lead the second candidate by at least 0.08 and agree on the label. Two distinct windows spanning at least 400ms must confirm that candidate. These are development thresholds; they are not calibrated accuracy measurements. Ambiguous/low scores clear the confirmed label immediately; empty input clears score history. Before confirmation, the returned classification has empty scores (UI: uncertain, policy: baseline DSP).
+분류 시간은 감지 단조 시계의 분석 창 종료 시각이며 1.5초 후 만료된다. 점수는 보정된 정답 확률이 아닌 모델 출력이다. 상위 5개 원문 분류는 출력 인덱스를 그대로 유지한다. PCM은 메모리에만 있고 추론 입력 버퍼는 호출마다 0으로 덮어쓴다. 어댑터 작업은 직렬화되고 닫기 호출은 반복해도 안전하다.
 
-Out-of-order, future, expired and other-session results cannot replace current context. A new session or a gap reaching the previous result's expiry clears history. Repeated reads do not count as additional windows or extend expiry. Display and policy consumers must check `isFresh` at use time, even if no new inference arrives. Worker failure/disabled/loading are separate execution states, not classifications. #22 connects worker status to runtime and an AI control screen; #27 adds the [shared result presentation](ai-result-display.md) on home and AI controls.
+주입 엔진 로컬 시험은 정규화, 잘못된 입력·출력 거부, 레이블, 시간, 입력 지우기와 종료를 검증했다. 네이티브 Android 추론을 실행하지는 않는다. Watch7에서 별도 합성 신호로 실제 번들 모델과 DSP를 실행한 기록은 [모델 검증 자료](evidence/issue19-validation.md)에 있다. 이는 구성요소 증거로, 전체 마이크·서비스·토글 또는 물리 촉각 인수를 대신하지 않는다.
 
-`SoundLabels` translates a limited set of exact ontology labels, retaining the original string for untranslated classes. It does not interpret a musical “French horn” as a vehicle warning. The full 521-class original map remains bundled. [#20 device evidence](evidence/issue20-validation.md) verifies controlled-score confirmation/uncertainty/expiry and actual model outputs on generated signals. These fixtures do not establish accuracy or false-positive rates on real speech/horns/knocks/environmental recordings.
+## 분류 결과 안정화
 
-## Sound-driven strength and AI continuity (#21, 2026-11-14 revision)
+`ClassificationSmoother`는 최대 5개의 평활화 점수를 유지한다(지수이동평균: 새 점수 0.6, 이전 점수 0.4). 원문·평활화 결과 모두 0.35 이상, 차순위와 0.08 이상 차이가 나고 최상위 레이블이 일치해야 한다. 최소 400ms에 걸친 서로 다른 두 분석 창에서 후보가 확인되어야 한다. 이는 개발 기준이지 보정된 정확도 수치가 아니다. 낮거나 모호한 점수는 확정 레이블을 즉시 제거하고 빈 입력은 이력을 초기화한다. 확정 전 점수는 비어 있으며 화면은 불확실, 정책은 기본 DSP를 사용한다.
 
-`HybridHapticMapper` computes a normal DSP command with independent baseline history. Missing, expired, future, wrong-session or low/ambiguous context returns that exact baseline immediately. No class selects a gain or strength curve: Speech, Alarm, Horn and all other labels follow the same rule. Fresh classification scores >=0.65 with a lead >=0.08 provide a continuity label. The worker already requires stable classifications; the mapper resets its small temporal filter when that label changes.
+순서가 어긋난 결과, 미래·만료·이전 세션 결과는 현재 문맥을 덮지 못한다. 새 세션이나 이전 결과의 만료만큼 긴 공백에서 이력을 지운다. 반복 조회는 추가 창으로 세거나 만료 시간을 연장하지 않는다. 화면과 정책은 사용 시 `isFresh`를 확인한다. 작업자 실패·비활성화·로딩은 분류 결과와 별도 실행 상태다.
 
-For a continuing reliable context, small frame-to-frame fluctuations use an EMA with new weight0.35, bounded to +/-0.03 around the current baseline. First responses, source changes, onsets >0.2 or changes >0.08 bypass it. The filter cannot change the <=0.60,0.60..0.75,>=0.75 pulse band selected by the current baseline. Constant inputs have no lasting gain. A first late result cannot reshape the first500ms of an event. OFF/invalid context restores baseline immediately. This is classification-assisted temporal stabilization, not a neural denoiser, semantic source separation or a proved perceptual improvement.
+`SoundLabels`는 일부 정확한 분류 체계 명칭을 번역하고 나머지는 원문을 보존한다. 악기 French horn을 차량 경적으로 해석하지 않는다. 521개 원문 전체를 번들에 유지한다. [분류 안정화 검증 자료](evidence/issue20-validation.md)는 통제 점수로 확인·불확실·만료와 합성 신호의 실제 모델 출력을 검사했지만 실제 음성·경적·노크·환경음의 정확도 및 오탐률을 입증하지 않는다.
 
-Tests compare identical strength traces for different labels, actual integer pulse changes on a fluctuating signal, bounded stabilization, immediate OFF/large-change recovery and real quiet gaps. Late-context and event tests cover policy timing. The production fan-out applies motor correction once per20ms frame before delivering the same corrected PCM to DSP and AI. DSP does not wait for inference. Noise-floor learning is disabled during the motor correction window. Actual overlapping external sound preservation, model accuracy and tactile benefit still require wrist validation.
+## DSP와 AI의 결합
 
-## Independent runtime (#22)
+`HybridHapticMapper`는 독립된 기준 처리 이력으로 DSP 명령을 생성한다. 문맥 누락·만료·미래·세션 불일치·낮거나 모호한 결과는 즉시 동일한 기본 명령을 반환한다. Speech, Alarm, Horn 등 특정 분류에 별도 강도 곡선이나 증폭을 적용하지 않는다. 기본 문맥 기준은 점수 0.65 이상, 차순위와 0.08 이상 차이이며 작업자의 안정화 결과를 사용한다. 레이블이 바뀌면 작은 시간 필터를 초기화한다.
 
-`AiRuntime` owns one process-wide asynchronous lane. The worker has at most one native operation and one latest pending audio window, with 500ms input cadence. DSP reads an atomic result and never waits for model load/inference/close. The capture consumer offers AI windows only after DSP fan-out. AI defaults ON for new settings, preserving stored OFF; enabling it does not start the microphone. The AI control screen shares #28's [local persistent settings](persistent-settings.md); restoring ON does not start the microphone.
+연속된 신뢰 문맥에서 작은 변화만 지수이동평균(새 값 가중치 0.35, 당시 정책 기준)으로 보정하며 기준 요청 대비 ±0.03으로 제한한다. 첫 반응, 음원 변화, 온셋 0.2 초과 또는 강도 변화 0.08 초과는 직접 통과한다. 현재 기준의 펄스 범위(60% 이하, 60~75%, 75% 이상)를 넘어가도록 보정하지 않는다. 일정 입력에 지속적인 증폭을 주지 않고 늦은 첫 결과는 초기 500ms 반응을 재구성하지 않는다. 최종 조절값은 MvpDefaults를 기준으로 하며 일부 파라미터는 조절 가능하다. 이는 환경음 분류 기반 시간적 안정화이지 신경망 잡음 제거, 음원 분리 또는 입증된 촉각 개선이 아니다.
 
-`AiCaptureFeed` separates audio delivery from mode reconciliation. Its audio-thread `accept` only sends PCM through fan-out and offers the latest window. `start`/`refreshMode` and the AI control activity reconcile the setting on the service/UI main thread. A stale audio-thread preference read therefore cannot turn AI back on after a user's OFF. Future settings integration must keep this single control-thread authority.
+시험에서 레이블에 관계없는 강도, 변동 입력의 실제 정수 펄스 변화, 보정 한계, AI 끄기·큰 변화 즉시 복원, 무음, 늦은 문맥과 사건 시점을 비교했다. 오디오 분배는 20ms마다 모터 간섭을 한 번 보정하고 같은 PCM을 DSP와 AI에 전달한다. 모터 보정 중 노이즈 바닥 학습을 끈다. 외부음 중첩 보존, 모델 정확도 및 촉각 효과는 정식 평가되지 않았다.
 
-Load/inference/close execute outside the worker state lock. OFF, session changes and errors clear context immediately and invalidate old callbacks. Native close waits on the same lane for an ongoing operation to return; the runtime never calls close concurrently or claims it killed a blocked native call. The UI exposes pending cleanup. One idle lane remains after OFF; its model reference is released after successful closure, while actual Android resident memory/GC behavior still needs measurement.
+## 독립 추론 실행
 
-Development deadlines are 500ms for delayed inference, 1s for inference failure and 10s for load/previous-operation failure. A service heartbeat checks deadlines and result expiry even when no model result arrives. Inference timeout permits one automatic retry per capture session after a 5-second cooldown, only when the previous native call and model close have completed. OFF/stop cancels recovery. A second timeout or other faults remain latched until explicit AI OFF/ON; no replacement worker or concurrent close is created. Old-generation outputs/errors cannot alter a new session. A failed close poisons further model loads until process restart. The process executor is not shut down by individual services; rejection is reported honestly, including retained-model cleanup if closure cannot be scheduled.
+AiRuntime은 프로세스 범위 비동기 실행 경로 하나를 사용한다. 작업자는 네이티브 작업 하나와 최신 대기 오디오 창 하나만 유지하며 입력 간격은 500ms다. DSP는 원자적 결과만 읽고 모델 로딩·추론·종료를 기다리지 않는다. 감지 소비자는 DSP 분배 후 AI 창을 전달한다. 신규 설정은 AI 켜짐이며 저장된 꺼짐을 보존한다. 설정 켜기만으로 마이크가 시작되지 않는다.
 
-`AiSnapshot` contains phases/faults, loaded/busy/cleanup flags, operation age, load duration, completed inference attempts (including failed/cancelled attempts within the same capture session), valid-contract native results, last/max duration, latched faults/timeouts and dropped windows. These are monotonic command/runtime measurements, not physical haptic latency. Per-session metrics reset on start; an ongoing old operation is visible through busy/cleanup/operation age rather than counted as a new session's inference. Debug builds log these metadata fields on state changes or every 5s under `UllimAI`. Logs omit PCM, source speech, audio files and classification labels. Actual Watch7 inference and applied haptic-context records are documented in [live inspection](evidence/live-detailed-tuning.md). The complete controlled [device validation procedure](ai-runtime-validation.md) and perceptual AI ON/OFF evaluation remain unfinished.
+AiCaptureFeed는 오디오 스레드의 `accept`에서 PCM을 분배하고 최신 창을 제공한다. `start`/`refreshMode`와 AI 제어 Activity는 서비스/UI 메인 스레드에서 설정을 조정한다. 이전 오디오 스레드의 설정 읽기가 새 꺼짐을 덮지 못하도록 한다.
 
+로딩·추론·닫기는 작업자 상태 락 밖에서 실행한다. AI 끄기, 세션 변경, 오류는 문맥을 즉시 지우고 이전 콜백을 무효화한다. 네이티브 닫기는 진행 중 호출이 반환될 때까지 같은 실행 경로에서 기다린다. 동시 닫기나 강제 취소를 주장하지 않으며 화면에 정리 대기를 표시한다. 성공적으로 닫으면 모델 참조를 해제하지만 실제 상주 메모리·GC는 별도 측정이 필요하다.
 
-## Live inspection and full output (2026-11-14)
-The baseline maps the sound-derived level directly to the same0..1 request scale, with the existing small onset accent and attack/release smoothing. NoiseGate normalizes the sqrt signal with the adjustable x/(x+knee*(1-x)) curve. The final user-selected reference, knee and mapper control points are in MvpDefaults; the shipped knee is1.5, not the earlier0.3 experimental default. It does not change PCM, microphone gain, gate/noise history or onset timing, and is not AGC. The mapper has no additional category-dependent gain. Pulse, amplitude and envelope backends allow full requests. Pulse fallback retains short20ms pulses up to60%; from60..75% it progressively moves later pulses' ON budget to the first pulse within the same60ms batch; at75% it reaches the long grouped pulse. Total ON time and true silent frames remain unchanged. The motor key includes output=100|pulse=adaptive75-85-v1 and requires matching calibration. The60..75% threshold adjustment retains this historical key because the calibrated0.2 and1.0 output waveforms are unchanged; it does not require another calibration. The analysis screen shows fresh raw YAMNet candidates, actual continuity policy and input/command before and after processing. Candidates do not bypass confidence/freshness checks. Class names and raw audio are not written to logs. None of the percentages is calibrated SPL or measured motor acceleration.
+| 실행 기준 | 동작 |
+| --- | --- |
+| 추론 지연 500ms | 지연으로 표시, 문맥 만료 확인 |
+| 추론 시간 초과 1초 | 오류 처리, 기존 호출 및 닫기가 끝나고 5초 후 세션당 1회 자동 복구 가능 |
+| 로딩·이전 작업 10초 | 오류 처리 |
+| 두 번째 시간 초과 또는 기타 오류 | 명시적 AI 끄기→켜기 전까지 오류 유지 |
+| 닫기 실패 | 프로세스 재시작 전 추가 모델 로딩 차단 |
+
+서비스의 주기 검사로 새 결과가 없어도 만료·시간 초과를 확인한다. AI 끄기·감지 중지는 복구를 취소하며 대체 작업자나 동시 닫기를 만들지 않는다. 이전 세대 결과와 오류는 새 세션을 덮지 못한다. 서비스별로 프로세스 실행기를 종료하지 않으며 실행 거부나 닫기 예약 실패도 실제 상태대로 보고한다.
+
+AiSnapshot은 실행 단계·오류, 로딩/작업/정리 상태, 작업 경과, 로딩 시간, 완료된 추론 시도(같은 세션의 실패·취소 포함), 유효 네이티브 결과, 최근·최대 시간, 오류·시간 초과 및 폐기된 창을 기록한다. 이는 명령·런타임 측정이며 물리 촉각 지연은 아니다. 세션마다 초기화하고 이전 진행 작업은 별도 작업 상태로 표시한다. 디버그 로그 UllimAI는 상태 변화 또는 5초마다 메타데이터를 기록하되 PCM·음성·오디오 파일·분류명은 기록하지 않는다. [실제 실행 기록](evidence/live-detailed-tuning.md)은 Watch7 추론과 적용된 문맥을 확인했다. 전체 통제 AI 효과 및 실기기 검증은 미완료다.
+
+## 최종 출력과 조절값
+
+기본 경로는 소리 기반 크기를 0~1 요청으로 매핑하고 작은 온셋 강조와 상승·감쇠를 적용한다. NoiseGate는 제곱근 신호를 `x/(x+knee*(1-x))`로 정규화한다. 최종 knee는 1.5이며 초기 실험값 0.3과 다르다. 원본 PCM, 마이크 이득, 노이즈 학습 이력, 온셋 타이밍을 바꾸지 않으며 AGC가 아니다.
+
+펄스·진폭·엔벌로프 경로는 전체 요청 범위를 허용한다. Watch7 펄스 폴백은 60%까지 짧은 20ms 펄스, 60~75%에서 같은 60ms 묶음의 뒤쪽 ON 시간을 첫 펄스로 점진적으로 이동, 75%부터 긴 묶음 펄스를 사용한다. 총 ON 시간과 실제 무음 프레임은 유지한다. 모터 키 `output=100|pulse=adaptive75-85-v1`는 일치하는 보정이 필요하다. 60~75% 전환 변경에도 보정용 0.2와 1.0 파형은 같아 기존 키를 유지한다.
+
+분석 화면은 최신 YAMNet 원문 후보, 실제 보정 정책 및 처리 전후 입력·명령을 표시한다. 후보가 신뢰도·유효기간 검사를 우회하지 않는다. 모든 백분율은 보정된 SPL이나 실제 모터 가속도 측정값이 아니다.
